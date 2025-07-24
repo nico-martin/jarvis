@@ -1,30 +1,23 @@
-import { useState } from "react";
+import React from "react";
+import { v4 as uuidv4 } from "uuid";
+
+import { Message, MessageRole } from "./types";
+import { Chat } from "./ui/chat/Chat";
 
 function App() {
-  const [count, setCount] = useState(0);
-
+  const [messages, setMessages] = React.useState<Array<Message>>([]);
   return (
-    <div className="flex min-h-screen items-center justify-center bg-gray-100">
-      <div className="text-center">
-        <h1 className="mb-8 text-4xl font-bold text-gray-900">Alfred</h1>
-        <div className="rounded-lg bg-white p-8 shadow-lg">
-          <h2 className="mb-4 text-2xl font-semibold">
-            React + TypeScript + Vite
-          </h2>
-          <div className="mb-4">
-            <button
-              onClick={() => setCount((count) => count + 1)}
-              className="rounded bg-blue-500 px-4 py-2 font-bold text-white hover:bg-blue-700"
-            >
-              Count is {count}
-            </button>
-          </div>
-          <p className="text-gray-600">
-            Edit <code className="rounded bg-gray-100 px-1">src/App.tsx</code>{" "}
-            and save to test HMR
-          </p>
-        </div>
-      </div>
+    <div className="flex h-screen items-center justify-center bg-stone-200 p-4">
+      <Chat
+        onSubmitPrompt={(prompt) =>
+          setMessages((messages) => [
+            ...messages,
+            { id: uuidv4(), text: prompt, role: MessageRole.USER },
+          ])
+        }
+        messages={messages}
+        className="h-full max-h-full w-1/2"
+      />
     </div>
   );
 }

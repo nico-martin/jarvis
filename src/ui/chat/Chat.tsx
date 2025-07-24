@@ -1,0 +1,83 @@
+import { PaperAirplaneIcon } from "@heroicons/react/24/outline";
+import { Button, Loader } from "@theme";
+import cn from "@utils/classnames";
+import React, { FormEvent } from "react";
+
+import { Message as MessageI } from "../../types";
+import { Message } from "./Message";
+
+export function Chat({
+  modelLoading = false,
+  thinking = false,
+  onSubmitPrompt,
+  messages,
+  className = "",
+}: {
+  modelLoading?: boolean;
+  thinking?: boolean;
+  onSubmitPrompt: (prompt: string) => void;
+  messages: Array<MessageI>;
+  className?: string;
+}) {
+  const listRef = React.useRef<HTMLUListElement>(null);
+  const messagesLengthRef = React.useRef<number>(0);
+  const promptRef = React.useRef<HTMLInputElement>(null);
+
+  const messagesLength = React.useMemo(
+    () =>
+      messages.reduce(
+        (acc, message) => acc + (message?.text || "").toString().length,
+        0
+      ),
+    [messages]
+  );
+
+  React.useEffect(() => {
+    if (messagesLength === messagesLengthRef.current) return;
+    const list = listRef.current;
+    if (!list) return;
+    list.scrollTop = list.scrollHeight;
+    messagesLengthRef.current = messagesLength;
+  }, [messagesLength]);
+
+  const onSubmit = async (e: FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    if (!promptRef.current) return;
+    const prompt = promptRef.current.value;
+    promptRef.current.value = "";
+    if (prompt) onSubmitPrompt(prompt);
+  };
+
+  return (
+    <div
+      className={cn(
+        "flex flex-col justify-end gap-2 space-y-2 rounded-xl bg-stone-50 p-6 shadow-lg border border-stone-200",
+        className
+      )}
+    >
+      <ul ref={listRef} className="space-y-4 overflow-y-auto">
+        {messages.map((message) => (
+          <li key={message.id}>
+            <Message message={message} />
+          </li>
+        ))}
+      </ul>
+      {modelLoading && (
+        <p className="flex w-19/20 items-center gap-4 self-end rounded-md border border-stone-300 bg-stone-100 p-4 text-stone-700">
+          <Loader /> loading the model. Check the console for more infos.
+        </p>
+      )}
+      <form className="flex w-full items-stretch gap-2" onSubmit={onSubmit}>
+        <input
+          type="text"
+          name="prompt"
+          ref={promptRef}
+          className="w-full rounded-md bg-stone-100 border border-stone-300 px-3.5 py-2 text-base text-stone-800 placeholder:text-stone-500 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-amber-500"
+        />
+        <Button type="submit" disabled={thinking}>
+          <PaperAirplaneIcon width="1.5em" />
+        </Button>
+      </form>
+    </div>
+  );
+}
