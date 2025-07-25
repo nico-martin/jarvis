@@ -1,7 +1,7 @@
 import {
   ChatCompletionMessageParam,
-  CreateMLCEngine,
-  MLCEngine,
+  CreateWebWorkerMLCEngine,
+  WebWorkerMLCEngine,
 } from "@mlc-ai/web-llm";
 import extractSentences from "@utils/extractSentences";
 import isCompleteSentence from "@utils/isCompleteSentence";
@@ -27,7 +27,7 @@ export type WebLlmMessage = ChatCompletionMessageParam & {
   processing?: boolean;
 };
 
-let ENGINE: MLCEngine = null;
+let ENGINE: WebWorkerMLCEngine = null;
 
 class ConversationWebLlm extends EventTarget implements Conversation {
   private engineLoading: boolean;
@@ -134,9 +134,15 @@ class ConversationWebLlm extends EventTarget implements Conversation {
       this.log("Creating engine:", QWEN3_4B.label);
       this.engineLoading = true;
       this.dispatchEvent(new Event(STATUS_EVENT_KEY));
-      ENGINE = await CreateMLCEngine(QWEN3_4B.model, {
-        initProgressCallback: this.log,
-      });
+      ENGINE = await CreateWebWorkerMLCEngine(
+        new Worker(new URL("./webLlmWorker.ts", import.meta.url), {
+          type: "module",
+        }),
+        QWEN3_4B.model,
+        {
+          initProgressCallback: this.log,
+        }
+      );
       this.engineLoading = false;
       this.dispatchEvent(new Event(STATUS_EVENT_KEY));
     }
