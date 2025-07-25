@@ -4,7 +4,6 @@ import {
   WebWorkerMLCEngine,
 } from "@mlc-ai/web-llm";
 import extractSentences from "@utils/extractSentences";
-import isCompleteSentence from "@utils/isCompleteSentence";
 import { v4 as uuidv4 } from "uuid";
 
 import {
@@ -153,7 +152,7 @@ class ConversationWebLlm extends EventTarget implements Conversation {
     const assistantId = uuidv4();
     let partialResponses: Array<PartialResponse> = [];
 
-    return await this.generateAnswer(assistantId, (answer) => {
+    return await this.generateAnswer((answer) => {
       if (this.webLlmMessages.find((m) => m.id === assistantId)) {
         this.webLlmMessages = this.webLlmMessages.map((message) =>
           message.id === assistantId ? { ...message, content: answer } : message
@@ -169,8 +168,7 @@ class ConversationWebLlm extends EventTarget implements Conversation {
         ];
       }
 
-      // Split answer into sentences and check for new complete sentences
-      if (onPartialUpdate && isCompleteSentence(answer)) {
+      if (onPartialUpdate) {
         const newPartialResponses = extractSentences(answer).map(
           (sentence) => ({
             type: PartialResponseType.TEXT,
@@ -186,7 +184,6 @@ class ConversationWebLlm extends EventTarget implements Conversation {
   };
 
   private generateAnswer = async (
-    assistantId: string,
     onReplyUpdate: (reply: string) => void
   ): Promise<string> => {
     const chunks = await ENGINE.chat.completions.create({
