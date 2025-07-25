@@ -9,10 +9,26 @@ class Kokoro implements TextToSpeech {
   private queue: Array<{ text: string; signal: AbortSignal }> = [];
   private isProcessing = false;
   private player = new SequentialAudioPlayer();
+  private voice: string = "bm_george";
+  private speed: number = 1.3;
 
-  constructor() {
+  constructor(options: { voice?: string; speed?: number } = {}) {
     this.worker = new Worker(new URL("./kokoroWorker.ts", import.meta.url), {
       type: "module",
+    });
+    if (options?.speed) {
+      this.speed = options.speed;
+    }
+    if (options?.voice) {
+      this.voice = options.voice;
+    }
+  }
+
+  public preload(): void {
+    this.workerMessage({
+      text: "",
+      voice: this.voice,
+      speed: this.speed,
     });
   }
 
@@ -67,7 +83,8 @@ class Kokoro implements TextToSpeech {
     const audioBlob = await this.workerMessage(
       {
         text,
-        voice: "bm_daniel",
+        voice: this.voice,
+        speed: this.speed,
       },
       signal
     );
@@ -81,7 +98,7 @@ class Kokoro implements TextToSpeech {
 
   private workerMessage(
     input: KokoroInput,
-    signal: AbortSignal
+    signal?: AbortSignal
   ): Promise<KokoroOutput> {
     return new Promise((resolve, reject) => {
       const id = Math.random().toString(36);
@@ -91,14 +108,15 @@ class Kokoro implements TextToSpeech {
         reject(new DOMException("Operation aborted", "AbortError"));
       };
 
-      if (signal.aborted) {
+      if (signal && signal.aborted) {
         reject(new DOMException("Operation aborted", "AbortError"));
         return;
       }
 
-      signal.addEventListener("abort", abortListener, {
-        once: true,
-      });
+      signal &&
+        signal.addEventListener("abort", abortListener, {
+          once: true,
+        });
 
       this.worker.postMessage({ input, id, log: WORKER_LOG });
 
@@ -107,13 +125,13 @@ class Kokoro implements TextToSpeech {
 
         if (e.data.status === "complete") {
           this.worker.removeEventListener("message", listener);
-          signal.removeEventListener("abort", abortListener);
+          signal && signal.removeEventListener("abort", abortListener);
           resolve(e.data.output);
         }
 
         if (e.data.status === "error") {
           this.worker.removeEventListener("message", listener);
-          signal.removeEventListener("abort", abortListener);
+          signal && signal.removeEventListener("abort", abortListener);
           reject(e.data);
         }
       };

@@ -15,8 +15,8 @@ import {
   ModelStatus,
   PartialResponse,
   PartialResponseType,
-} from "./types";
-import { QWEN3_4B } from "./webLlm/constants";
+} from "../types";
+import { QWEN3_4B } from "./constants";
 
 const MESSAGES_EVENT_KEY = "messagesChange";
 const STATUS_EVENT_KEY = "statusChange";

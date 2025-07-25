@@ -1,6 +1,6 @@
-import ConversationWebLlm from "@ai/ConversationWebLlm";
 import Kokoro from "@ai/tts/kokoro/Kokoro";
 import { MessageRole, PartialResponseType } from "@ai/types";
+import ConversationWebLlm from "@ai/webLlm/ConversationWebLlm";
 import { Chat } from "@ui/chat/Chat";
 import React from "react";
 import { v4 as uuidv4 } from "uuid";
@@ -30,7 +30,11 @@ function App() {
     () => conversation.status
   );
 
-  const tts = React.useMemo(() => new Kokoro(), []);
+  const tts = React.useMemo(() => {
+    const k = new Kokoro();
+    k.preload();
+    return k;
+  }, []);
   const [abortController, setAbortController] = React.useState(
     () => new AbortController()
   );
