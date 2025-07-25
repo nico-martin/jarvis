@@ -1,9 +1,9 @@
+import { Message as MessageI, ModelStatus } from "@ai/types";
 import { PaperAirplaneIcon } from "@heroicons/react/24/outline";
 import { Button, Loader } from "@theme";
 import cn from "@utils/classnames";
 import React, { FormEvent } from "react";
 
-import { Message as MessageI } from "../../types";
 import { Message } from "./Message";
 
 export function Chat({
@@ -11,12 +11,14 @@ export function Chat({
   thinking = false,
   onSubmitPrompt,
   messages,
+  status,
   className = "",
 }: {
   modelLoading?: boolean;
   thinking?: boolean;
   onSubmitPrompt: (prompt: string) => void;
   messages: Array<MessageI>;
+  status: ModelStatus;
   className?: string;
 }) {
   const listRef = React.useRef<HTMLUListElement>(null);
@@ -51,7 +53,7 @@ export function Chat({
   return (
     <div
       className={cn(
-        "flex flex-col justify-end gap-2 space-y-2 rounded-xl bg-stone-50 p-6 shadow-lg border border-stone-200",
+        "flex flex-col justify-end gap-2 space-y-2 rounded-xl border border-stone-200 bg-stone-50 p-6 shadow-lg",
         className
       )}
     >
@@ -72,12 +74,17 @@ export function Chat({
           type="text"
           name="prompt"
           ref={promptRef}
-          className="w-full rounded-md bg-stone-100 border border-stone-300 px-3.5 py-2 text-base text-stone-800 placeholder:text-stone-500 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-amber-500"
+          className="w-full rounded-md border border-stone-300 bg-stone-100 px-3.5 py-2 text-base text-stone-800 placeholder:text-stone-500 focus:border-amber-500 focus:ring-2 focus:ring-amber-500 focus:outline-none"
         />
         <Button type="submit" disabled={thinking}>
           <PaperAirplaneIcon width="1.5em" />
         </Button>
       </form>
+      <p className="text-xs text-stone-500">
+        Model: {status === ModelStatus.IDLE && "Not loaded"}
+        {status === ModelStatus.LOADING && "Loading..."}
+        {status === ModelStatus.LOADED && "Ready"}
+      </p>
     </div>
   );
 }

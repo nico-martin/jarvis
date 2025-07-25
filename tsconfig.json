@@ -12,6 +12,7 @@
     "esModuleInterop": false,
     "allowSyntheticDefaultImports": true,
     "strict": true,
+    "strictNullChecks": false,
     "forceConsistentCasingInFileNames": true,
     "module": "ESNext",
     "moduleResolution": "bundler",
@@ -25,6 +26,12 @@
       ],
       "@utils/*": [
         "./src/utils/*"
+      ],
+      "@ai/*": [
+        "./src/ai/*"
+      ],
+      "@ui/*": [
+        "./src/ui/*"
       ]
     }
   },

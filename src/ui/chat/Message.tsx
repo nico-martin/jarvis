@@ -1,8 +1,7 @@
+import { Message as MessageI, MessageRole } from "@ai/types";
 import cn from "@utils/classnames";
 import nl2brJsx from "@utils/nl2brJsx";
 import parseThinkingJsx from "@utils/parseThinkingJsx";
-
-import { Message as MessageI, MessageRole } from "../../types";
 
 const icons = {
   [MessageRole.ASSISTANT]: (
