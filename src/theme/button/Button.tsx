@@ -15,6 +15,7 @@ interface BaseButtonProps {
   iconRight?: ReactNode;
   disabled?: boolean;
   loading?: boolean;
+  title?: string;
 }
 
 interface ButtonAsButton extends BaseButtonProps {
@@ -84,6 +85,7 @@ export default function Button({
   iconRight,
   disabled = false,
   loading = false,
+  title = "",
   ...props
 }: ButtonProps) {
   const baseStyles =
@@ -139,6 +141,7 @@ export default function Button({
         target={props.target}
         rel={props.rel}
         className={combinedClassName}
+        title={title}
       >
         {content}
       </a>
@@ -151,6 +154,7 @@ export default function Button({
       onClick={props.onClick}
       disabled={disabled || loading}
       className={combinedClassName}
+      title={title}
     >
       {content}
     </button>

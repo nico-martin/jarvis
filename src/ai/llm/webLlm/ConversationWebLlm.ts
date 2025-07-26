@@ -1,12 +1,4 @@
 import {
-  ChatCompletionMessageParam,
-  CreateWebWorkerMLCEngine,
-  WebWorkerMLCEngine,
-} from "@mlc-ai/web-llm";
-import extractSentences from "@utils/extractSentences";
-import { v4 as uuidv4 } from "uuid";
-
-import {
   Conversation,
   ConversationConstructorOptions,
   Message,
@@ -15,7 +7,15 @@ import {
   ModelStatus,
   PartialResponse,
   PartialResponseType,
-} from "../types";
+} from "@ai/types";
+import {
+  ChatCompletionMessageParam,
+  CreateWebWorkerMLCEngine,
+  WebWorkerMLCEngine,
+} from "@mlc-ai/web-llm";
+import extractSentences from "@utils/extractSentences";
+import { v4 as uuidv4 } from "uuid";
+
 import { QWEN3_4B } from "./constants";
 
 const MESSAGES_EVENT_KEY = "messagesChange";
