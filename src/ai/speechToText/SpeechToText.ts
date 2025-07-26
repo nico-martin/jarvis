@@ -23,6 +23,14 @@ class SpeechToText {
     );
   }
 
+  public preload(): void {
+    // Send a small dummy audio buffer to initialize the model
+    const dummyAudio = new Float32Array(16000); // 1 second of silence at 16kHz
+    this.generate(dummyAudio, 16000).catch(() => {
+      // Ignore errors during preload - this is just to initialize the model
+    });
+  }
+
   public async generate(
     audioData: Float32Array,
     sampleRate: number = 16000

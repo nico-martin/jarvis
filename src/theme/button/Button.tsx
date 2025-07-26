@@ -18,21 +18,11 @@ interface BaseButtonProps {
   title?: string;
 }
 
-interface ButtonAsButton extends BaseButtonProps {
+interface ButtonProps extends BaseButtonProps {
   onClick?: () => void;
   type?: "button" | "submit" | "reset";
   href?: never;
 }
-
-interface ButtonAsLink extends BaseButtonProps {
-  href: string;
-  onClick?: never;
-  to?: never;
-  target?: string;
-  rel?: string;
-}
-
-export type ButtonProps = ButtonAsButton | ButtonAsLink;
 
 const colorVariantStyles: Record<ButtonColor, Record<ButtonVariant, string>> = {
   navy: {
@@ -89,7 +79,7 @@ export default function Button({
   ...props
 }: ButtonProps) {
   const baseStyles =
-    "inline-flex items-center justify-center font-medium rounded-md border focus:outline-none focus:ring-2 focus:ring-offset-2 transition-colors disabled:opacity-50 disabled:cursor-not-allowed";
+    "cursor-pointer inline-flex items-center justify-center font-medium rounded-md border focus:outline-none focus:ring-2 focus:ring-offset-2 transition-colors disabled:opacity-50 disabled:cursor-not-allowed";
 
   const combinedClassName = cn(
     baseStyles,
@@ -133,20 +123,6 @@ export default function Button({
       )}
     </>
   );
-
-  if ("href" in props && props.href) {
-    return (
-      <a
-        href={props.href}
-        target={props.target}
-        rel={props.rel}
-        className={combinedClassName}
-        title={title}
-      >
-        {content}
-      </a>
-    );
-  }
 
   return (
     <button

@@ -2,8 +2,9 @@ import ConversationWebLlm from "@ai/llm/webLlm/ConversationWebLlm";
 import SpeechToText from "@ai/speechToText/SpeechToText";
 import Kokoro from "@ai/textToSpeech/kokoro/Kokoro";
 import { MessageRole, PartialResponseType } from "@ai/types";
-import VoiceActivityDetection from "@ai/voiceActivityDetection/VoiceActivityDetection";
-import { Button } from "@theme";
+import VoiceActivityDetection, {
+  VoiceActivityDetectionStatus,
+} from "@ai/voiceActivityDetection/VoiceActivityDetection";
 import { Chat } from "@ui/chat/Chat";
 import React from "react";
 import { v4 as uuidv4 } from "uuid";
@@ -28,13 +29,21 @@ function App() {
     []
   );
 
-  const speechToText = React.useMemo(() => new SpeechToText(), []);
+  const speechToText = React.useMemo(() => {
+    const stt = new SpeechToText();
+    stt.preload();
+    return stt;
+  }, []);
 
   const vad = React.useMemo(() => {
     const vad = new VoiceActivityDetection();
+    vad.preload();
     vad.setCallbacks({
       onSpeechChunk: (buffer, timing) => {
-        timing.duration > 200 && speechToText.generate(buffer).then(submit);
+        timing.duration > 200 &&
+          speechToText
+            .generate(buffer)
+            .then((text) => text !== "[BLANK_AUDIO]" && submit(text));
       },
     });
     return vad;
@@ -50,9 +59,9 @@ function App() {
     () => conversation.status
   );
 
-  const vadRecording = React.useSyncExternalStore(
-    (cb) => vad.onRecordingChange(cb),
-    () => vad.recording
+  const vadStatus = React.useSyncExternalStore(
+    (cb) => vad.onStatusChange(cb),
+    () => vad.status
   );
 
   const tts = React.useMemo(() => {
@@ -82,9 +91,11 @@ function App() {
         status={status}
         className="h-full max-h-full w-1/2"
         recording={{
-          isRecording: vadRecording,
+          status: vadStatus,
           toggle: () =>
-            vadRecording ? vad.stopMicrophone() : vad.startMicrophone(),
+            vadStatus === VoiceActivityDetectionStatus.IDLE
+              ? vad.startMicrophone()
+              : vad.stopMicrophone(),
         }}
         mute={{
           isMute: mute,

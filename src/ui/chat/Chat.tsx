@@ -1,11 +1,13 @@
 import { Message as MessageI, ModelStatus } from "@ai/types";
+import { VoiceActivityDetectionStatus } from "@ai/voiceActivityDetection/VoiceActivityDetection";
 import {
+  EllipsisHorizontalIcon,
   MicrophoneIcon,
   PaperAirplaneIcon,
   SpeakerWaveIcon,
   SpeakerXMarkIcon,
-  StopIcon,
 } from "@heroicons/react/24/outline";
+import { MicrophoneIcon as MicrophoneIconSolid } from "@heroicons/react/24/solid";
 import { Button, Loader } from "@theme";
 import cn from "@utils/classnames";
 import React, { FormEvent } from "react";
@@ -29,7 +31,7 @@ export function Chat({
   status: ModelStatus;
   className?: string;
   recording: {
-    isRecording: boolean;
+    status: VoiceActivityDetectionStatus;
     toggle: () => void;
   };
   mute: {
@@ -96,9 +98,9 @@ export function Chat({
           <PaperAirplaneIcon width="1.5em" />
         </Button>
       </form>
-      <div className="flex justify-between">
+      <div className="flex items-center justify-between">
         <p className="text-xs text-stone-500">
-          Model: {status === ModelStatus.IDLE && "Not loaded"}
+          LLM: {status === ModelStatus.IDLE && "Not loaded"}
           {status === ModelStatus.LOADING && "Loading..."}
           {status === ModelStatus.LOADED && "Ready"}
         </p>
@@ -119,12 +121,25 @@ export function Chat({
             variant="outline"
             size="sm"
             onClick={recording.toggle}
-            title={recording.isRecording ? "Stop listener" : "Start listener"}
+            className={
+              recording.status === VoiceActivityDetectionStatus.RECORDING
+                ? "animate-pulse [animation-duration:0.75s]"
+                : ""
+            }
+            title={
+              recording.status === VoiceActivityDetectionStatus.IDLE
+                ? "Start listener"
+                : recording.status === VoiceActivityDetectionStatus.WAITING
+                  ? "Waiting for speech..."
+                  : "Recording speech"
+            }
           >
-            {recording.isRecording ? (
-              <StopIcon width="1.25em" />
-            ) : (
+            {recording.status === VoiceActivityDetectionStatus.IDLE ? (
               <MicrophoneIcon width="1.25em" />
+            ) : recording.status === VoiceActivityDetectionStatus.WAITING ? (
+              <MicrophoneIconSolid width="1.25em" />
+            ) : (
+              <EllipsisHorizontalIcon width="1.25em" />
             )}
           </Button>
         </div>

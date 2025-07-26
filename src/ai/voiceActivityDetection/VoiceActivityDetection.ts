@@ -1,4 +1,8 @@
-import { Message } from "@ai/types";
+export enum VoiceActivityDetectionStatus {
+  IDLE = "idle",
+  WAITING = "waiting",
+  RECORDING = "recording",
+}
 
 interface VadWorkerMessage {
   type: "init" | "audio" | "reset";
@@ -24,7 +28,7 @@ interface VadCallbacks {
   onError?: (error: string) => void;
 }
 
-const RECORDING_EVENT_KEY = "RECORDING_EVENT_KEY";
+const STATUS_CHANGE_EVENT_KEY = "STATUS_CHANGE_EVENT_KEY";
 
 class VoiceActivityDetection extends EventTarget {
   private worker: Worker;
@@ -34,21 +38,23 @@ class VoiceActivityDetection extends EventTarget {
   private mediaStream: MediaStream | null = null;
   private sourceNode: MediaStreamAudioSourceNode | null = null;
   private workletNode: AudioWorkletNode | null = null;
-  private _isRecording = false;
+  private _status = VoiceActivityDetectionStatus.IDLE;
 
-  public get isRecording() {
-    return this._isRecording;
+  public get status() {
+    return this._status;
   }
 
-  public set isRecording(recording) {
-    this._isRecording = recording;
-    this.dispatchEvent(new Event(RECORDING_EVENT_KEY));
+  private set status(newStatus: VoiceActivityDetectionStatus) {
+    this._status = newStatus;
+    this.dispatchEvent(new Event(STATUS_CHANGE_EVENT_KEY));
   }
 
-  public onRecordingChange = (callback: (recording: boolean) => void) => {
-    const listener = () => callback(this.recording);
-    this.addEventListener(RECORDING_EVENT_KEY, listener);
-    return () => this.removeEventListener(RECORDING_EVENT_KEY, listener);
+  public onStatusChange = (
+    callback: (status: VoiceActivityDetectionStatus) => void
+  ) => {
+    const listener = () => callback(this.status);
+    this.addEventListener(STATUS_CHANGE_EVENT_KEY, listener);
+    return () => this.removeEventListener(STATUS_CHANGE_EVENT_KEY, listener);
   };
 
   constructor(callbacks: VadCallbacks = {}) {
@@ -59,6 +65,9 @@ class VoiceActivityDetection extends EventTarget {
     });
 
     this.worker.addEventListener("message", this.handleWorkerMessage);
+  }
+
+  public preload(): void {
     this.worker.postMessage({ type: "init" } as VadWorkerMessage);
   }
 
@@ -71,10 +80,12 @@ class VoiceActivityDetection extends EventTarget {
         break;
 
       case "speech_start":
+        this.status = VoiceActivityDetectionStatus.RECORDING;
         this.callbacks.onSpeechStart?.();
         break;
 
       case "speech_end":
+        this.status = VoiceActivityDetectionStatus.WAITING;
         this.callbacks.onSpeechEnd?.();
         break;
 
@@ -111,8 +122,8 @@ class VoiceActivityDetection extends EventTarget {
   };
 
   public async startMicrophone(): Promise<void> {
-    if (this.isRecording) {
-      console.warn("Microphone is already recording");
+    if (this.status !== VoiceActivityDetectionStatus.IDLE) {
+      console.warn("Microphone is already active");
       return;
     }
 
@@ -147,7 +158,7 @@ class VoiceActivityDetection extends EventTarget {
 
       this.sourceNode.connect(this.workletNode);
 
-      this.isRecording = true;
+      this.status = VoiceActivityDetectionStatus.WAITING;
     } catch (error) {
       const errorMessage =
         error instanceof Error ? error.message : "Failed to start microphone";
@@ -157,7 +168,7 @@ class VoiceActivityDetection extends EventTarget {
   }
 
   public stopMicrophone(): void {
-    if (!this.isRecording) {
+    if (this.status === VoiceActivityDetectionStatus.IDLE) {
       return;
     }
 
@@ -182,7 +193,7 @@ class VoiceActivityDetection extends EventTarget {
       this.audioContext = null;
     }
 
-    this.isRecording = false;
+    this.status = VoiceActivityDetectionStatus.IDLE;
   }
 
   public processAudio(audioBuffer: Float32Array): void {
@@ -216,10 +227,6 @@ class VoiceActivityDetection extends EventTarget {
 
   public get ready(): boolean {
     return this.isReady;
-  }
-
-  public get recording(): boolean {
-    return this.isRecording;
   }
 }
 
