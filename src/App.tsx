@@ -1,10 +1,12 @@
 import ConversationWebLlm from "@ai/llm/webLlm/ConversationWebLlm";
+import { HttpTransport, McpServer } from "@ai/mcp";
 import SpeechToText from "@ai/speechToText/SpeechToText";
 import Kokoro from "@ai/textToSpeech/kokoro/Kokoro";
 import { MessageRole, PartialResponseType } from "@ai/types";
 import VoiceActivityDetection, {
   VoiceActivityDetectionStatus,
 } from "@ai/voiceActivityDetection/VoiceActivityDetection";
+import { Button } from "@theme";
 import { Chat } from "@ui/chat/Chat";
 import React from "react";
 import { v4 as uuidv4 } from "uuid";
@@ -12,7 +14,7 @@ import { v4 as uuidv4 } from "uuid";
 const SYSTEM_PROMPT =
   "You are Alfred, a distinguished English butler. Respond with proper etiquette, formality, and helpfulness befitting a gentleman's gentleman.";
 
-const INSTRUCTIONS = ["Call me Mr. Martin", "never use ellipsis (...)"];
+const INSTRUCTIONS = ["My Name is Nico Martin", "never use ellipsis (...)"];
 
 function App() {
   const [mute, setMute] = React.useState<boolean>(false);
@@ -83,8 +85,23 @@ function App() {
         tts.speak(part.text, speakerAbortController.signal)
     );
 
+  const c = async () => {
+    const transport = new HttpTransport({
+      url: "https://memory-mcp.nico.dev/mcp",
+    });
+
+    const mcp = new McpServer({
+      clientConfig: { name: "Memories", version: "1.0.0" },
+      autoReconnect: true,
+    });
+
+    await mcp.setTransport(transport);
+    await mcp.connect();
+  };
+
   return (
     <div className="flex h-screen items-center justify-center bg-stone-200 p-4">
+      <Button onClick={c}>Connect MCP</Button>
       <Chat
         onSubmitPrompt={submit}
         messages={messages}

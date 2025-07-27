@@ -18,10 +18,12 @@
     "@heroicons/react": "^2.2.0",
     "@huggingface/transformers": "^3.7.0",
     "@mlc-ai/web-llm": "^0.2.79",
+    "@modelcontextprotocol/sdk": "^1.17.0",
     "@tailwindcss/vite": "^4.1.11",
     "phonemizer": "^1.2.1",
     "react": "^19.1.0",
     "react-dom": "^19.1.0",
+    "strict-url-sanitise": "^0.0.1",
     "uuid": "^11.1.0",
     "vite-tsconfig-paths": "^5.1.4"
   },
