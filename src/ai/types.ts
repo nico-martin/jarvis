@@ -59,3 +59,20 @@ export interface ConversationConstructor {
     options: ConversationConstructorOptions
   ): Conversation;
 }
+
+export interface McpHttpServer {
+  id: string;
+  name: string;
+  url: string;
+  active: boolean;
+}
+
+export interface McpBuiltinServer {
+  id: string;
+  name: string;
+  description: string;
+  type: "builtin";
+  serverType: "take_picture" | string;
+  active: boolean;
+  removable: boolean;
+}

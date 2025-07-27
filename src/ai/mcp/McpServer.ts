@@ -495,7 +495,7 @@ export class McpServer {
         ? `${message} ${args.map((arg) => JSON.stringify(arg)).join(" ")}`
         : message;
 
-    console[level](`[Mcp] ${fullMessage}`);
+    //console[level](`[Mcp] ${fullMessage}`);
     this.callbacks.onLog?.(level, fullMessage);
   }
 }

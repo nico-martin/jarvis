@@ -3,6 +3,7 @@ import type {
   JSONRPCMessage,
   JSONRPCRequest,
   JSONRPCResponse,
+  JSONRPCError,
 } from "@modelcontextprotocol/sdk/types.js";
 
 import type { McpTransport } from "./McpServer";
@@ -16,7 +17,7 @@ export interface PromiseTransportConfig {
    * - Communicates with a browser extension
    * - Uses WebRTC, WebSocket, or other protocols
    */
-  executeRequest: (request: JSONRPCRequest) => Promise<JSONRPCResponse>;
+  executeRequest: (request: JSONRPCRequest) => Promise<JSONRPCResponse | JSONRPCError>;
 
   /**
    * Optional function to handle transport-level setup
@@ -151,7 +152,7 @@ class PromiseTransportInstance implements Transport {
 
   private async executeRequest(
     request: JSONRPCRequest
-  ): Promise<JSONRPCResponse> {
+  ): Promise<JSONRPCResponse | JSONRPCError> {
     return new Promise((resolve, reject) => {
       // Set up timeout
       const timeoutId = window.setTimeout(() => {

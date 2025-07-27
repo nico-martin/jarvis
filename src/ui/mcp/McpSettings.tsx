@@ -1,8 +1,13 @@
+import { defaultBuiltinServers } from "@ai/mcp/mcpServers/builtinMcp";
+import { McpBuiltinServer, McpHttpServer } from "@ai/types";
 import { PlusIcon, PowerIcon, TrashIcon } from "@heroicons/react/24/outline";
-import { Modal } from "@theme";
-import { Button } from "@theme";
+import { Button, Modal } from "@theme";
+import { localStorage } from "@utils/LocalStorage";
 import cn from "@utils/classnames";
-import { MCP_SERVERS_STORAGE_KEY } from "@utils/constants";
+import {
+  MCP_BUILTIN_SERVERS_STORAGE_KEY,
+  MCP_SERVERS_STORAGE_KEY,
+} from "@utils/constants";
 import React from "react";
 
 const inputClasses =
@@ -13,31 +18,51 @@ const statusDotClasses = "h-2 w-2 rounded-full";
 const truncateClasses = "truncate text-sm font-medium";
 const urlClasses = "truncate text-xs";
 
-interface McpServer {
-  id: string;
-  name: string;
-  url: string;
-  active: boolean;
-}
-
 interface McpSettingsProps {
   open: boolean;
   setOpen: (open: boolean) => void;
 }
 
 export function McpSettings({ open, setOpen }: McpSettingsProps) {
-  const [servers, setServers] = React.useState<McpServer[]>([]);
+  const [servers, setServers] = React.useState<McpHttpServer[]>([]);
+  const [builtinServers, setBuiltinServers] = React.useState<
+    McpBuiltinServer[]
+  >(defaultBuiltinServers);
   const [newServer, setNewServer] = React.useState({ name: "", url: "" });
 
   React.useEffect(() => {
-    const stored = localStorage.getItem(MCP_SERVERS_STORAGE_KEY);
+    const stored = localStorage.getItem<McpHttpServer[]>(
+      MCP_SERVERS_STORAGE_KEY
+    );
     if (stored) {
-      try {
-        setServers(JSON.parse(stored));
-      } catch (error) {
-        console.error("Failed to parse stored MCP servers:", error);
-      }
+      setServers(stored);
     }
+
+    const storedBuiltin = localStorage.getItem<McpBuiltinServer[]>(
+      MCP_BUILTIN_SERVERS_STORAGE_KEY
+    );
+    if (storedBuiltin) {
+      setBuiltinServers(storedBuiltin);
+    }
+
+    const unsubscribeHttp = localStorage.onItemChange<McpHttpServer[]>(
+      MCP_SERVERS_STORAGE_KEY,
+      (key, newValue) => {
+        setServers(newValue || []);
+      }
+    );
+
+    const unsubscribeBuiltin = localStorage.onItemChange<McpBuiltinServer[]>(
+      MCP_BUILTIN_SERVERS_STORAGE_KEY,
+      (key, newValue) => {
+        setBuiltinServers(newValue || defaultBuiltinServers);
+      }
+    );
+
+    return () => {
+      unsubscribeHttp();
+      unsubscribeBuiltin();
+    };
   }, []);
 
   const handleAddServer = () => {
@@ -45,7 +70,7 @@ export function McpSettings({ open, setOpen }: McpSettingsProps) {
       return;
     }
 
-    const server: McpServer = {
+    const server: McpHttpServer = {
       id: crypto.randomUUID(),
       name: newServer.name.trim(),
       url: newServer.url.trim(),
@@ -68,23 +93,31 @@ export function McpSettings({ open, setOpen }: McpSettingsProps) {
     );
   };
 
+  const handleToggleBuiltinServer = (id: string) => {
+    setBuiltinServers((prev) =>
+      prev.map((server) =>
+        server.id === id ? { ...server, active: !server.active } : server
+      )
+    );
+  };
+
   const handleSave = () => {
-    localStorage.setItem(MCP_SERVERS_STORAGE_KEY, JSON.stringify(servers));
+    localStorage.setItem(MCP_SERVERS_STORAGE_KEY, servers);
+    localStorage.setItem(MCP_BUILTIN_SERVERS_STORAGE_KEY, builtinServers);
     setOpen(false);
   };
 
   const handleCancel = () => {
-    // Reload from localStorage to reset any unsaved changes
-    const stored = localStorage.getItem(MCP_SERVERS_STORAGE_KEY);
-    if (stored) {
-      try {
-        setServers(JSON.parse(stored));
-      } catch (error) {
-        setServers([]);
-      }
-    } else {
-      setServers([]);
-    }
+    const stored = localStorage.getItem<McpHttpServer[]>(
+      MCP_SERVERS_STORAGE_KEY
+    );
+    setServers(stored || []);
+
+    const storedBuiltin = localStorage.getItem<McpBuiltinServer[]>(
+      MCP_BUILTIN_SERVERS_STORAGE_KEY
+    );
+    setBuiltinServers(storedBuiltin || defaultBuiltinServers);
+
     setNewServer({ name: "", url: "" });
     setOpen(false);
   };
@@ -99,10 +132,84 @@ export function McpSettings({ open, setOpen }: McpSettingsProps) {
   return (
     <Modal open={open} setOpen={setOpen} title="MCP Server Settings" size="lg">
       <div className="space-y-6">
-        {/* Server List */}
+        {/* Built-in Servers */}
         <div>
           <h3 className="mb-3 text-sm font-medium text-stone-700">
-            Configured Servers
+            Built-in Servers
+          </h3>
+          <div className="space-y-2">
+            {builtinServers.map((server) => (
+              <div
+                key={server.id}
+                className={cn(
+                  "flex items-center justify-between rounded-md border p-3",
+                  {
+                    "border-stone-200 bg-stone-50": server.active,
+                    "border-stone-300 bg-stone-100": !server.active,
+                  }
+                )}
+              >
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center gap-2">
+                    <div
+                      className={cn(statusDotClasses, {
+                        "bg-green-500": server.active,
+                        "bg-stone-400": !server.active,
+                      })}
+                    />
+                    <p
+                      className={cn(truncateClasses, {
+                        "text-stone-800": server.active,
+                        "text-stone-500": !server.active,
+                      })}
+                    >
+                      {server.name}
+                    </p>
+                    <span
+                      className={cn("text-xs", {
+                        "text-green-600": server.active,
+                        "text-stone-400": !server.active,
+                      })}
+                    >
+                      {server.active ? "Active" : "Inactive"}
+                    </span>
+                  </div>
+                  <p
+                    className={cn(urlClasses, {
+                      "text-stone-500": server.active,
+                      "text-stone-400": !server.active,
+                    })}
+                  >
+                    {server.description}
+                  </p>
+                </div>
+                <div className="ml-3 flex items-center gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => handleToggleBuiltinServer(server.id)}
+                    className={cn({
+                      "text-amber-600 hover:bg-amber-50 hover:text-amber-700":
+                        server.active,
+                      "text-green-600 hover:bg-green-50 hover:text-green-700":
+                        !server.active,
+                    })}
+                    title={
+                      server.active ? "Deactivate server" : "Activate server"
+                    }
+                  >
+                    <PowerIcon width="1em" />
+                  </Button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* HTTP Server List */}
+        <div>
+          <h3 className="mb-3 text-sm font-medium text-stone-700">
+            HTTP Servers
           </h3>
           {servers.length === 0 ? (
             <p className="text-sm text-stone-500 italic">

@@ -1,14 +1,24 @@
 import ConversationWebLlm from "@ai/llm/webLlm/ConversationWebLlm";
 import { HttpTransport, McpServer } from "@ai/mcp";
+import { createBuiltinServer } from "@ai/mcp/mcpServers/builtinMcp";
 import SpeechToText from "@ai/speechToText/SpeechToText";
 import Kokoro from "@ai/textToSpeech/kokoro/Kokoro";
-import { MessageRole, PartialResponseType } from "@ai/types";
+import {
+  McpBuiltinServer,
+  McpHttpServer,
+  MessageRole,
+  PartialResponseType,
+} from "@ai/types";
 import VoiceActivityDetection, {
   VoiceActivityDetectionStatus,
 } from "@ai/voiceActivityDetection/VoiceActivityDetection";
-import { Button } from "@theme";
 import { Chat } from "@ui/chat/Chat";
 import McpSettings from "@ui/mcp/McpSettings";
+import localStorage from "@utils/LocalStorage";
+import {
+  MCP_BUILTIN_SERVERS_STORAGE_KEY,
+  MCP_SERVERS_STORAGE_KEY,
+} from "@utils/constants";
 import React from "react";
 import { v4 as uuidv4 } from "uuid";
 
@@ -74,6 +84,83 @@ function App() {
     return k;
   }, []);
 
+  const loadMcpServers = async () => {
+    let httpServers = localStorage.getItem<Array<McpHttpServer>>(
+      MCP_SERVERS_STORAGE_KEY
+    );
+    if (httpServers) {
+      httpServers = httpServers.filter((server) => server.active);
+    } else {
+      httpServers = [];
+    }
+
+    let builtinServers = localStorage.getItem<Array<McpBuiltinServer>>(
+      MCP_BUILTIN_SERVERS_STORAGE_KEY
+    );
+    if (builtinServers) {
+      builtinServers = builtinServers.filter((server) => server.active);
+    } else {
+      builtinServers = [];
+    }
+
+    const httpMcps = await Promise.all(
+      httpServers.map(async (server) => {
+        const mcp = new McpServer({
+          clientConfig: {
+            name: server.name,
+          },
+          autoReconnect: true,
+        });
+        await mcp.setTransport(new HttpTransport({ url: server.url }));
+        await mcp.connect();
+        return mcp;
+      })
+    );
+
+    const builtinMcps = await Promise.all(
+      builtinServers.map(async (server) => {
+        try {
+          const mcp = new McpServer({
+            clientConfig: { name: server.name },
+          });
+          const transport = createBuiltinServer(server.serverType);
+          await mcp.setTransport(transport);
+          await mcp.connect();
+          return mcp;
+        } catch (error) {
+          console.error(
+            `[MCP] Failed to load built-in server ${server.name}:`,
+            error
+          );
+          return null;
+        }
+      })
+    );
+
+    const allMcps = [...httpMcps, ...builtinMcps.filter(Boolean)];
+
+    console.log("[MCP] allServers", allMcps);
+    console.log(
+      "[MCP] allServer tools",
+      allMcps.map((s) => s.tools)
+    );
+  };
+
+  React.useEffect(() => {
+    const unsubscribeHttp = localStorage.onItemChange<Array<McpHttpServer>>(
+      MCP_SERVERS_STORAGE_KEY,
+      loadMcpServers
+    );
+    const unsubscribeBuiltin = localStorage.onItemChange<
+      Array<McpBuiltinServer>
+    >(MCP_BUILTIN_SERVERS_STORAGE_KEY, loadMcpServers);
+    loadMcpServers();
+    return () => {
+      unsubscribeHttp();
+      unsubscribeBuiltin();
+    };
+  }, []);
+
   const submit = (prompt: string) =>
     conversation.processPrompt(
       {
@@ -86,20 +173,6 @@ function App() {
         !mute &&
         tts.speak(part.text, speakerAbortController.signal)
     );
-
-  const c = async () => {
-    const transport = new HttpTransport({
-      url: "https://memory-mcp.nico.dev/mcp",
-    });
-
-    const mcp = new McpServer({
-      clientConfig: { name: "Memories", version: "1.0.0" },
-      autoReconnect: true,
-    });
-
-    await mcp.setTransport(transport);
-    await mcp.connect();
-  };
 
   return (
     <div className="flex h-screen items-center justify-center bg-stone-200 p-4">
