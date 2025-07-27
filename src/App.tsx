@@ -8,6 +8,7 @@ import VoiceActivityDetection, {
 } from "@ai/voiceActivityDetection/VoiceActivityDetection";
 import { Button } from "@theme";
 import { Chat } from "@ui/chat/Chat";
+import McpSettings from "@ui/mcp/McpSettings";
 import React from "react";
 import { v4 as uuidv4 } from "uuid";
 
@@ -18,6 +19,7 @@ const INSTRUCTIONS = ["My Name is Nico Martin", "never use ellipsis (...)"];
 
 function App() {
   const [mute, setMute] = React.useState<boolean>(false);
+  const [mcpSettingsOpen, setMcpSettingsOpen] = React.useState<boolean>(false);
   const [speakerAbortController, setSpeakerAbortController] = React.useState(
     () => new AbortController()
   );
@@ -101,7 +103,7 @@ function App() {
 
   return (
     <div className="flex h-screen items-center justify-center bg-stone-200 p-4">
-      <Button onClick={c}>Connect MCP</Button>
+      <McpSettings open={mcpSettingsOpen} setOpen={setMcpSettingsOpen} />
       <Chat
         onSubmitPrompt={submit}
         messages={messages}
@@ -126,6 +128,7 @@ function App() {
             }
           },
         }}
+        openMcpSettings={() => setMcpSettingsOpen(true)}
       />
     </div>
   );

@@ -8,7 +8,7 @@ import {
   SpeakerXMarkIcon,
 } from "@heroicons/react/24/outline";
 import { MicrophoneIcon as MicrophoneIconSolid } from "@heroicons/react/24/solid";
-import { Button, Loader } from "@theme";
+import { Button, Loader, McpIcon } from "@theme";
 import cn from "@utils/classnames";
 import React, { FormEvent } from "react";
 
@@ -23,6 +23,7 @@ export function Chat({
   className = "",
   recording,
   mute,
+  openMcpSettings,
 }: {
   modelLoading?: boolean;
   thinking?: boolean;
@@ -38,6 +39,7 @@ export function Chat({
     isMute: boolean;
     toggle: () => void;
   };
+  openMcpSettings: () => void;
 }) {
   const listRef = React.useRef<HTMLUListElement>(null);
   const messagesLengthRef = React.useRef<number>(0);
@@ -105,6 +107,14 @@ export function Chat({
           {status === ModelStatus.LOADED && "Ready"}
         </p>
         <div className="flex gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={openMcpSettings}
+            title="MCP settings"
+          >
+            <McpIcon />
+          </Button>
           <Button
             variant="outline"
             size="sm"
