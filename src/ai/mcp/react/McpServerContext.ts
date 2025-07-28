@@ -1,5 +1,6 @@
-import { McpServerContextType } from "@ai/mcp/react/types";
 import React from "react";
+
+import { McpServerContextType } from "./types";
 
 const McpServerContextProvider =
   React.createContext<McpServerContextType>(null);

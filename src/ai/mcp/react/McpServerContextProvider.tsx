@@ -1,12 +1,4 @@
 import { McpState } from "@ai/mcp/McpServer";
-import { createBuiltinServer } from "@ai/mcp/mcpServers/builtinMcp";
-import McpServerContext from "@ai/mcp/react/McpServerContext";
-import {
-  getBuiltInServers,
-  getHttpServers,
-  saveBuiltInServers,
-  saveHttpServers,
-} from "@ai/mcp/utils/mcpServerStore";
 import {
   McpServerStore,
   McpServerStoreBuiltIn,
@@ -15,6 +7,14 @@ import {
 import React from "react";
 
 import { HttpTransport, McpServer } from "../index";
+import { createBuiltinServer } from "../mcpServers/builtinMcp";
+import {
+  getBuiltInServers,
+  getHttpServers,
+  saveBuiltInServers,
+  saveHttpServers,
+} from "../utils/mcpServerStore";
+import McpServerContext from "./McpServerContext";
 
 interface McpServerContextProviderProps {
   children: React.ReactNode;

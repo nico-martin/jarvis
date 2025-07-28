@@ -1,5 +1,6 @@
-import TakePictureServer from "@ai/mcp/mcpServers/takePictureServer";
 import { McpServerStoreBuiltIn } from "@ai/types";
+
+import TakePictureServer from "./takePictureServer";
 
 export const defaultBuiltinServers: McpServerStoreBuiltIn[] = [
   {

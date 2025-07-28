@@ -1,10 +1,11 @@
-import { defaultBuiltinServers } from "@ai/mcp/mcpServers/builtinMcp";
 import { McpServerStoreBuiltIn, McpServerStoreHttp } from "@ai/types";
 import localStorage from "@utils/LocalStorage";
 import {
   MCP_BUILTIN_SERVERS_STORAGE_KEY,
   MCP_SERVERS_STORAGE_KEY,
 } from "@utils/constants";
+
+import { defaultBuiltinServers } from "../mcpServers/builtinMcp";
 
 export const saveBuiltInServers = (
   servers: Array<McpServerStoreBuiltIn> = []
