@@ -60,19 +60,18 @@ export interface ConversationConstructor {
   ): Conversation;
 }
 
-export interface McpHttpServer {
-  id: string;
+export interface McpServerStoreBase {
   name: string;
-  url: string;
   active: boolean;
+  active_tools: Array<string>;
 }
 
-export interface McpBuiltinServer {
-  id: string;
-  name: string;
-  description: string;
-  type: "builtin";
-  serverType: "take_picture" | string;
-  active: boolean;
-  removable: boolean;
+export interface McpServerStoreHttp extends McpServerStoreBase {
+  url: string;
 }
+
+export interface McpServerStoreBuiltIn extends McpServerStoreBase {
+  serverType: "take_picture" | string;
+}
+
+export type McpServerStore = McpServerStoreHttp | McpServerStoreBuiltIn;

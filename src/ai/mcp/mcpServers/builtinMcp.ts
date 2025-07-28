@@ -1,15 +1,12 @@
 import TakePictureServer from "@ai/mcp/mcpServers/takePictureServer";
-import { McpBuiltinServer } from "@ai/types";
+import { McpServerStoreBuiltIn } from "@ai/types";
 
-export const defaultBuiltinServers: McpBuiltinServer[] = [
+export const defaultBuiltinServers: McpServerStoreBuiltIn[] = [
   {
-    id: "take-picture",
     name: "Take Picture",
-    description: "Take pictures using the device camera",
-    type: "builtin",
     serverType: "take_picture",
-    active: true,
-    removable: false,
+    active: false,
+    active_tools: [],
   },
 ];
 

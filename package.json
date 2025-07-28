@@ -23,6 +23,7 @@
     "phonemizer": "^1.2.1",
     "react": "^19.1.0",
     "react-dom": "^19.1.0",
+    "react-router-dom": "^7.7.1",
     "strict-url-sanitise": "^0.0.1",
     "uuid": "^11.1.0",
     "vite-tsconfig-paths": "^5.1.4"

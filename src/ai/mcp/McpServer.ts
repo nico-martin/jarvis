@@ -55,7 +55,7 @@ export interface McpCallbacks {
 
 // Main MCP class
 export class McpServer {
-  private config: McpConfig;
+  public config: McpConfig;
   private callbacks: McpCallbacks;
   private transport: McpTransport | null = null;
   private client: Client | null = null;
