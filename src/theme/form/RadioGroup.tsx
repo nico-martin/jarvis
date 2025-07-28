@@ -1,7 +1,7 @@
 import { RadioGroup as HeadlessRadioGroup, Radio } from "@headlessui/react";
 import React from "react";
 
-import cn from "../../utils/classnames.ts";
+import cn from "../../utils/classnames";
 
 const RadioGroup: React.FC<{
   value: string;

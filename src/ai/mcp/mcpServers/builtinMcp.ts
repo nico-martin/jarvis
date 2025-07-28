@@ -1,17 +1,20 @@
 import { McpServerStoreBuiltIn } from "@ai/types";
 
-import TakePictureServer from "./takePictureServer";
+import PromiseTransport from "../PromiseTransport";
+import TakePictureServer from "./TakePictureServer";
 
 export const defaultBuiltinServers: McpServerStoreBuiltIn[] = [
   {
     name: "Take Picture",
     serverType: "take_picture",
     active: false,
-    active_tools: [],
+    activeTools: [],
   },
 ];
 
-export const createBuiltinServer = (serverType: string) => {
+export const getBuiltInServerTransport = (
+  serverType: string
+): PromiseTransport => {
   switch (serverType) {
     case "take_picture":
       return new TakePictureServer().getTransport();

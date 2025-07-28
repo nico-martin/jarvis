@@ -1,6 +1,6 @@
 import React from "react";
 
-import cn from "../../utils/classnames.ts";
+import cn from "../../utils/classnames";
 
 const Checkbox: React.FC<{
   value: string;

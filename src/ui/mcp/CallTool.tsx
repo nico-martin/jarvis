@@ -1,6 +1,5 @@
 import { McpServer } from "@ai/mcp/McpServer";
 import { Button, Modal } from "@theme";
-import cn from "@utils/classnames";
 import React from "react";
 
 interface Tool {

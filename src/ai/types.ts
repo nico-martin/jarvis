@@ -63,7 +63,7 @@ export interface ConversationConstructor {
 export interface McpServerStoreBase {
   name: string;
   active: boolean;
-  active_tools: Array<string>;
+  activeTools: Array<string>;
 }
 
 export interface McpServerStoreHttp extends McpServerStoreBase {

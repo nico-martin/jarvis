@@ -1,12 +1,11 @@
+import { McpTransport } from "@ai/mcp/types";
 import type { Transport } from "@modelcontextprotocol/sdk/shared/transport.js";
 import type {
+  JSONRPCError,
   JSONRPCMessage,
   JSONRPCRequest,
   JSONRPCResponse,
-  JSONRPCError,
 } from "@modelcontextprotocol/sdk/types.js";
-
-import type { McpTransport } from "./McpServer";
 
 export interface PromiseTransportConfig {
   /**
@@ -17,7 +16,9 @@ export interface PromiseTransportConfig {
    * - Communicates with a browser extension
    * - Uses WebRTC, WebSocket, or other protocols
    */
-  executeRequest: (request: JSONRPCRequest) => Promise<JSONRPCResponse | JSONRPCError>;
+  executeRequest: (
+    request: JSONRPCRequest
+  ) => Promise<JSONRPCResponse | JSONRPCError>;
 
   /**
    * Optional function to handle transport-level setup
@@ -35,7 +36,7 @@ export interface PromiseTransportConfig {
   timeout?: number;
 }
 
-export class PromiseTransport implements McpTransport {
+class PromiseTransport implements McpTransport {
   private config: PromiseTransportConfig;
   private transport: PromiseTransportInstance | null = null;
   private connected = false;
@@ -52,7 +53,6 @@ export class PromiseTransport implements McpTransport {
       return this.transport;
     }
 
-    // Call setup function if provided
     if (this.config.onConnect) {
       await this.config.onConnect();
     }
@@ -92,7 +92,6 @@ class PromiseTransportInstance implements Transport {
     }
   >();
 
-  // Transport event handlers
   public onmessage?: (message: JSONRPCMessage) => void;
   public onerror?: (error: Error) => void;
   public onclose?: () => void;
@@ -175,6 +174,7 @@ class PromiseTransportInstance implements Transport {
           if (pending) {
             clearTimeout(pending.timeout);
             this.pendingRequests.delete(request.id);
+            // @ts-ignore
             pending.resolve(response);
           }
         })

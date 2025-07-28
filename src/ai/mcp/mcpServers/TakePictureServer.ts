@@ -4,7 +4,9 @@ import type {
   JSONRPCResponse,
 } from "@modelcontextprotocol/sdk/types.js";
 
-import { PromiseTransport, PromiseTransportConfig } from "../PromiseTransport";
+import PromiseTransport, {
+  type PromiseTransportConfig,
+} from "../PromiseTransport";
 
 export interface TakePictureOptions {
   format?: "png" | "jpeg" | "webp";

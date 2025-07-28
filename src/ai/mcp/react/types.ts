@@ -1,4 +1,4 @@
-import { McpServer, McpState } from "@ai/mcp";
+import McpServer, { McpState } from "@ai/mcp/McpServer";
 import {
   McpServerStore,
   McpServerStoreBuiltIn,
@@ -9,6 +9,7 @@ export interface McpServerWithState {
   server: McpServer;
   state: McpState;
   error?: string;
+  authUrl?: string | null;
   lastStateChange: Date;
 }
 

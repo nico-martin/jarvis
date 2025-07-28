@@ -1,4 +1,5 @@
-import { McpState } from "@ai/mcp";
+import HttpTransport from "@ai/mcp/HttpTransport";
+import { McpServer, McpState } from "@ai/mcp/McpServer";
 import {
   McpServerStore,
   McpServerStoreBuiltIn,
@@ -6,8 +7,7 @@ import {
 } from "@ai/types";
 import React from "react";
 
-import { HttpTransport, McpServer } from "../index";
-import { createBuiltinServer } from "../mcpServers/builtinMcp";
+import { getBuiltInServerTransport } from "../mcpServers/builtinMcp";
 import {
   getBuiltInServers,
   getHttpServers,
@@ -96,7 +96,7 @@ export function McpServerContextProvider({
       name: name.trim(),
       url: url.trim(),
       active: false,
-      active_tools: [],
+      activeTools: [],
     };
 
     try {
@@ -110,28 +110,40 @@ export function McpServerContextProvider({
     }
 
     const serverWithState = createServerWithState(serverConfig);
-    const { server } = serverWithState;
 
-    await server.setTransport(new HttpTransport({ url: serverConfig.url }));
-    await server.connect();
+    await serverWithState.server.setTransport(
+      new HttpTransport({
+        url: serverConfig.url,
+        authConfig: {
+          preventAutoAuth: false,
+          onPopupWindow: (authUrl: string) => {
+            console.info(
+              `Opening authentication popup for ${serverConfig.name}: ${authUrl}`
+            );
+          },
+        },
+      })
+    );
 
-    if (server.state === McpState.FAILED) {
+    await serverWithState.server.connect();
+
+    if (serverWithState.server.state === McpState.FAILED) {
       throw new Error(
-        `Server connection failed - the server may be invalid or unreachable: ${server.error || "Unknown connection error"}`
+        `Server connection failed - the server may be invalid or unreachable: ${serverWithState.server.error || "Unknown connection error"}`
       );
     }
 
-    if (server.state !== McpState.READY) {
+    if (serverWithState.server.state !== McpState.READY) {
       throw new Error(
-        `Server connection incomplete - expected READY state but got ${server.state}`
+        `Server connection incomplete - expected READY state but got ${serverWithState.server.state}`
       );
     }
 
     const newServerEntry: McpServerStoreHttp & McpServerWithState = {
       ...serverConfig,
       ...serverWithState,
-      state: server.state,
-      error: server.error,
+      state: serverWithState.server.state,
+      error: serverWithState.server.error,
     };
     setHttpServers((httpServers) => [...httpServers, newServerEntry]);
   };
@@ -149,7 +161,7 @@ export function McpServerContextProvider({
           name: server.name,
           url: server.url,
           active: server.active,
-          active_tools: server.active_tools,
+          activeTools: server.activeTools,
         }))
       );
 
@@ -158,7 +170,6 @@ export function McpServerContextProvider({
   };
 
   const initializeServers = async () => {
-    // Immediately show servers in CONNECTING state
     const initialHttpServers = getHttpServers().map((serverConfig) => {
       const serverWithState = createServerWithState(serverConfig);
       return {
@@ -180,19 +191,18 @@ export function McpServerContextProvider({
     setHttpServers(initialHttpServers);
     setBuiltinServers(initialBuiltinServers);
 
-    // Connect HTTP servers in parallel
     Promise.allSettled(
       getHttpServers().map(async (serverConfig) => {
         try {
-          const serverWithState = createServerWithState(serverConfig);
-          const { server } = serverWithState;
+          const { server } = createServerWithState(serverConfig);
 
           await server.setTransport(
-            new HttpTransport({ url: serverConfig.url })
+            new HttpTransport({
+              url: serverConfig.url,
+            })
           );
           await server.connect();
 
-          // Update this specific server's state
           setHttpServers((prevServers) =>
             prevServers.map((s) =>
               s.url === serverConfig.url
@@ -206,7 +216,6 @@ export function McpServerContextProvider({
             )
           );
         } catch (error) {
-          // Update this specific server's error state
           setHttpServers((prevServers) =>
             prevServers.map((s) =>
               s.url === serverConfig.url
@@ -223,19 +232,16 @@ export function McpServerContextProvider({
       })
     );
 
-    // Connect builtin servers in parallel
     Promise.allSettled(
       getBuiltInServers().map(async (serverConfig) => {
         try {
-          const serverWithState = createServerWithState(serverConfig);
-          const { server } = serverWithState;
+          const { server } = createServerWithState(serverConfig);
 
           await server.setTransport(
-            createBuiltinServer(serverConfig.serverType)
+            getBuiltInServerTransport(serverConfig.serverType)
           );
           await server.connect();
 
-          // Update this specific server's state
           setBuiltinServers((prevServers) =>
             prevServers.map((s) =>
               s.serverType === serverConfig.serverType
@@ -249,7 +255,6 @@ export function McpServerContextProvider({
             )
           );
         } catch (error) {
-          // Update this specific server's error state
           setBuiltinServers((prevServers) =>
             prevServers.map((s) =>
               s.serverType === serverConfig.serverType
@@ -279,7 +284,7 @@ export function McpServerContextProvider({
             name: server.name,
             url: server.url,
             active: server.active,
-            active_tools: server.active_tools,
+            activeTools: server.activeTools,
           }))
         );
 
@@ -300,7 +305,7 @@ export function McpServerContextProvider({
             name: server.name,
             serverType: server.serverType,
             active: server.active,
-            active_tools: server.active_tools,
+            activeTools: server.activeTools,
           }))
         );
 

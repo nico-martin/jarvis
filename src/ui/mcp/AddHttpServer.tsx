@@ -1,3 +1,4 @@
+import useMcpServer from "@ai/mcp/react/useMcpServer";
 import { PlusIcon } from "@heroicons/react/24/outline";
 import { Button, Message } from "@theme";
 import cn from "@utils/classnames";
@@ -8,11 +9,12 @@ const inputClasses =
 const labelClasses = "mb-1 block text-xs font-medium text-stone-600";
 
 interface AddHttpServerProps {
-  onAddServer: (name: string, url: string) => Promise<void>;
   className?: string;
 }
 
-function AddHttpServer({ onAddServer, className = "" }: AddHttpServerProps) {
+function AddHttpServer({ className = "" }: AddHttpServerProps) {
+  const { addHttpServer } = useMcpServer();
+
   const [newServer, setNewServer] = React.useState({ name: "", url: "" });
   const [addServerError, setAddServerError] = React.useState<string | null>(
     null
@@ -28,7 +30,7 @@ function AddHttpServer({ onAddServer, className = "" }: AddHttpServerProps) {
     setAddServerError(null);
 
     try {
-      await onAddServer(newServer.name.trim(), newServer.url.trim());
+      await addHttpServer(newServer.name.trim(), newServer.url.trim());
       setNewServer({ name: "", url: "" });
     } catch (e) {
       setAddServerError(e.toString());
