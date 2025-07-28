@@ -114,14 +114,6 @@ export function McpServerContextProvider({
     await serverWithState.server.setTransport(
       new HttpTransport({
         url: serverConfig.url,
-        authConfig: {
-          preventAutoAuth: false,
-          onPopupWindow: (authUrl: string) => {
-            console.info(
-              `Opening authentication popup for ${serverConfig.name}: ${authUrl}`
-            );
-          },
-        },
       })
     );
 
