@@ -1,16 +1,66 @@
+import { McpState } from "@ai/mcp/McpServer";
 import useMcpServer from "@ai/mcp/react/useMcpServer";
 import { PowerIcon, TrashIcon } from "@heroicons/react/24/outline";
-import { Button, Loader, Message } from "@theme";
-import AddHttpServer from "@ui/mcp/AddHttpServer";
-import CallTool from "@ui/mcp/CallTool";
+import { Button, Message } from "@theme";
 import cn from "@utils/classnames";
 import React from "react";
+
+import AddHttpServer from "./AddHttpServer";
+import CallTool from "./CallTool";
+
+const getStateColor = (state: McpState) => {
+  switch (state) {
+    case McpState.READY:
+      return "bg-green-50 text-green-700 border-green-200";
+    case McpState.CONNECTING:
+    case McpState.LOADING:
+      return "bg-yellow-50 text-yellow-700 border-yellow-200";
+    case McpState.FAILED:
+      return "bg-red-50 text-red-700 border-red-200";
+    case McpState.IDLE:
+      return "bg-gray-50 text-gray-700 border-gray-200";
+    default:
+      return "bg-gray-50 text-gray-700 border-gray-200";
+  }
+};
+
+const getStateIcon = (state: McpState) => {
+  switch (state) {
+    case McpState.READY:
+      return "●";
+    case McpState.CONNECTING:
+    case McpState.LOADING:
+      return "◐";
+    case McpState.FAILED:
+      return "●";
+    case McpState.IDLE:
+      return "○";
+    default:
+      return "○";
+  }
+};
+
+const getStateText = (state: McpState) => {
+  switch (state) {
+    case McpState.READY:
+      return "Ready";
+    case McpState.CONNECTING:
+      return "Connecting";
+    case McpState.LOADING:
+      return "Loading";
+    case McpState.FAILED:
+      return "Failed";
+    case McpState.IDLE:
+      return "Idle";
+    default:
+      return state;
+  }
+};
 
 function McpOverview({ className = "" }: { className?: string }) {
   const {
     httpServers,
     builtinServers,
-    isLoading,
     error,
     addHttpServer,
     removeHttpServer,
@@ -29,17 +79,6 @@ function McpOverview({ className = "" }: { className?: string }) {
   const handleRemoveServer = (url: string) => {
     removeHttpServer(url);
   };
-
-  if (isLoading) {
-    return (
-      <div className={cn("space-y-6", className)}>
-        <div className="flex flex-col items-center justify-center gap-6 py-12 text-center">
-          <Loader />
-          <p className="text-lg text-gray-500">Loading MCP servers...</p>
-        </div>
-      </div>
-    );
-  }
 
   if (error) {
     return (
@@ -89,36 +128,56 @@ function McpOverview({ className = "" }: { className?: string }) {
                     <div className="flex items-center space-x-3">
                       <span
                         className={cn(
-                          "inline-flex items-center rounded-full text-xs font-medium",
+                          "inline-flex items-center rounded-full border px-2 py-1 text-xs font-medium",
+                          getStateColor(serverInfo.state)
+                        )}
+                      >
+                        <span className="mr-1">
+                          {getStateIcon(serverInfo.state)}
+                        </span>
+                        {getStateText(serverInfo.state)}
+                      </span>
+
+                      <span
+                        className={cn(
+                          "inline-flex items-center rounded-full border px-2 py-1 text-xs font-medium",
                           {
-                            "bg-green-50 text-green-600": serverInfo.active,
-                            "bg-red-50 text-red-600": !serverInfo.active,
+                            "border-blue-200 bg-blue-50 text-blue-700":
+                              serverInfo.active,
+                            "border-gray-200 bg-gray-50 text-gray-600":
+                              !serverInfo.active,
                           }
                         )}
                       >
-                        <span className="mr-1">●</span>
+                        {serverInfo.active ? "Active" : "Inactive"}
                       </span>
 
                       <div>
-                        <h3 className="text-lg font-semibold text-gray-900">
-                          {serverInfo.name}
-                        </h3>
+                        <div className="flex items-center gap-2">
+                          <h3 className="text-lg font-semibold text-gray-900">
+                            {serverInfo.name}
+                          </h3>
+                          {serverInfo.server && (
+                            <span className="text-sm text-gray-500">
+                              ({serverInfo.server.tools.length} tool
+                              {serverInfo.server.tools.length !== 1 ? "s" : ""})
+                            </span>
+                          )}
+                        </div>
                         <p className="text-xs text-gray-500">
                           {isBuiltin
                             ? `Built-in • ${(serverInfo as any).serverType}`
                             : `HTTP • ${(serverInfo as any).url}`}
                         </p>
+                        {serverInfo.error && (
+                          <p className="mt-1 text-xs text-red-600">
+                            Error: {serverInfo.error}
+                          </p>
+                        )}
                       </div>
                     </div>
 
                     <div className="flex items-center gap-2">
-                      {serverInfo.server && (
-                        <span className="text-sm text-gray-500">
-                          {serverInfo.server.tools.length} tool
-                          {serverInfo.server.tools.length !== 1 ? "s" : ""}
-                        </span>
-                      )}
-
                       <Button
                         variant="outline"
                         size="sm"

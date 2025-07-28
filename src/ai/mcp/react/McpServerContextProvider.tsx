@@ -1,4 +1,4 @@
-import { McpState } from "@ai/mcp/McpServer";
+import { McpState } from "@ai/mcp";
 import {
   McpServerStore,
   McpServerStoreBuiltIn,
@@ -15,6 +15,7 @@ import {
   saveHttpServers,
 } from "../utils/mcpServerStore";
 import McpServerContext from "./McpServerContext";
+import type { McpServerWithState } from "./types";
 
 interface McpServerContextProviderProps {
   children: React.ReactNode;
@@ -24,13 +25,71 @@ export function McpServerContextProvider({
   children,
 }: McpServerContextProviderProps) {
   const [httpServers, setHttpServers] = React.useState<
-    Array<McpServerStoreHttp & { server: McpServer }>
+    Array<McpServerStoreHttp & McpServerWithState>
   >([]);
   const [builtinServers, setBuiltinServers] = React.useState<
-    Array<McpServerStoreBuiltIn & { server: McpServer }>
+    Array<McpServerStoreBuiltIn & McpServerWithState>
   >([]);
-  const [isLoading, setIsLoading] = React.useState(true);
   const [error, setError] = React.useState<string | null>(null);
+
+  // Helper function to create server with state tracking
+  const createServerWithState = (
+    serverConfig: McpServerStore
+  ): McpServerWithState => {
+    const server = new McpServer(
+      {
+        clientConfig: { name: serverConfig.name },
+      },
+      {
+        onStateChange: (newState: McpState) => {
+          const updateServerState = (servers: any[]) =>
+            servers.map((s) => {
+              if (s.server === server) {
+                return {
+                  ...s,
+                  state: newState,
+                  error: server.error,
+                  lastStateChange: new Date(),
+                };
+              }
+              return s;
+            });
+
+          if ("url" in serverConfig) {
+            setHttpServers(updateServerState);
+          } else {
+            setBuiltinServers(updateServerState);
+          }
+        },
+        onError: (error: string) => {
+          const updateServerError = (servers: any[]) =>
+            servers.map((s) => {
+              if (s.server === server) {
+                return {
+                  ...s,
+                  error,
+                  lastStateChange: new Date(),
+                };
+              }
+              return s;
+            });
+
+          if ("url" in serverConfig) {
+            setHttpServers(updateServerError);
+          } else {
+            setBuiltinServers(updateServerError);
+          }
+        },
+      }
+    );
+
+    return {
+      server,
+      state: server.state,
+      error: server.error,
+      lastStateChange: new Date(),
+    };
+  };
 
   const addHttpServer = async (name: string, url: string) => {
     const serverConfig: McpServerStoreHttp = {
@@ -50,9 +109,9 @@ export function McpServerContextProvider({
       throw new Error("Server already exists");
     }
 
-    const server = new McpServer({
-      clientConfig: { name: serverConfig.name },
-    });
+    const serverWithState = createServerWithState(serverConfig);
+    const { server } = serverWithState;
+
     await server.setTransport(new HttpTransport({ url: serverConfig.url }));
     await server.connect();
 
@@ -68,10 +127,13 @@ export function McpServerContextProvider({
       );
     }
 
-    setHttpServers((httpServers) => [
-      ...httpServers,
-      { ...serverConfig, server },
-    ]);
+    const newServerEntry: McpServerStoreHttp & McpServerWithState = {
+      ...serverConfig,
+      ...serverWithState,
+      state: server.state,
+      error: server.error,
+    };
+    setHttpServers((httpServers) => [...httpServers, newServerEntry]);
   };
 
   const removeHttpServer = (url: string) => {
@@ -96,34 +158,113 @@ export function McpServerContextProvider({
   };
 
   const initializeServers = async () => {
-    const httpServers = await Promise.all(
-      getHttpServers().map(async (server) => {
-        const serverInstance = new McpServer({
-          clientConfig: { name: server.name },
-        });
-        await serverInstance.setTransport(
-          new HttpTransport({ url: server.url })
-        );
-        await serverInstance.connect();
-        return { ...server, server: serverInstance };
+    // Immediately show servers in CONNECTING state
+    const initialHttpServers = getHttpServers().map((serverConfig) => {
+      const serverWithState = createServerWithState(serverConfig);
+      return {
+        ...serverConfig,
+        ...serverWithState,
+        state: McpState.CONNECTING,
+      };
+    });
+
+    const initialBuiltinServers = getBuiltInServers().map((serverConfig) => {
+      const serverWithState = createServerWithState(serverConfig);
+      return {
+        ...serverConfig,
+        ...serverWithState,
+        state: McpState.CONNECTING,
+      };
+    });
+
+    setHttpServers(initialHttpServers);
+    setBuiltinServers(initialBuiltinServers);
+
+    // Connect HTTP servers in parallel
+    Promise.allSettled(
+      getHttpServers().map(async (serverConfig) => {
+        try {
+          const serverWithState = createServerWithState(serverConfig);
+          const { server } = serverWithState;
+
+          await server.setTransport(
+            new HttpTransport({ url: serverConfig.url })
+          );
+          await server.connect();
+
+          // Update this specific server's state
+          setHttpServers((prevServers) =>
+            prevServers.map((s) =>
+              s.url === serverConfig.url
+                ? {
+                    ...s,
+                    server,
+                    state: server.state,
+                    error: server.error,
+                  }
+                : s
+            )
+          );
+        } catch (error) {
+          // Update this specific server's error state
+          setHttpServers((prevServers) =>
+            prevServers.map((s) =>
+              s.url === serverConfig.url
+                ? {
+                    ...s,
+                    state: McpState.FAILED,
+                    error:
+                      error instanceof Error ? error.message : String(error),
+                  }
+                : s
+            )
+          );
+        }
       })
     );
 
-    const builtinServers = await Promise.all(
-      getBuiltInServers().map(async (server) => {
-        const serverInstance = new McpServer({
-          clientConfig: { name: server.name },
-        });
-        await serverInstance.setTransport(
-          createBuiltinServer(server.serverType)
-        );
-        await serverInstance.connect();
-        return { ...server, server: serverInstance };
+    // Connect builtin servers in parallel
+    Promise.allSettled(
+      getBuiltInServers().map(async (serverConfig) => {
+        try {
+          const serverWithState = createServerWithState(serverConfig);
+          const { server } = serverWithState;
+
+          await server.setTransport(
+            createBuiltinServer(serverConfig.serverType)
+          );
+          await server.connect();
+
+          // Update this specific server's state
+          setBuiltinServers((prevServers) =>
+            prevServers.map((s) =>
+              s.serverType === serverConfig.serverType
+                ? {
+                    ...s,
+                    server,
+                    state: server.state,
+                    error: server.error,
+                  }
+                : s
+            )
+          );
+        } catch (error) {
+          // Update this specific server's error state
+          setBuiltinServers((prevServers) =>
+            prevServers.map((s) =>
+              s.serverType === serverConfig.serverType
+                ? {
+                    ...s,
+                    state: McpState.FAILED,
+                    error:
+                      error instanceof Error ? error.message : String(error),
+                  }
+                : s
+            )
+          );
+        }
       })
     );
-
-    setHttpServers(httpServers);
-    setBuiltinServers(builtinServers);
   };
 
   const updateServerConfig = (serverConfig: McpServerStore) => {
@@ -169,16 +310,10 @@ export function McpServerContextProvider({
   };
 
   React.useEffect(() => {
-    setIsLoading(true);
     setError(null);
-    initializeServers()
-      .then(() => {
-        setIsLoading(false);
-      })
-      .catch((e) => {
-        setIsLoading(false);
-        setError(e.message);
-      });
+    initializeServers().catch((e) => {
+      setError(e.message);
+    });
   }, []);
 
   return (
@@ -186,7 +321,6 @@ export function McpServerContextProvider({
       value={{
         httpServers,
         builtinServers,
-        isLoading,
         error,
         addHttpServer,
         removeHttpServer,
