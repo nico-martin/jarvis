@@ -97,9 +97,17 @@ export async function onMcpAuthorization() {
     // --- Call SDK Auth Function ---
     console.log(`${logPrefix} Calling SDK auth() to exchange code...`);
     
-    // Create CORS proxy fetch function with detailed logging
-    const CORS_PROXY_URL = "https://cors.nico.dev";
-    const createProxyFetch = () => {
+    // Import CORS proxy setting - this should ideally be shared but for now duplicate the const
+    const USE_CORS_PROXY = true; // Set to false to disable CORS proxy
+    
+    // Create fetch function with optional CORS proxy
+    const createFetchFn = () => {
+      if (!USE_CORS_PROXY) {
+        // Return regular fetch when CORS proxy is disabled
+        return fetch;
+      }
+
+      const CORS_PROXY_URL = "https://cors.nico.dev";
       return async (url: string | URL, init?: RequestInit): Promise<Response> => {
         const targetUrl = url.toString();
         const proxyUrl = `${CORS_PROXY_URL}?url=${encodeURIComponent(targetUrl)}`;
@@ -133,7 +141,7 @@ export async function onMcpAuthorization() {
     const authResult = await auth(provider, {
       serverUrl,
       authorizationCode: code,
-      fetchFn: createProxyFetch(),
+      fetchFn: createFetchFn(),
     });
 
     if (authResult === "AUTHORIZED") {

@@ -16,6 +16,7 @@ export interface HttpTransportConfig {
 }
 
 const AUTH_TIMEOUT = 5 * 60 * 1000; // // 5 minute
+const USE_CORS_PROXY = false; // Set to false to disable CORS proxy
 
 export class HttpTransport implements McpTransport {
   private config: HttpTransportConfig;
@@ -90,6 +91,11 @@ export class HttpTransport implements McpTransport {
   }
 
   private createProxyFetch() {
+    if (!USE_CORS_PROXY) {
+      // Return regular fetch when CORS proxy is disabled
+      return fetch;
+    }
+
     const CORS_PROXY_URL = "https://cors.nico.dev";
 
     return async (url: string | URL, init?: RequestInit): Promise<Response> => {
