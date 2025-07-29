@@ -83,6 +83,7 @@ export class BrowserOAuthClientProvider implements OAuthClientProvider {
   }
 
   async clientInformation(): Promise<OAuthClientInformation | undefined> {
+    // Try to get stored client information from dynamic client registration
     const key = this.getKey("client_info");
     const data = localStorage.getItem(key);
     if (!data) return undefined;
@@ -130,13 +131,27 @@ export class BrowserOAuthClientProvider implements OAuthClientProvider {
 
   async saveCodeVerifier(codeVerifier: string): Promise<void> {
     const key = this.getKey("code_verifier");
+    this.log("info", `Saving code verifier with key: ${key}`);
     localStorage.setItem(key, codeVerifier);
   }
 
   async codeVerifier(): Promise<string> {
     const key = this.getKey("code_verifier");
+    this.log("info", `Looking for code verifier with key: ${key}`);
+    
+    // Debug: List all localStorage keys that match our pattern
+    const allKeys = [];
+    for (let i = 0; i < localStorage.length; i++) {
+      const storageKey = localStorage.key(i);
+      if (storageKey && storageKey.includes('code_verifier')) {
+        allKeys.push(storageKey);
+      }
+    }
+    this.log("info", `All code_verifier keys in storage: ${JSON.stringify(allKeys)}`);
+    
     const verifier = localStorage.getItem(key);
     if (!verifier) {
+      this.log("error", `Code verifier not found! Expected key: ${key}, Available keys: ${JSON.stringify(allKeys)}`);
       throw new Error(
         `[${this.storageKeyPrefix}] Code verifier not found in storage for key ${key}. Auth flow likely corrupted or timed out.`
       );
@@ -191,25 +206,39 @@ export class BrowserOAuthClientProvider implements OAuthClientProvider {
    * @param authorizationUrl The fully constructed authorization URL from the SDK.
    */
   async redirectToAuthorization(authorizationUrl: URL): Promise<void> {
+    this.log(
+      "info",
+      `redirectToAuthorization called with URL: ${authorizationUrl.toString()}`
+    );
+
     // Ideally we should catch things before we get here, but if we don't, let's not show everyone we are dum
-    if (this.preventAutoAuth) return;
+    if (this.preventAutoAuth) {
+      this.log("warn", "preventAutoAuth is enabled, not opening popup");
+      return;
+    }
 
     // Prepare the authorization URL with state
     const sanitizedAuthUrl =
       await this.prepareAuthorizationUrl(authorizationUrl);
 
+    this.log("info", `Prepared authorization URL: ${sanitizedAuthUrl}`);
+
     // Attempt to open the popup
     const popupFeatures =
       "width=600,height=700,resizable=yes,scrollbars=yes,status=yes"; // Make configurable if needed
     try {
+      this.log("info", "Attempting to open popup window...");
       const popup = window.open(
         sanitizedAuthUrl,
         `mcp_auth_${this.serverUrlHash}`,
         popupFeatures
       );
 
+      this.log("info", `Popup window reference: ${popup ? "valid" : "null"}`);
+
       // If a callback is provided, invoke it after opening the popup
       if (this.onPopupWindow) {
+        this.log("info", "Calling onPopupWindow callback");
         this.onPopupWindow(sanitizedAuthUrl, popupFeatures, popup);
       }
 

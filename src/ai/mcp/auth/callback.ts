@@ -18,8 +18,9 @@ export async function onMcpAuthorization() {
   const errorDescription = queryParams.get("error_description");
 
   const logPrefix = "[mcp-callback]"; // Generic prefix, or derive from stored state later
+  console.log(`${logPrefix} Starting callback handler for URL: ${window.location.href}`);
   console.log(`${logPrefix} Handling callback...`, {
-    code,
+    code: code ? `${code.substring(0, 10)}...` : null,
     state,
     error,
     errorDescription,
@@ -79,9 +80,51 @@ export async function onMcpAuthorization() {
       `${logPrefix} Re-instantiating provider for server: ${serverUrl}`
     );
     provider = new BrowserOAuthClientProvider(serverUrl, providerOptions);
+    
+    // Debug: Log the provider configuration
+    console.log(`${logPrefix} Provider config:`, {
+      serverUrl,
+      storageKeyPrefix: providerOptions.storageKeyPrefix,
+      serverUrlHash: provider.getKey('').split('_')[1], // Extract hash from key
+      callbackUrl: providerOptions.callbackUrl,
+      clientName: providerOptions.clientName
+    });
+
+    // Check what client information will be used
+    const clientInfo = await provider.clientInformation();
+    console.log(`${logPrefix} Client information:`, clientInfo);
 
     // --- Call SDK Auth Function ---
     console.log(`${logPrefix} Calling SDK auth() to exchange code...`);
+    
+    // Create CORS proxy fetch function with detailed logging
+    const CORS_PROXY_URL = "https://cors.nico.dev";
+    const createProxyFetch = () => {
+      return async (url: string | URL, init?: RequestInit): Promise<Response> => {
+        const targetUrl = url.toString();
+        const proxyUrl = `${CORS_PROXY_URL}?url=${encodeURIComponent(targetUrl)}`;
+        console.log(`${logPrefix} Proxying request through CORS proxy: ${targetUrl} -> ${proxyUrl}`);
+        console.log(`${logPrefix} Request init:`, {
+          method: init?.method,
+          headers: init?.headers,
+          body: init?.body?.toString()
+        });
+        
+        const response = await fetch(proxyUrl, init);
+        console.log(`${logPrefix} Response status:`, response.status);
+        console.log(`${logPrefix} Response headers:`, Object.fromEntries(response.headers.entries()));
+        
+        // Log response body for token exchange requests
+        if (targetUrl.includes('token')) {
+          const clonedResponse = response.clone();
+          const responseText = await clonedResponse.text();
+          console.log(`${logPrefix} Token exchange response body:`, responseText);
+        }
+        
+        return response;
+      };
+    };
+
     // The SDK auth() function will internally:
     // 1. Use provider.clientInformation()
     // 2. Use provider.codeVerifier()
@@ -90,6 +133,7 @@ export async function onMcpAuthorization() {
     const authResult = await auth(provider, {
       serverUrl,
       authorizationCode: code,
+      fetchFn: createProxyFetch(),
     });
 
     if (authResult === "AUTHORIZED") {
