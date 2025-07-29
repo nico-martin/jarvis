@@ -1,3 +1,4 @@
+import { eventEmitter } from "../../../utils/eventEmitter";
 import type {
   JSONRPCError,
   JSONRPCRequest,
@@ -7,13 +8,6 @@ import type {
 import PromiseTransport, {
   type PromiseTransportConfig,
 } from "../PromiseTransport";
-
-export interface TakePictureOptions {
-  format?: "png" | "jpeg" | "webp";
-  quality?: number;
-  width?: number;
-  height?: number;
-}
 
 export interface TakePictureResult {
   success: boolean;
@@ -72,30 +66,7 @@ export class TakePictureServer {
                 description: "Take a picture using the device camera",
                 inputSchema: {
                   type: "object",
-                  properties: {
-                    format: {
-                      type: "string",
-                      enum: ["png", "jpeg", "webp"],
-                      description: "Image format",
-                      default: "png",
-                    },
-                    quality: {
-                      type: "number",
-                      minimum: 0.1,
-                      maximum: 1.0,
-                      description:
-                        "Image quality (0.1-1.0, applies to jpeg/webp)",
-                      default: 0.9,
-                    },
-                    width: {
-                      type: "number",
-                      description: "Desired width in pixels",
-                    },
-                    height: {
-                      type: "number",
-                      description: "Desired height in pixels",
-                    },
-                  },
+                  properties: {},
                   additionalProperties: false,
                 },
               },
@@ -107,11 +78,11 @@ export class TakePictureServer {
       if (request.method === "tools/call") {
         const params = request.params as {
           name: string;
-          arguments?: TakePictureOptions;
+          arguments?: any;
         };
 
         if (params.name === "take_picture") {
-          const result = await this.takePicture(params.arguments || {});
+          const result = await this.takePicture();
 
           return {
             jsonrpc: "2.0",
@@ -129,7 +100,7 @@ export class TakePictureServer {
                       {
                         type: "image",
                         data: result.imageData,
-                        mimeType: `image/${params.arguments?.format || "png"}`,
+                        mimeType: "image/png",
                       },
                     ]
                   : []),
@@ -159,68 +130,29 @@ export class TakePictureServer {
     }
   }
 
-  private async takePicture(
-    options: TakePictureOptions
-  ): Promise<TakePictureResult> {
-    try {
-      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-        return {
-          success: false,
-          error: "Camera access not supported in this environment",
-        };
-      }
+  private takePicture(): Promise<TakePictureResult> {
+    return new Promise((resolve) => {
+      const onPictureTaken = (imageData: string) => {
+        resolve({ success: true, imageData });
+        unsubscribeError();
+      };
 
-      const stream = await navigator.mediaDevices.getUserMedia({
-        video: {
-          width: options.width,
-          height: options.height,
-        },
-      });
+      const onPictureError = (error: string) => {
+        resolve({ success: false, error });
+        unsubscribePicture();
+      };
 
-      const video = document.createElement("video");
-      video.srcObject = stream;
-      video.play();
-
-      await new Promise((resolve) => {
-        video.addEventListener("loadedmetadata", resolve);
-      });
-
-      const canvas = document.createElement("canvas");
-      canvas.width = video.videoWidth;
-      canvas.height = video.videoHeight;
-
-      const ctx = canvas.getContext("2d");
-      if (!ctx) {
-        stream.getTracks().forEach((track) => track.stop());
-        return {
-          success: false,
-          error: "Failed to get canvas context",
-        };
-      }
-
-      ctx.drawImage(video, 0, 0);
-
-      stream.getTracks().forEach((track) => track.stop());
-
-      const format = options.format || "png";
-      const quality = options.quality || 0.9;
-
-      const imageData = canvas.toDataURL(
-        `image/${format}`,
-        format !== "png" ? quality : undefined
+      const unsubscribePicture = eventEmitter.on(
+        "pictureTaken",
+        onPictureTaken
+      );
+      const unsubscribeError = eventEmitter.on(
+        "takePictureError",
+        onPictureError
       );
 
-      return {
-        success: true,
-        imageData: imageData.split(",")[1],
-      };
-    } catch (error) {
-      return {
-        success: false,
-        error:
-          error instanceof Error ? error.message : "Unknown error occurred",
-      };
-    }
+      eventEmitter.emit("openTakePictureModal");
+    });
   }
 
   public getTransport(): PromiseTransport {
