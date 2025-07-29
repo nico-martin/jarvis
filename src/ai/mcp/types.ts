@@ -4,4 +4,5 @@ export interface McpTransport {
   connect(): Promise<Transport>;
   disconnect(): Promise<void>;
   isConnected(): boolean;
+  isAuthenticating?(): boolean;
 }

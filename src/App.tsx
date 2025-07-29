@@ -4,6 +4,7 @@ import { Route, BrowserRouter as Router, Routes } from "react-router-dom";
 
 import ChatPage from "./pages/ChatPage";
 import McpPage from "./pages/McpPage";
+import OAuthCallbackPage from "./pages/OAuthCallbackPage";
 
 function App() {
   return (
@@ -12,6 +13,7 @@ function App() {
         <Routes>
           <Route path="/" element={<ChatPage />} />
           <Route path="/mcp" element={<McpPage />} />
+          <Route path="/oauth/callback" element={<OAuthCallbackPage />} />
         </Routes>
       </Router>
     </McpServerContextProvider>

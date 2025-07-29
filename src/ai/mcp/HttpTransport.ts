@@ -1,9 +1,10 @@
-import { BrowserOAuthClientProvider } from "@ai/mcp/auth/browser-provider.js";
-import { McpTransport } from "@ai/mcp/types";
 import { auth } from "@modelcontextprotocol/sdk/client/auth.js";
 import { StreamableHTTPClientTransport } from "@modelcontextprotocol/sdk/client/streamableHttp.js";
 import type { Transport } from "@modelcontextprotocol/sdk/shared/transport.js";
 import { sanitizeUrl } from "strict-url-sanitise";
+
+import { BrowserOAuthClientProvider } from "./auth/browser-provider";
+import { McpTransport } from "./types";
 
 export interface HttpTransportConfig {
   url: string;
@@ -14,12 +15,14 @@ export interface HttpTransportConfig {
   authCallbackUrl?: string;
 }
 
+const AUTH_TIMEOUT = 5 * 60 * 1000; // // 5 minute
+
 export class HttpTransport implements McpTransport {
   private config: HttpTransportConfig;
   private transport: Transport | null = null;
   private connected = false;
   private authProvider: BrowserOAuthClientProvider | null = null;
-  private isAuthenticating = false;
+  private _isAuthenticating = false;
 
   constructor(config: HttpTransportConfig) {
     this.config = {
@@ -39,18 +42,14 @@ export class HttpTransport implements McpTransport {
   }
 
   private async createTransport(): Promise<void> {
-    // Create auth provider lazily when needed
     if (!this.authProvider) {
       this.authProvider = new BrowserOAuthClientProvider(this.config.url, {
         clientName: this.config.authClientName || "MCP Client",
-        clientUri:
-          this.config.authClientUri ||
-          (typeof window !== "undefined" ? window.location.origin : ""),
+        clientUri: this.config.authClientUri || window.location.origin,
         callbackUrl:
           this.config.authCallbackUrl ||
-          (typeof window !== "undefined"
-            ? new URL("/oauth/callback", window.location.origin).toString()
-            : "/oauth/callback"),
+          new URL("/oauth/callback", window.location.origin).toString(),
+        onLog: (level, message) => this.log(level, `[OAuth] ${message}`),
       });
     }
 
@@ -59,7 +58,6 @@ export class HttpTransport implements McpTransport {
       ...this.config.customHeaders,
     };
 
-    // Add auth token if available
     const tokens = await this.authProvider.tokens();
     if (tokens?.access_token) {
       headers.Authorization = `Bearer ${tokens.access_token}`;
@@ -82,44 +80,28 @@ export class HttpTransport implements McpTransport {
   private createAuthInterceptor(
     baseTransport: StreamableHTTPClientTransport
   ): Transport {
-    // Create a proxy that intercepts property access
     return new Proxy(baseTransport, {
       set: (target, prop, value) => {
         if (prop === "onmessage" && typeof value === "function") {
-          console.log("Intercepting onmessage setter");
           const originalCallback = value;
-
-          // Replace with our intercepting callback
-          const interceptingCallback = (message: any, extra?: any) => {
-            console.log("Message intercepted:", message);
-
-            // Check for JSON-RPC auth errors
+          (target as any)[prop] = (message: any, extra?: any) => {
             if (message && typeof message === "object" && "error" in message) {
               const error = message.error;
-              if (this.isAuthError(error) && !this.isAuthenticating) {
-                console.log("Auth error detected, starting auth flow...");
-
-                this.performAuthFlow()
-                  .then(async () => {
-                    console.log("Auth completed, recreating transport");
-                    await this.createTransport();
-                  })
-                  .catch((authError) => {
-                    console.error("Auth flow failed:", authError);
-                  });
+              if (this.isAuthError(error) && !this._isAuthenticating) {
+                this.log("info", "Auth error detected, starting auth flow...");
+                this.performAuthFlow().catch((authError) => {
+                  this.log("error", "Auth flow failed:", authError);
+                });
+                // Don't continue processing this error message
+                return;
               }
             }
 
-            // Call the original callback
             originalCallback(message, extra);
           };
-
-          // Set the intercepting callback on the target
-          (target as any)[prop] = interceptingCallback;
           return true;
         }
 
-        // For all other properties, set normally
         (target as any)[prop] = value;
         return true;
       },
@@ -127,7 +109,6 @@ export class HttpTransport implements McpTransport {
   }
 
   private isAuthError(error: any): boolean {
-    // Check for JSON-RPC auth errors
     if (error?.code === -32603 && error?.message?.includes("Unauthorized")) {
       return true;
     }
@@ -138,30 +119,109 @@ export class HttpTransport implements McpTransport {
       return true;
     }
 
-    // Check for HTTP status codes
     return error?.status === 401 || error?.status === 403;
   }
 
   private async performAuthFlow(): Promise<void> {
-    if (this.isAuthenticating || !this.authProvider) {
+    this.log(
+      "debug",
+      `performAuthFlow called - isAuthenticating: ${this._isAuthenticating}, authProvider: ${!!this.authProvider}`
+    );
+
+    if (this._isAuthenticating) {
+      this.log(
+        "debug",
+        "performAuthFlow early return - already authenticating"
+      );
       return;
     }
 
-    this.isAuthenticating = true;
+    // Create auth provider if it doesn't exist
+    if (!this.authProvider) {
+      this.log("debug", "Creating auth provider for OAuth flow");
+      this.authProvider = new BrowserOAuthClientProvider(this.config.url, {
+        clientName: this.config.authClientName || "MCP Client",
+        clientUri: this.config.authClientUri || window.location.origin,
+        callbackUrl:
+          this.config.authCallbackUrl ||
+          new URL("/oauth/callback", window.location.origin).toString(),
+        onLog: (level, message) => this.log(level, `[OAuth] ${message}`),
+      });
+    }
+
+    this._isAuthenticating = true;
     try {
-      console.log("Starting OAuth flow...");
+      this.log("info", "Starting OAuth flow...");
       const result = await auth(this.authProvider, {
         serverUrl: this.config.url,
       });
 
       if (result === "AUTHORIZED") {
-        console.log("Authentication successful");
+        this.log(
+          "info",
+          "Authentication successful - user completed OAuth flow"
+        );
+        // Auth completed immediately, recreate transport
+        await this.createTransport();
+        this._isAuthenticating = false;
+      } else if (result === "REDIRECT") {
+        this.log(
+          "info",
+          "OAuth popup opened - waiting for user to complete authentication"
+        );
+
+        this.waitForAuthCompletion();
       } else {
-        throw new Error(`Authentication failed with result: ${result}`);
+        this.log("error", `Unexpected auth result: ${result}`);
+        this._isAuthenticating = false;
       }
-    } finally {
-      this.isAuthenticating = false;
+    } catch (error) {
+      this.log("error", "Auth flow error:", error);
+      this._isAuthenticating = false;
     }
+  }
+
+  private waitForAuthCompletion(): void {
+    const handleAuthMessage = (event: MessageEvent) => {
+      if (event.data?.type === "mcp_auth_callback") {
+        window.removeEventListener("message", handleAuthMessage);
+        if (event.data.success) {
+          if (this.transport) {
+            this.transport.close().catch(() => {
+              // Ignore errors during cleanup
+            });
+            this.transport = null;
+            this.connected = false;
+          }
+
+          window.setTimeout(() => {
+            this.createTransport()
+              .then(() => {
+                this.connected = true;
+              })
+              .catch((error) => {
+                this.log(
+                  "error",
+                  "Failed to recreate transport after auth:",
+                  error
+                );
+              })
+              .finally(() => {
+                this._isAuthenticating = false;
+              });
+          }, 100);
+        } else {
+          this.log("error", "Auth failed:", event.data.error);
+          this._isAuthenticating = false;
+        }
+      }
+    };
+
+    window.addEventListener("message", handleAuthMessage);
+    window.setTimeout(() => {
+      window.removeEventListener("message", handleAuthMessage);
+      this._isAuthenticating = false;
+    }, AUTH_TIMEOUT);
   }
 
   async disconnect(): Promise<void> {
@@ -174,6 +234,23 @@ export class HttpTransport implements McpTransport {
 
   isConnected(): boolean {
     return this.connected;
+  }
+
+  public isAuthenticating(): boolean {
+    return this._isAuthenticating;
+  }
+
+  private log(
+    level: "debug" | "info" | "warn" | "error",
+    message: string,
+    ...args: unknown[]
+  ): void {
+    const fullMessage =
+      args.length > 0
+        ? `${message} ${args.map((arg) => JSON.stringify(arg)).join(" ")}`
+        : message;
+
+    console[level](`[Mcp HttpTransport] ${fullMessage}`);
   }
 }
 

@@ -23,6 +23,9 @@ export class BrowserOAuthClientProvider implements OAuthClientProvider {
   readonly onPopupWindow:
     | ((url: string, features: string, window: Window | null) => void)
     | undefined;
+  readonly onLog:
+    | ((level: "debug" | "info" | "warn" | "error", message: string) => void)
+    | undefined;
 
   constructor(
     serverUrl: string,
@@ -36,6 +39,10 @@ export class BrowserOAuthClientProvider implements OAuthClientProvider {
         url: string,
         features: string,
         window: Window | null
+      ) => void;
+      onLog?: (
+        level: "debug" | "info" | "warn" | "error",
+        message: string
       ) => void;
     } = {}
   ) {
@@ -54,6 +61,7 @@ export class BrowserOAuthClientProvider implements OAuthClientProvider {
     );
     this.preventAutoAuth = options.preventAutoAuth;
     this.onPopupWindow = options.onPopupWindow;
+    this.onLog = options.onLog;
   }
 
   // --- SDK Interface Methods ---
@@ -82,10 +90,7 @@ export class BrowserOAuthClientProvider implements OAuthClientProvider {
       // TODO: Add validation using a schema
       return JSON.parse(data) as OAuthClientInformation;
     } catch (e) {
-      console.warn(
-        `[${this.storageKeyPrefix}] Failed to parse client information:`,
-        e
-      );
+      this.log("warn", `Failed to parse client information: ${e}`);
       localStorage.removeItem(key);
       return undefined;
     }
@@ -109,7 +114,7 @@ export class BrowserOAuthClientProvider implements OAuthClientProvider {
       // TODO: Add validation
       return JSON.parse(data) as OAuthTokens;
     } catch (e) {
-      console.warn(`[${this.storageKeyPrefix}] Failed to parse tokens:`, e);
+      this.log("warn", `Failed to parse tokens: ${e}`);
       localStorage.removeItem(key);
       return undefined;
     }
@@ -209,22 +214,18 @@ export class BrowserOAuthClientProvider implements OAuthClientProvider {
       }
 
       if (!popup || popup.closed || typeof popup.closed === "undefined") {
-        console.warn(
-          `[${this.storageKeyPrefix}] Popup likely blocked by browser. Manual navigation might be required using the stored URL.`
+        this.log(
+          "warn",
+          "Popup likely blocked by browser. Manual navigation might be required using the stored URL."
         );
         // Cannot signal failure back via SDK auth() directly.
         // useMcp will need to rely on timeout or manual trigger if stuck.
       } else {
         popup.focus();
-        console.info(
-          `[${this.storageKeyPrefix}] Redirecting to authorization URL in popup.`
-        );
+        this.log("info", "Redirecting to authorization URL in popup.");
       }
     } catch (e) {
-      console.error(
-        `[${this.storageKeyPrefix}] Error opening popup window:`,
-        e
-      );
+      this.log("error", `Error opening popup window: ${e}`);
       // Cannot signal failure back via SDK auth() directly.
     }
     // Regardless of popup success, the interface expects this method to initiate the redirect.
@@ -265,9 +266,9 @@ export class BrowserOAuthClientProvider implements OAuthClientProvider {
             }
           }
         } catch (e) {
-          console.warn(
-            `[${this.storageKeyPrefix}] Error parsing state key ${key} during clearStorage:`,
-            e
+          this.log(
+            "warn",
+            `Error parsing state key ${key} during clearStorage: ${e}`
           );
           // Optionally remove malformed keys
           // keysToRemove.push(key);
@@ -295,5 +296,12 @@ export class BrowserOAuthClientProvider implements OAuthClientProvider {
 
   getKey(keySuffix: string): string {
     return `${this.storageKeyPrefix}_${this.serverUrlHash}_${keySuffix}`;
+  }
+
+  private log(
+    level: "debug" | "info" | "warn" | "error",
+    message: string
+  ): void {
+    this.onLog && this.onLog(level, message);
   }
 }

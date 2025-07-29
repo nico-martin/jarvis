@@ -194,13 +194,85 @@ export class McpServer {
       const errorInstance =
         error instanceof Error ? error : new Error(String(error));
 
-      this.log(
-        "error",
-        `Error calling tool "${name}": ${errorInstance.message}`
-      );
+      const isAuthenticating = this.mcpTransport?.isAuthenticating?.() ?? false;
+      const isConnectionError =
+        errorInstance.message.includes("Connection closed");
+      // isConnectionClosed indicates that the transoprt closed the connection because of the auth flow
+      const isConnectionClosed = this.isConnectionClosed(errorInstance);
+      this.log("warn", `isConnectionClosed`, isConnectionClosed);
+      this.log("warn", `isAuthenticating`, isAuthenticating);
+      if (isConnectionClosed && isAuthenticating) {
+        this.log(
+          "debug",
+          `Auth error detected for tool "${name}", waiting for authentication...`
+        );
+
+        try {
+          await this.waitForAuthCompletion();
+          this.log("debug", `Auth completed, retrying tool "${name}"`);
+
+          // Retry the request after auth completion
+          const result = await this.client.request(
+            { method: "tools/call", params: { name, arguments: args } },
+            CallToolResultSchema
+          );
+          this.log("info", `Tool "${name}" call successful after auth`);
+          return result;
+        } catch (retryError) {
+          this.log(
+            "error",
+            `Error calling tool "${name}" after auth retry: ${retryError instanceof Error ? retryError.message : String(retryError)}`
+          );
+          throw retryError;
+        }
+      }
+
+      // For non-auth errors or when already authenticating, handle normally
+      if (!isAuthenticating || !isConnectionError) {
+        this.log(
+          "error",
+          `Error calling tool "${name}": ${errorInstance.message}`
+        );
+      }
 
       throw error;
     }
+  }
+
+  private isConnectionClosed(error: Error): boolean {
+    return error.message.includes("Connection closed");
+  }
+
+  private async waitForAuthCompletion(timeout: number = 60000): Promise<void> {
+    return new Promise((resolve, reject) => {
+      const startTime = Date.now();
+
+      const checkAuth = () => {
+        const isAuthenticating =
+          this.mcpTransport?.isAuthenticating?.() ?? false;
+        const isReady = this.state === McpState.READY;
+
+        this.log(
+          "debug",
+          `Waiting for auth completion - isAuthenticating: ${isAuthenticating}, state: ${this.state}`
+        );
+
+        if (!isAuthenticating && isReady) {
+          this.log("debug", "Auth and reconnection completed");
+          resolve();
+          return;
+        }
+
+        if (Date.now() - startTime > timeout) {
+          reject(new Error("Authentication timeout"));
+          return;
+        }
+
+        setTimeout(checkAuth, 100);
+      };
+
+      checkAuth();
+    });
   }
 
   public async listResources() {
@@ -334,6 +406,8 @@ export class McpServer {
     };
 
     transport.onclose = () => {
+      const isAuthenticating = this.mcpTransport?.isAuthenticating?.() ?? false;
+
       if (
         !this.connecting &&
         this.state === McpState.READY &&
@@ -344,10 +418,13 @@ export class McpServer {
             ? this.config.autoReconnect
             : this.DEFAULT_RECONNECT_DELAY;
 
-        this.log(
-          "info",
-          `Connection closed, attempting to reconnect in ${delay}ms...`
-        );
+        // Only log reconnection message if not authenticating
+        if (!isAuthenticating) {
+          this.log(
+            "info",
+            `Connection closed, attempting to reconnect in ${delay}ms...`
+          );
+        }
         this.setState(McpState.CONNECTING);
 
         setTimeout(() => {
@@ -456,7 +533,7 @@ export class McpServer {
         ? `${message} ${args.map((arg) => JSON.stringify(arg)).join(" ")}`
         : message;
 
-    console[level](`[Mcp] ${fullMessage}`);
+    //console[level](`[Mcp] ${fullMessage}`);
     this.callbacks.onLog?.(level, fullMessage);
   }
 }
