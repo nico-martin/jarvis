@@ -1,4 +1,9 @@
-import { Message as MessageI, MessageRole } from "@ai/types";
+import {
+  Message as MessageI,
+  MessagePart,
+  MessagePartType,
+  MessageRole,
+} from "@ai/types";
 import cn from "@utils/classnames";
 import nl2brJsx from "@utils/nl2brJsx";
 import parseThinkingJsx from "@utils/parseThinkingJsx";
@@ -40,22 +45,6 @@ const icons = {
       <circle cx="12" cy="7" r="4" />
     </svg>
   ),
-  [MessageRole.TOOL]: (
-    <svg
-      xmlns="http://www.w3.org/2000/svg"
-      width="1rem"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      stroke-width="2"
-      stroke-linecap="round"
-      stroke-linejoin="round"
-      className="-translate-y-1/15"
-    >
-      <path d="M8 21s-4-3-4-9 4-9 4-9" />
-      <path d="M16 3s4 3 4 9-4 9-4 9" />
-    </svg>
-  ),
   [MessageRole.SYSTEM]: (
     <svg
       xmlns="http://www.w3.org/2000/svg"
@@ -78,6 +67,81 @@ const icons = {
   ),
 };
 
+function MessagePartRenderer({ part }: { part: MessagePart }) {
+  if (part.type === MessagePartType.TEXT) {
+    const parsed = parseThinkingJsx(part.text || "");
+    return (
+      <div>
+        {Boolean(parsed.thinking) &&
+          nl2brJsx(parsed.thinking).filter(Boolean).length > 0 && (
+            <p className="mb-4 text-xs font-thin text-stone-500">
+              <span className="mb-2 block font-normal">Thinking:</span>
+              {nl2brJsx(parsed.thinking).flat()}
+            </p>
+          )}
+        {Boolean(parsed.content) && <p>{nl2brJsx(parsed.content).flat()}</p>}
+      </div>
+    );
+  }
+
+  if (part.type === MessagePartType.TOOL_CALL) {
+    return (
+      <div className="my-4 rounded border border-blue-200 bg-blue-50 p-3">
+        <div className="mb-2 flex items-center gap-2 text-xs font-medium text-blue-700">
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            width="1rem"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          >
+            <path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z" />
+          </svg>
+          Tool Call: {part.functionName}
+        </div>
+        <div className="mb-2 text-xs text-gray-600">
+          <strong>Parameters:</strong>
+          <pre className="mt-1 max-w-full overflow-x-auto text-xs text-gray-500">
+            {JSON.stringify(part.parameters, null, 2)}
+          </pre>
+        </div>
+        {part.response && (
+          <div className="text-xs text-gray-600">
+            <strong>Response:</strong>
+            <p className="mt-1">{part.response}</p>
+          </div>
+        )}
+        {part.responseMedia && (
+          <div className="mt-2">
+            {part.responseMedia.type === "image" && (
+              <img
+                src={part.responseMedia.src}
+                alt="Tool response"
+                className="max-w-full rounded"
+              />
+            )}
+            {part.responseMedia.type === "video" && (
+              <video
+                src={part.responseMedia.src}
+                controls
+                className="max-w-full rounded"
+              />
+            )}
+            {part.responseMedia.type === "audio" && (
+              <audio src={part.responseMedia.src} controls />
+            )}
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  return null;
+}
+
 export function Message({
   message,
   className = "",
@@ -85,16 +149,12 @@ export function Message({
   message: MessageI;
   className?: string;
 }) {
-  const parsed = parseThinkingJsx(message?.text?.toString() || "");
-
   return (
     <div
       className={cn(
         className,
         "flex",
-        message.role === MessageRole.USER || message.role === MessageRole.TOOL
-          ? "flex-row"
-          : "flex-row-reverse"
+        message.role === MessageRole.USER ? "flex-row" : "flex-row-reverse"
       )}
     >
       <div className="w-19/20 rounded-md border border-stone-300 bg-stone-100 p-4">
@@ -102,10 +162,6 @@ export function Message({
           {message.role === MessageRole.ASSISTANT ? (
             <span className="flex items-center gap-2">
               {icons[MessageRole.ASSISTANT]} Agent
-            </span>
-          ) : message.role === MessageRole.TOOL ? (
-            <span className="flex items-center gap-2">
-              {icons[MessageRole.TOOL]} Tool Call
             </span>
           ) : message.role === MessageRole.USER ? (
             <span className="flex items-center gap-2">
@@ -119,14 +175,18 @@ export function Message({
             ""
           )}
         </p>
-        {Boolean(parsed.thinking) &&
-          nl2brJsx(parsed.thinking).filter(Boolean).length > 0 && (
-            <p className="mb-4 text-xs font-thin text-stone-500">
-              <span className="mb-2 block font-normal">Thinking:</span>
-              {nl2brJsx(parsed.thinking).flat()}
-            </p>
+        <div>
+          {message.messageParts.length > 0 ? (
+            message.messageParts.map((part) => (
+              <MessagePartRenderer key={part.id} part={part} />
+            ))
+          ) : (
+            <div className="flex items-center gap-2 text-sm text-gray-500">
+              <div className="h-4 w-4 animate-spin rounded-full border-2 border-gray-300 border-t-gray-600"></div>
+              thinking...
+            </div>
           )}
-        {Boolean(parsed.content) && <p>{nl2brJsx(parsed.content).flat()}</p>}
+        </div>
       </div>
     </div>
   );

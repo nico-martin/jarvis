@@ -1,19 +1,25 @@
+import toolsToSystemPrompt from "@ai/llm/utils/toolsToSystemPrompt";
+import mcpServer from "@ai/mcp/McpServer";
+import { McpServerWithState } from "@ai/mcp/react/types";
 import {
   Conversation,
   ConversationConstructorOptions,
+  McpServerStoreBuiltIn,
+  McpServerStoreHttp,
   Message,
+  MessagePartType,
   MessageRole,
   MessageUser,
   ModelStatus,
-  PartialResponse,
-  PartialResponseType,
+  XMLToolSignature,
 } from "@ai/types";
 import {
   ChatCompletionMessageParam,
   CreateWebWorkerMLCEngine,
   WebWorkerMLCEngine,
 } from "@mlc-ai/web-llm";
-import extractSentences from "@utils/extractSentences";
+import isFullSentence from "@utils/isFullSentence";
+import isFullXMLToolCall from "@utils/isFullXMLToolCall";
 import { v4 as uuidv4 } from "uuid";
 
 import { QWEN3_4B } from "./constants";
@@ -21,40 +27,74 @@ import { QWEN3_4B } from "./constants";
 const MESSAGES_EVENT_KEY = "messagesChange";
 const STATUS_EVENT_KEY = "statusChange";
 
-export type WebLlmMessage = ChatCompletionMessageParam & {
-  id: string;
-  processing?: boolean;
-};
-
 let ENGINE: WebWorkerMLCEngine = null;
 
 class ConversationWebLlm extends EventTarget implements Conversation {
   private engineLoading: boolean;
-  private _webLlmMessages: Array<WebLlmMessage> = [];
+  private webLlmMessages: Array<ChatCompletionMessageParam> = [];
   private _messages: Array<Message> = [];
   private log: (message?: any, ...optionalParams: any[]) => void = () => {};
   private temperature: number = 0.2;
+  private mcpServers: Array<
+    (McpServerStoreHttp | McpServerStoreBuiltIn) & McpServerWithState
+  > = [];
 
-  public constructor(
-    systemPrompt: string,
-    options?: ConversationConstructorOptions
-  ) {
+  public constructor(options?: ConversationConstructorOptions) {
     super();
-    this.engineLoading = false;
-    ENGINE = null;
-    const systemMessage = {
-      role: "system" as const,
-      content: systemPrompt,
-      id: uuidv4(),
-    };
-    this._webLlmMessages = [systemMessage];
-    this._messages = this.transformMessages([systemMessage]);
+
     if (options?.log) {
       this.log = options.log;
     }
-    if (options?.temperature) {
-      this.temperature = options.temperature;
+  }
+
+  public createConversation(
+    systemPrompt: string,
+    mcpServers: Array<
+      (McpServerStoreHttp | McpServerStoreBuiltIn) & McpServerWithState
+    >
+  ) {
+    this.engineLoading = false;
+    ENGINE = null;
+
+    this.mcpServers = mcpServers;
+    const tools = mcpServers.reduce(
+      (acc, server) => [
+        ...acc,
+        ...server.server.tools.filter((tool) =>
+          server.activeTools.includes(tool.name)
+        ),
+      ],
+      []
+    );
+
+    if (tools.length) {
+      systemPrompt += `
+
+${toolsToSystemPrompt(tools)}`;
     }
+
+    const systemMessageId = uuidv4();
+
+    this.webLlmMessages = [
+      {
+        role: "system",
+        content: systemPrompt,
+      },
+    ];
+
+    this.messages = [
+      {
+        id: systemMessageId,
+        role: MessageRole.SYSTEM,
+        messageParts: [
+          {
+            type: MessagePartType.TEXT,
+            id: systemMessageId,
+            text: systemPrompt,
+          },
+        ],
+      },
+    ];
   }
 
   public get status() {
@@ -77,37 +117,9 @@ class ConversationWebLlm extends EventTarget implements Conversation {
     return this._messages;
   }
 
-  public get webLlmMessages() {
-    return this._webLlmMessages;
-  }
-
-  public set webLlmMessages(messages) {
-    this._webLlmMessages = messages;
-    this._messages = this.transformMessages(messages);
+  public set messages(messages) {
+    this._messages = messages;
     this.dispatchEvent(new Event(MESSAGES_EVENT_KEY));
-  }
-
-  private transformMessages(
-    webLlmMessages: Array<WebLlmMessage>
-  ): Array<Message> {
-    return webLlmMessages.map((message) => ({
-      id: message.id,
-      role:
-        message.role === "system"
-          ? MessageRole.SYSTEM
-          : message.role === "user"
-            ? MessageRole.USER
-            : message.role === "assistant"
-              ? MessageRole.ASSISTANT
-              : message.role === "tool"
-                ? MessageRole.TOOL
-                : null,
-      text: Array.isArray(message.content)
-        ? message.content
-            .map((part) => ("text" in part && part?.text) || "")
-            .join(" ")
-        : message.content || "",
-    }));
   }
 
   public onMessagesChange = (callback: (messages: Array<Message>) => void) => {
@@ -118,16 +130,17 @@ class ConversationWebLlm extends EventTarget implements Conversation {
 
   public processPrompt = async (
     message: MessageUser,
-    onPartialUpdate?: (part: PartialResponse) => void
-  ) => {
+    onTextFeedback?: (feedback: string) => void
+  ): Promise<void> => {
     this.webLlmMessages = [
       ...this.webLlmMessages,
       {
         role: "user",
-        content: message.text,
-        id: message.id,
+        content: message.messageParts[0].text,
       },
     ];
+
+    this.messages = [...this.messages, message];
 
     if (!ENGINE) {
       this.log("Creating engine:", QWEN3_4B.label);
@@ -149,53 +162,84 @@ class ConversationWebLlm extends EventTarget implements Conversation {
     this.log("-- MESSAGES --");
     this.log(this.webLlmMessages);
 
+    let hasToolCalls = true;
     const assistantId = uuidv4();
-    let partialResponses: Array<PartialResponse> = [];
 
-    return await this.generateAnswer((answer) => {
-      if (this.webLlmMessages.find((m) => m.id === assistantId)) {
-        this.webLlmMessages = this.webLlmMessages.map((message) =>
-          message.id === assistantId ? { ...message, content: answer } : message
-        );
-      } else {
-        this.webLlmMessages = [
-          ...this.webLlmMessages,
-          {
-            role: "assistant",
-            content: answer,
-            id: assistantId,
-          },
-        ];
-      }
+    this.messages.push({
+      id: assistantId,
+      role: MessageRole.ASSISTANT,
+      messageParts: [],
+    });
 
-      if (onPartialUpdate) {
-        const newPartialResponses = extractSentences(answer).map(
-          (sentence) => ({
-            type: PartialResponseType.TEXT,
-            text: sentence,
+    while (hasToolCalls) {
+      const { toolsToCall } = await this.generateAnswer(
+        assistantId,
+        onTextFeedback
+      );
+
+      const responses: Array<{ functionName: string; response: string }> =
+        await Promise.all(
+          toolsToCall.map(async (tool) => {
+            const server = this.mcpServers.find((server) =>
+              server.activeTools.includes(tool.functionName)
+            );
+
+            if (!server) {
+              return {
+                functionName: tool.functionName,
+                response: "Cannot call tool",
+              };
+            }
+            const response = await server.server.callTool(
+              tool.functionName,
+              tool.parameters
+            );
+
+            console.log(
+              "TOOL",
+              tool.functionName,
+              response.content
+                .filter(({ type }) => type === "text")
+                .map(({ text }) => text)
+                .join("\n")
+            );
+
+            return {
+              functionName: tool.functionName,
+              response: response.content
+                .filter(({ type }) => type === "text")
+                .map(({ text }) => text)
+                .join("\n"),
+            };
           })
         );
-        if (newPartialResponses.length > partialResponses.length) {
-          partialResponses = newPartialResponses;
-          onPartialUpdate(partialResponses[partialResponses.length - 1]);
-        }
-      }
-    });
+      hasToolCalls = toolsToCall.length !== 0;
+
+      this.webLlmMessages.push({
+        role: "user",
+        content: `This is the response of the called tools: ${responses
+          .map(
+            (resp) => `${resp.functionName}:
+Response: ${resp.response}`
+          )
+          .join("\n\n")}`,
+      });
+    }
+
+    return;
   };
 
   private generateAnswer = async (
-    onReplyUpdate: (reply: string) => void
-  ): Promise<string> => {
+    assistantId: string,
+    onTextFeedback?: (feedback: string) => void
+  ): Promise<{
+    text: string;
+    toolsToCall: Array<XMLToolSignature>;
+  }> => {
+    const prevWebLlmMessages = this.webLlmMessages;
+
     const chunks = await ENGINE.chat.completions.create({
-      messages: this.webLlmMessages.map((m) => ({
-        role:
-          m.role === "system"
-            ? "system"
-            : m.role === "assistant"
-              ? "assistant"
-              : "user",
-        content: m.content as string,
-      })),
+      messages: this.webLlmMessages,
       temperature: this.temperature,
       stream: true,
       stream_options: {
@@ -207,15 +251,68 @@ class ConversationWebLlm extends EventTarget implements Conversation {
     });
 
     let reply = "";
+    let processedReply: string = "";
+
+    const toolsToCall: Array<XMLToolSignature> = [];
+
     for await (const chunk of chunks) {
       reply += chunk.choices[0]?.delta.content || "";
-      onReplyUpdate(reply.replace("<think>\n\n</think>\n\n", ""));
-      if (chunk.usage) {
-        this.log(chunk.usage);
+      const clean = reply.replace("<think>\n\n</think>\n\n", "");
+      const newReply = clean.replace(processedReply, "");
+
+      const fullSentence = isFullSentence(newReply);
+      const fullXMLToolCall = isFullXMLToolCall(newReply);
+
+      if (fullSentence) {
+        processedReply = clean;
+        onTextFeedback && onTextFeedback(fullSentence);
+        this.messages = this.messages.map((message) => ({
+          ...message,
+          messageParts:
+            message.id === assistantId
+              ? [
+                  ...message.messageParts,
+                  {
+                    type: MessagePartType.TEXT,
+                    id: uuidv4(),
+                    text: fullSentence,
+                  },
+                ]
+              : message.messageParts,
+        }));
+      }
+
+      if (fullXMLToolCall) {
+        processedReply = clean;
+        toolsToCall.push(fullXMLToolCall);
+        this.messages = this.messages.map((message) => ({
+          ...message,
+          messageParts:
+            message.id === assistantId
+              ? [
+                  ...message.messageParts,
+                  {
+                    type: MessagePartType.TOOL_CALL,
+                    id: uuidv4(),
+                    functionName: fullXMLToolCall.functionName,
+                    parameters: fullXMLToolCall.parameters,
+                    response: "",
+                  },
+                ]
+              : message.messageParts,
+        }));
       }
     }
-    onReplyUpdate(reply.replace("<think>\n\n</think>\n\n", ""));
-    return reply;
+
+    this.webLlmMessages = [
+      ...prevWebLlmMessages,
+      {
+        role: "assistant",
+        content: reply.replace("<think>\n\n</think>\n\n", ""),
+      },
+    ];
+
+    return { text: reply.replace("<think>\n\n</think>\n\n", ""), toolsToCall };
   };
 }
 

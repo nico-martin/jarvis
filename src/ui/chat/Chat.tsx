@@ -46,11 +46,7 @@ export function Chat({
   const promptRef = React.useRef<HTMLInputElement>(null);
 
   const messagesLength = React.useMemo(
-    () =>
-      messages.reduce(
-        (acc, message) => acc + (message?.text || "").toString().length,
-        0
-      ),
+    () => JSON.stringify(messages).length,
     [messages]
   );
 
@@ -107,12 +103,7 @@ export function Chat({
           {status === ModelStatus.LOADED && "Ready"}
         </p>
         <div className="flex gap-2">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={openMcpSettings}
-            title="MCP settings"
-          >
+          <Button variant="outline" size="sm" title="MCP settings" to="/mcp">
             <McpIcon />
           </Button>
           <Button

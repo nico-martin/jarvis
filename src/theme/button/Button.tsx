@@ -1,5 +1,6 @@
 import cn from "@utils/classnames";
 import { ReactNode } from "react";
+import { NavLink } from "react-router-dom";
 
 type ButtonColor = "navy" | "gold" | "cream" | "charcoal";
 type ButtonVariant = "solid" | "outline" | "ghost";
@@ -18,11 +19,17 @@ interface BaseButtonProps {
   title?: string;
 }
 
-interface ButtonProps extends BaseButtonProps {
+interface ButtonPropsButton extends BaseButtonProps {
   onClick?: () => void;
   type?: "button" | "submit" | "reset";
   href?: never;
 }
+
+interface ButtonPropsRouter extends BaseButtonProps {
+  to: string;
+}
+
+type ButtonProps = ButtonPropsRouter | ButtonPropsButton;
 
 const colorVariantStyles: Record<ButtonColor, Record<ButtonVariant, string>> = {
   navy: {
@@ -124,15 +131,26 @@ export default function Button({
     </>
   );
 
-  return (
-    <button
-      type={"type" in props ? props.type : "button"}
-      onClick={props.onClick}
-      disabled={disabled || loading}
-      className={combinedClassName}
-      title={title}
-    >
-      {content}
-    </button>
-  );
+  if ("to" in props) {
+    return (
+      <NavLink to={props.to} className={combinedClassName} title={title}>
+        {content}
+      </NavLink>
+    );
+  }
+
+  if ("onClick" in props) {
+    return (
+      <button
+        type={"type" in props ? props.type : "button"}
+        onClick={props.onClick}
+        disabled={disabled || loading}
+        className={combinedClassName}
+        title={title}
+      >
+        {content}
+      </button>
+    );
+  }
+  return null;
 }

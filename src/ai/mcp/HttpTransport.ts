@@ -446,7 +446,7 @@ export class HttpTransport implements McpTransport {
         ? `${message} ${args.map((arg) => JSON.stringify(arg)).join(" ")}`
         : message;
 
-    console[level](`[Mcp HttpTransport] ${fullMessage}`);
+    //console[level](`[Mcp HttpTransport] ${fullMessage}`);
   }
 }
 

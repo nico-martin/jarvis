@@ -313,6 +313,13 @@ export function McpServerContextProvider({
     });
   }, []);
 
+  const activeServersAndTools = React.useMemo(() => {
+    const servers = [...httpServers, ...builtinServers];
+    return servers.filter((server) => {
+      return server.active && server.state === McpState.READY;
+    });
+  }, [builtinServers, httpServers]);
+
   return (
     <McpServerContext
       value={{
@@ -322,6 +329,7 @@ export function McpServerContextProvider({
         addHttpServer,
         removeHttpServer,
         updateServerConfig,
+        active: activeServersAndTools,
       }}
     >
       {children}

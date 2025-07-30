@@ -1,12 +1,4 @@
-export interface Message {
-  id: string;
-  text: string;
-  role: MessageRole;
-}
-
-export type MessageUser = Message & {
-  role: MessageRole.USER;
-};
+import { McpServerWithState } from "@ai/mcp/react/types";
 
 export enum ModelStatus {
   IDLE,
@@ -14,50 +6,72 @@ export enum ModelStatus {
   LOADED,
 }
 
+/* MESSAGES */
+
+export interface Message {
+  id: string;
+  role: MessageRole;
+  messageParts: Array<MessagePart>;
+}
+
 export enum MessageRole {
   ASSISTANT,
   USER,
-  TOOL,
   SYSTEM,
 }
 
-export enum PartialResponseType {
+export type MessageUser = Message & {
+  role: MessageRole.USER;
+  messageParts: [MessagePartText];
+};
+
+export interface MessagePartBase {
+  type: MessagePartType;
+  id: string;
+}
+
+export enum MessagePartType {
   TEXT,
-  TOOL,
+  TOOL_CALL,
 }
 
-interface PartialResponseTool {
-  type: PartialResponseType.TOOL;
-}
+export type MessagePartTool = MessagePartBase & {
+  type: MessagePartType.TOOL_CALL;
+  functionName: string;
+  parameters: Record<string, any>;
+  response: string;
+  responseMedia?: {
+    type: "image" | "video" | "audio";
+    src: string;
+  };
+};
 
-interface PartialResponseText {
-  type: PartialResponseType.TEXT;
+export type MessagePartText = MessagePartBase & {
+  type: MessagePartType.TEXT;
   text: string;
-}
+};
 
-export type PartialResponse = PartialResponseText | PartialResponseTool;
+export type MessagePart = MessagePartTool | MessagePartText;
 
 export interface Conversation {
+  createConversation: (
+    systemPrompt: string,
+    mcpServers: Array<
+      (McpServerStoreHttp | McpServerStoreBuiltIn) & McpServerWithState
+    >
+  ) => void;
   messages: Array<Message>;
   onMessagesChange: (callback: (messages: Array<Message>) => void) => void;
   status: ModelStatus;
   onStatusChange: (callback: (status: ModelStatus) => void) => void;
   processPrompt: (
     message: MessageUser,
-    onPartialUpdate?: (part: PartialResponse) => void
-  ) => Promise<string>;
+    onTextFeedback?: (feedback: string) => void
+  ) => Promise<void>;
 }
 
 export interface ConversationConstructorOptions {
-  temperature?: number;
   log?: (message?: any, ...optionalParams: any[]) => void;
-}
-
-export interface ConversationConstructor {
-  new (
-    systemPrompt: string,
-    options: ConversationConstructorOptions
-  ): Conversation;
 }
 
 export interface McpServerStoreBase {
@@ -75,3 +89,8 @@ export interface McpServerStoreBuiltIn extends McpServerStoreBase {
 }
 
 export type McpServerStore = McpServerStoreHttp | McpServerStoreBuiltIn;
+
+export type XMLToolSignature = {
+  functionName: string;
+  parameters: Record<string, any>;
+};
