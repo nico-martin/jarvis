@@ -41,8 +41,9 @@ export type MessagePartTool = MessagePartBase & {
   parameters: Record<string, any>;
   response: string;
   responseMedia?: {
-    type: "image" | "video" | "audio";
-    src: string;
+    type: "image" | "audio";
+    data: string;
+    mimeType: string;
   };
 };
 

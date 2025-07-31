@@ -1,10 +1,11 @@
-import { eventEmitter } from "../../../utils/eventEmitter";
 import type {
   JSONRPCError,
   JSONRPCRequest,
   JSONRPCResponse,
 } from "@modelcontextprotocol/sdk/types.js";
 
+import { eventEmitter } from "../../../utils/eventEmitter";
+import ImageToText from "../../imageToText/ImageToText";
 import PromiseTransport, {
   type PromiseTransportConfig,
 } from "../PromiseTransport";
@@ -12,11 +13,13 @@ import PromiseTransport, {
 export interface TakePictureResult {
   success: boolean;
   imageData?: string;
+  description?: string;
   error?: string;
 }
 
 export class TakePictureServer {
   private transport: PromiseTransport;
+  private imageToText: ImageToText;
 
   constructor() {
     const config: PromiseTransportConfig = {
@@ -32,6 +35,15 @@ export class TakePictureServer {
     };
 
     this.transport = new PromiseTransport(config);
+    this.imageToText = new ImageToText();
+
+    // Preload the ImageToText model
+    this.imageToText.preload().catch((error) => {
+      console.warn(
+        "[TakePictureServer] Failed to preload ImageToText model:",
+        error
+      );
+    });
   }
 
   private async handleRequest(
@@ -63,10 +75,17 @@ export class TakePictureServer {
             tools: [
               {
                 name: "take_picture",
-                description: "Take a picture using the device camera",
+                description:
+                  "Take a picture using the device camera and analyze it based on a specific query or question",
                 inputSchema: {
                   type: "object",
-                  properties: {},
+                  properties: {
+                    query: {
+                      type: "string",
+                      description:
+                        "Optional question or description of what to look for in the picture. If not provided, a general description will be generated.",
+                    },
+                  },
                   additionalProperties: false,
                 },
               },
@@ -78,11 +97,14 @@ export class TakePictureServer {
       if (request.method === "tools/call") {
         const params = request.params as {
           name: string;
-          arguments?: any;
+          arguments?: {
+            query?: string;
+          };
         };
 
         if (params.name === "take_picture") {
-          const result = await this.takePicture();
+          const query = params.arguments?.query;
+          const result = await this.takePicture(query);
 
           return {
             jsonrpc: "2.0",
@@ -92,7 +114,9 @@ export class TakePictureServer {
                 {
                   type: "text",
                   text: result.success
-                    ? "Picture taken successfully"
+                    ? result.description
+                      ? `Picture taken successfully. Description: ${result.description}`
+                      : "Picture taken successfully"
                     : `Failed to take picture: ${result.error}`,
                 },
                 ...(result.imageData
@@ -130,11 +154,41 @@ export class TakePictureServer {
     }
   }
 
-  private takePicture(): Promise<TakePictureResult> {
+  private takePicture(query?: string): Promise<TakePictureResult> {
     return new Promise((resolve) => {
-      const onPictureTaken = (imageData: string) => {
-        resolve({ success: true, imageData });
-        unsubscribeError();
+      const onPictureTaken = async (imageData: string) => {
+        try {
+          // Create data URL from base64 image data
+          const dataUrl = `data:image/png;base64,${imageData}`;
+
+          // Create prompt based on query or use default
+          const prompt = query
+            ? `${query}. Please provide a short answer based on what you see in this image.`
+            : "Describe what you see in this image. Include objects, people, actions, setting, and any text visible in the image. But keep it rather short";
+
+          // Process image with ImageToText using the custom prompt
+          const description = await this.imageToText.generate(dataUrl, prompt);
+
+          resolve({
+            success: true,
+            imageData,
+            description,
+          });
+          unsubscribeError();
+        } catch (error) {
+          console.error(
+            "[TakePictureServer] Failed to process image with ImageToText:",
+            error
+          );
+          // Still return success with image data, but without description
+          resolve({
+            success: true,
+            imageData,
+            description:
+              "Image captured successfully, but description could not be generated.",
+          });
+          unsubscribeError();
+        }
       };
 
       const onPictureError = (error: string) => {

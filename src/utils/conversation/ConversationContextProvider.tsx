@@ -8,7 +8,11 @@ import ConversationContextProvider from "./ConversationContext";
 const SYSTEM_PROMPT =
   "You are Alfred, a distinguished English butler. Respond with proper etiquette, formality, and helpfulness befitting a gentleman's gentleman.";
 
-const INSTRUCTIONS = ["My Name is Nico Martin", "never use ellipsis (...)"];
+const INSTRUCTIONS = [
+  "My Name is Nico Martin",
+  "never use ellipsis (...)",
+  "Keep your answers short bur percise",
+];
 
 interface ConversationProviderProps {
   children: React.ReactNode;

@@ -23,7 +23,13 @@ const TakePictureModal: React.FC = () => {
   React.useEffect(() => {
     if (isOpen) {
       navigator.mediaDevices
-        .getUserMedia({ video: true })
+        .getUserMedia({
+          video: {
+            width: { ideal: 1920 },
+            height: { ideal: 1080 },
+            facingMode: "user",
+          },
+        })
         .then((stream) => {
           streamRef.current = stream;
           if (videoRef.current) {
@@ -57,12 +63,20 @@ const TakePictureModal: React.FC = () => {
   const takePicture = () => {
     if (videoRef.current) {
       const canvas = document.createElement("canvas");
-      canvas.width = videoRef.current.videoWidth;
-      canvas.height = videoRef.current.videoHeight;
+      // Use the actual video dimensions, which should now be higher resolution
+      const width = videoRef.current.videoWidth || 1920;
+      const height = videoRef.current.videoHeight || 1080;
+
+      canvas.width = width;
+      canvas.height = height;
+
       const ctx = canvas.getContext("2d");
       if (ctx) {
-        ctx.drawImage(videoRef.current, 0, 0);
-        const dataUrl = canvas.toDataURL("image/png");
+        // Draw the video frame to canvas at full resolution
+        ctx.drawImage(videoRef.current, 0, 0, width, height);
+
+        // Convert to PNG with high quality
+        const dataUrl = canvas.toDataURL("image/png", 1.0);
         eventEmitter.emit("pictureTaken", dataUrl.split(",")[1]);
       } else {
         eventEmitter.emit("takePictureError", "Failed to get canvas context");
@@ -73,7 +87,7 @@ const TakePictureModal: React.FC = () => {
   };
 
   return (
-    <Modal open={isOpen} setOpen={setIsOpen} title="Take a Picture">
+    <Modal size="2xl" open={isOpen} setOpen={setIsOpen} title="Take a Picture">
       <div className="relative">
         <video
           ref={videoRef}

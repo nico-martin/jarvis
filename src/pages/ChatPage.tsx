@@ -34,7 +34,7 @@ const FILL_WORDS = [
   "[Silence]",
   "[Inaudible]",
   "[Background noise]",
-];
+].map((s) => s.toLowerCase());
 
 export function ChatPage() {
   const [mute, setMute] = React.useState<boolean>(false);
@@ -82,9 +82,12 @@ export function ChatPage() {
     vad.setCallbacks({
       onSpeechChunk: (buffer, timing) => {
         timing.duration > 200 &&
-          speechToText
-            .generate(buffer)
-            .then((text) => !FILL_WORDS.includes(text) && submit(text));
+          speechToText.generate(buffer).then((text) => {
+            return (
+              FILL_WORDS.indexOf(text.trim().toLowerCase()) === -1 &&
+              submit(text)
+            );
+          });
       },
     });
     return vad;

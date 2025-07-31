@@ -1,5 +1,4 @@
 import toolsToSystemPrompt from "@ai/llm/utils/toolsToSystemPrompt";
-import mcpServer from "@ai/mcp/McpServer";
 import { McpServerWithState } from "@ai/mcp/react/types";
 import {
   Conversation,
@@ -195,21 +194,47 @@ ${toolsToSystemPrompt(tools)}`;
               tool.parameters
             );
 
-            console.log(
-              "TOOL",
-              tool.functionName,
-              response.content
-                .filter(({ type }) => type === "text")
-                .map(({ text }) => text)
-                .join("\n")
+            const textResponse = response.content
+              .filter(({ type }) => type === "text")
+              .map(({ text }) => text)
+              .join("\n");
+
+            const mediaResponse = response.content.find(
+              ({ type }) => type === "image" || type === "audio"
             );
+
+            this.messages = this.messages.map((message) => {
+              if (message.id === assistantId) {
+                return {
+                  ...message,
+                  messageParts: message.messageParts.map((part) =>
+                    part.type === MessagePartType.TOOL_CALL &&
+                    part.functionName === tool.functionName
+                      ? {
+                          ...part,
+                          response: textResponse,
+                          responseMedia: mediaResponse
+                            ? {
+                                type:
+                                  mediaResponse.type === "audio"
+                                    ? "audio"
+                                    : "image",
+                                data: (mediaResponse.data as string) || "",
+                                mimeType:
+                                  (mediaResponse.mimeType as string) || "",
+                              }
+                            : null,
+                        }
+                      : part
+                  ),
+                };
+              }
+              return message;
+            });
 
             return {
               functionName: tool.functionName,
-              response: response.content
-                .filter(({ type }) => type === "text")
-                .map(({ text }) => text)
-                .join("\n"),
+              response: textResponse,
             };
           })
         );

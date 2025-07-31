@@ -118,20 +118,17 @@ function MessagePartRenderer({ part }: { part: MessagePart }) {
           <div className="mt-2">
             {part.responseMedia.type === "image" && (
               <img
-                src={part.responseMedia.src}
+                src={`data:${part.responseMedia.mimeType};base64,${part.responseMedia.data}`}
                 alt="Tool response"
                 className="max-w-full rounded"
               />
             )}
-            {part.responseMedia.type === "video" && (
-              <video
-                src={part.responseMedia.src}
-                controls
-                className="max-w-full rounded"
-              />
-            )}
             {part.responseMedia.type === "audio" && (
-              <audio src={part.responseMedia.src} controls />
+              <audio
+                src={`data:${part.responseMedia.mimeType};base64,${part.responseMedia.data}`}
+                controls
+                className="max-w-full"
+              />
             )}
           </div>
         )}
