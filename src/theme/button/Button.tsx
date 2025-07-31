@@ -34,42 +34,42 @@ type ButtonProps = ButtonPropsRouter | ButtonPropsButton;
 const colorVariantStyles: Record<ButtonColor, Record<ButtonVariant, string>> = {
   navy: {
     solid:
-      "bg-slate-800 text-white hover:bg-slate-900 focus:ring-slate-600 border-transparent",
+      "bg-blue-950/20 text-blue-300 hover:bg-blue-900/30 hover:shadow-[0_0_20px_rgba(0,162,255,0.3)] focus:ring-blue-400/50 border-blue-400/50 backdrop-blur-sm",
     outline:
-      "bg-transparent text-slate-800 border-slate-800 hover:bg-slate-50 focus:ring-slate-600",
+      "bg-blue-950/20 text-blue-300 border-blue-400/50 hover:bg-blue-900/30 hover:shadow-[0_0_15px_rgba(0,162,255,0.3)] hover:border-blue-300 focus:ring-blue-400/50 backdrop-blur-sm",
     ghost:
-      "bg-transparent text-slate-800 border-transparent hover:bg-slate-50 focus:ring-slate-600",
+      "bg-transparent text-blue-300 border-transparent hover:bg-blue-950/20 hover:shadow-[0_0_10px_rgba(0,162,255,0.2)] focus:ring-blue-400/50",
   },
   gold: {
     solid:
-      "bg-amber-600 text-white hover:bg-amber-700 focus:ring-amber-500 border-transparent",
+      "bg-blue-950/20 text-blue-300 hover:bg-blue-900/30 hover:shadow-[0_0_20px_rgba(0,162,255,0.3)] focus:ring-blue-400/50 border-blue-400/50 backdrop-blur-sm",
     outline:
-      "bg-transparent text-amber-600 border-amber-600 hover:bg-amber-50 focus:ring-amber-500",
+      "bg-blue-950/20 text-blue-300 border-blue-400/50 hover:bg-blue-900/30 hover:shadow-[0_0_15px_rgba(0,162,255,0.3)] hover:border-blue-300 focus:ring-blue-400/50 backdrop-blur-sm",
     ghost:
-      "bg-transparent text-amber-600 border-transparent hover:bg-amber-50 focus:ring-amber-500",
+      "bg-transparent text-blue-300 border-transparent hover:bg-blue-950/20 hover:shadow-[0_0_10px_rgba(0,162,255,0.2)] focus:ring-blue-400/50",
   },
   cream: {
     solid:
-      "bg-stone-100 text-stone-800 hover:bg-stone-200 focus:ring-stone-400 border-transparent",
+      "bg-blue-950/20 text-blue-300 hover:bg-blue-900/30 hover:shadow-[0_0_20px_rgba(0,162,255,0.3)] focus:ring-blue-400/50 border-blue-400/50 backdrop-blur-sm",
     outline:
-      "bg-transparent text-stone-100 border-stone-100 hover:bg-stone-100 hover:text-stone-800 focus:ring-stone-400",
+      "bg-blue-950/20 text-blue-300 border-blue-400/50 hover:bg-blue-900/30 hover:shadow-[0_0_15px_rgba(0,162,255,0.3)] hover:border-blue-300 focus:ring-blue-400/50 backdrop-blur-sm",
     ghost:
-      "bg-transparent text-stone-100 border-transparent hover:bg-stone-100 hover:text-stone-800 focus:ring-stone-400",
+      "bg-transparent text-blue-300 border-transparent hover:bg-blue-950/20 hover:shadow-[0_0_10px_rgba(0,162,255,0.2)] focus:ring-blue-400/50",
   },
   charcoal: {
     solid:
-      "bg-stone-800 text-white hover:bg-stone-900 focus:ring-stone-600 border-transparent",
+      "bg-blue-950/20 text-blue-300 hover:bg-blue-900/30 hover:shadow-[0_0_20px_rgba(0,162,255,0.3)] focus:ring-blue-400/50 border-blue-400/50 backdrop-blur-sm",
     outline:
-      "bg-transparent text-stone-800 border-stone-800 hover:bg-stone-50 focus:ring-stone-600",
+      "bg-blue-950/20 text-blue-300 border-blue-400/50 hover:bg-blue-900/30 hover:shadow-[0_0_15px_rgba(0,162,255,0.3)] hover:border-blue-300 focus:ring-blue-400/50 backdrop-blur-sm",
     ghost:
-      "bg-transparent text-stone-800 border-transparent hover:bg-stone-50 focus:ring-stone-600",
+      "bg-transparent text-blue-300 border-transparent hover:bg-blue-950/20 hover:shadow-[0_0_10px_rgba(0,162,255,0.2)] focus:ring-blue-400/50",
   },
 };
 
 const sizeStyles: Record<ButtonSize, string> = {
-  sm: "px-3 py-1.5 text-xs gap-1.5",
-  md: "px-4 py-2 text-sm gap-2",
-  lg: "px-6 py-3 text-base gap-2.5",
+  sm: "px-3 py-1.5 text-xs gap-1.5 font-mono",
+  md: "px-4 py-2 text-sm gap-2 font-mono",
+  lg: "px-6 py-3 text-base gap-2.5 font-mono",
 };
 
 export default function Button({
@@ -86,7 +86,7 @@ export default function Button({
   ...props
 }: ButtonProps) {
   const baseStyles =
-    "cursor-pointer inline-flex items-center justify-center font-medium rounded-md border focus:outline-none focus:ring-2 focus:ring-offset-2 transition-colors disabled:opacity-50 disabled:cursor-not-allowed";
+    "cursor-pointer inline-flex items-center justify-center font-medium border focus:outline-none focus:ring-2 focus:ring-offset-2 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed uppercase tracking-wider";
 
   const combinedClassName = cn(
     baseStyles,
@@ -97,7 +97,7 @@ export default function Button({
 
   const LoadingSpinner = () => (
     <svg
-      className="h-4 w-4 animate-spin"
+      className="h-4 w-4 animate-spin shadow-[0_0_10px_rgba(0,162,255,0.5)]"
       xmlns="http://www.w3.org/2000/svg"
       fill="none"
       viewBox="0 0 24 24"

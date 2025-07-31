@@ -68,17 +68,17 @@ function McpOverview({ className = "" }: { className?: string }) {
 
       <div className="space-y-4">
         {unifiedServers.length === 0 ? (
-          <div className="rounded-lg border border-gray-200 bg-white p-12 text-center shadow-sm">
-            <p className="text-lg text-gray-500">No MCP servers configured</p>
-            <p className="mt-2 text-sm text-gray-400">
-              Add an HTTP server above to get started
+          <div className="border border-blue-400/30 bg-blue-950/10 backdrop-blur-sm p-12 text-center shadow-[0_0_30px_rgba(0,162,255,0.1)]">
+            <p className="text-lg text-blue-300 font-mono">NO_MCP_SERVERS_DETECTED</p>
+            <p className="mt-2 text-sm text-blue-400/80 font-mono">
+              INITIALIZE_HTTP_SERVER_CONNECTION_ABOVE
             </p>
           </div>
         ) : (
           unifiedServers.map((serverInfo) => (
             <div
               key={serverInfo.name}
-              className="overflow-hidden rounded-lg border border-gray-200 bg-white shadow-sm"
+              className="overflow-hidden border border-blue-400/30 bg-blue-950/10 backdrop-blur-sm shadow-[0_0_20px_rgba(0,162,255,0.1)]"
             >
               <McpServerHeader serverInfo={serverInfo} />
 

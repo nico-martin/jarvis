@@ -69,11 +69,11 @@ export function Chat({
   return (
     <div
       className={cn(
-        "flex flex-col justify-end gap-2 space-y-2 rounded-xl border border-stone-200 bg-stone-50 p-6 shadow-lg",
+        "flex flex-col justify-end gap-2 space-y-2 border border-blue-400/60 bg-black/80 backdrop-blur-sm p-6 shadow-[0_0_40px_rgba(0,162,255,0.4)]",
         className
       )}
     >
-      <ul ref={listRef} className="space-y-4 overflow-y-auto">
+      <ul ref={listRef} className="space-y-4 overflow-y-auto max-h-[60vh]">
         {messages.map((message) => (
           <li key={message.id}>
             <Message message={message} />
@@ -81,8 +81,8 @@ export function Chat({
         ))}
       </ul>
       {modelLoading && (
-        <p className="flex w-19/20 items-center gap-4 self-end rounded-md border border-stone-300 bg-stone-100 p-4 text-stone-700">
-          <Loader /> loading the model. Check the console for more infos.
+        <p className="flex w-19/20 items-center gap-4 self-end border border-blue-400/60 bg-blue-950/40 backdrop-blur-sm p-4 text-blue-200 font-mono text-sm shadow-[0_0_20px_rgba(0,162,255,0.3)]">
+          <Loader /> LOADING_MODEL_COMPONENTS...
         </p>
       )}
       <form className="flex w-full items-stretch gap-2" onSubmit={onSubmit}>
@@ -90,27 +90,39 @@ export function Chat({
           type="text"
           name="prompt"
           ref={promptRef}
-          className="w-full rounded-md border border-stone-300 bg-stone-100 px-3.5 py-2 text-base text-stone-800 placeholder:text-stone-500 focus:border-amber-500 focus:ring-2 focus:ring-amber-500 focus:outline-none"
+          placeholder="ENTER_COMMAND..."
+          className="w-full border border-blue-400/70 bg-blue-950/40 backdrop-blur-sm px-3.5 py-2 text-base text-blue-100 placeholder:text-blue-300/70 font-mono focus:border-blue-300 focus:ring-2 focus:ring-blue-400/70 focus:outline-none shadow-[inset_0_0_15px_rgba(0,162,255,0.2)]"
         />
-        <Button type="submit" disabled={thinking}>
+        <Button 
+          type="submit" 
+          disabled={thinking}
+          className="border border-blue-400/50 bg-blue-950/20 backdrop-blur-sm text-blue-300 hover:bg-blue-900/30 hover:shadow-[0_0_20px_rgba(0,162,255,0.3)] hover:border-blue-300 transition-all duration-300"
+        >
           <PaperAirplaneIcon width="1.5em" />
         </Button>
       </form>
       <div className="flex items-center justify-between">
-        <p className="text-xs text-stone-500">
-          LLM: {status === ModelStatus.IDLE && "Not loaded"}
-          {status === ModelStatus.LOADING && "Loading..."}
-          {status === ModelStatus.LOADED && "Ready"}
+        <p className="text-xs font-mono text-blue-200">
+          AI_CORE: {status === ModelStatus.IDLE && "OFFLINE"}
+          {status === ModelStatus.LOADING && "INITIALIZING..."}
+          {status === ModelStatus.LOADED && "ONLINE"}
         </p>
         <div className="flex gap-2">
-          <Button variant="outline" size="sm" title="MCP settings" to="/mcp">
+          <Button 
+            variant="outline" 
+            size="sm" 
+            title="MCP_INTERFACE" 
+            to="/mcp"
+            className="border border-blue-400/50 bg-blue-950/20 backdrop-blur-sm text-blue-300 hover:bg-blue-900/30 hover:shadow-[0_0_15px_rgba(0,162,255,0.3)] hover:border-blue-300 transition-all duration-300"
+          >
             <McpIcon />
           </Button>
           <Button
             variant="outline"
             size="sm"
             onClick={mute.toggle}
-            title={mute.isMute ? "Unmute" : "Mute"}
+            title={mute.isMute ? "AUDIO_ENABLE" : "AUDIO_DISABLE"}
+            className="border border-blue-400/50 bg-blue-950/20 backdrop-blur-sm text-blue-300 hover:bg-blue-900/30 hover:shadow-[0_0_15px_rgba(0,162,255,0.3)] hover:border-blue-300 transition-all duration-300"
           >
             {mute.isMute ? (
               <SpeakerXMarkIcon width="1.25em" />
@@ -122,17 +134,18 @@ export function Chat({
             variant="outline"
             size="sm"
             onClick={recording.toggle}
-            className={
+            className={cn(
+              "border border-blue-400/50 bg-blue-950/20 backdrop-blur-sm text-blue-300 hover:bg-blue-900/30 hover:shadow-[0_0_15px_rgba(0,162,255,0.3)] hover:border-blue-300 transition-all duration-300",
               recording.status === VoiceActivityDetectionStatus.RECORDING
-                ? "animate-pulse [animation-duration:0.75s]"
+                ? "animate-pulse [animation-duration:0.75s] shadow-[0_0_20px_rgba(0,162,255,0.5)]"
                 : ""
-            }
+            )}
             title={
               recording.status === VoiceActivityDetectionStatus.IDLE
-                ? "Start listener"
+                ? "VOICE_ACTIVATION"
                 : recording.status === VoiceActivityDetectionStatus.WAITING
-                  ? "Waiting for speech..."
-                  : "Recording speech"
+                  ? "VOICE_STANDBY..."
+                  : "VOICE_RECORDING"
             }
           >
             {recording.status === VoiceActivityDetectionStatus.IDLE ? (

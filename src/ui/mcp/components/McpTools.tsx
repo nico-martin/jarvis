@@ -22,14 +22,14 @@ function McpTools({
 }) {
   return (
     <div className={cn("px-6 py-4", className)}>
-      <h4 className="mb-3 text-sm font-medium text-gray-700">
-        Tools ({activeTools.length}/{tools.length} active)
+      <h4 className="mb-3 text-sm font-medium text-blue-300 font-mono uppercase tracking-wider">
+        TOOLS_AVAILABLE ({activeTools.length}/{tools.length} ACTIVE)
       </h4>
       <div className="space-y-3">
         {tools.map((tool) => (
           <div
             key={tool.name}
-            className="rounded-md border border-gray-200 bg-gray-50 p-4"
+            className="border border-blue-400/30 bg-blue-950/10 backdrop-blur-sm p-4 shadow-[0_0_15px_rgba(0,162,255,0.1)]"
           >
             <div className="flex items-start justify-between">
               <div className="flex-1">
@@ -42,17 +42,17 @@ function McpTools({
                     checked={activeTools.includes(tool.name)}
                     onChange={(checked) => handleToggleTool(tool.name, checked)}
                   />
-                  <h5 className="text-sm font-medium text-gray-900">
+                  <h5 className="text-sm font-medium text-blue-300 font-mono uppercase tracking-wider">
                     {tool.name}
                   </h5>
-                  <span className="text-xs text-gray-500">
+                  <span className="text-xs text-blue-400/80 font-mono">
                     {activeTools.includes(tool.name)
-                      ? "(Active)"
-                      : "(Inactive)"}
+                      ? "(ACTIVE)"
+                      : "(INACTIVE)"}
                   </span>
                 </div>
                 {tool.description && (
-                  <p className="mt-1 text-sm text-gray-600">
+                  <p className="mt-1 text-sm text-blue-400/80 font-mono">
                     {tool.description}
                   </p>
                 )}
@@ -64,7 +64,7 @@ function McpTools({
                   onClick={() => openToolModal(tool)}
                   disabled={!activeTools.includes(tool.name) || !serverActive}
                 >
-                  Call Tool
+                  EXECUTE_TOOL
                 </Button>
               </div>
             </div>
@@ -72,11 +72,11 @@ function McpTools({
             {tool.inputSchema && (
               <div className="mt-3">
                 <details className="group">
-                  <summary className="cursor-pointer text-xs font-medium text-gray-700 hover:text-gray-900">
-                    Input Schema
+                  <summary className="cursor-pointer text-xs font-medium text-blue-300 font-mono hover:text-blue-200 uppercase tracking-wider">
+                    INPUT_SCHEMA
                   </summary>
-                  <div className="mt-2 rounded border bg-white p-3 text-xs">
-                    <pre className="overflow-x-auto text-gray-800">
+                  <div className="mt-2 border border-blue-400/20 bg-black/30 p-3 text-xs">
+                    <pre className="overflow-x-auto text-blue-300/80 font-mono">
                       {JSON.stringify(tool.inputSchema, null, 2)}
                     </pre>
                   </div>

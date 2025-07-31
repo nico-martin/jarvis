@@ -35,13 +35,13 @@ export function CallTool({ isOpen, onClose, server, tool }: CallToolProps) {
 
       return (
         <div key={key} className="mb-4">
-          <label className="mb-1 block text-sm font-medium text-gray-700">
+          <label className="mb-1 block text-sm font-medium text-blue-300 font-mono uppercase tracking-wider">
             {key}
-            {isRequired && <span className="ml-1 text-red-500">*</span>}
+            {isRequired && <span className="ml-1 text-red-400">*</span>}
           </label>
 
           {schema.description && (
-            <p className="mb-2 text-xs text-gray-500">{schema.description}</p>
+            <p className="mb-2 text-xs text-blue-400/80 font-mono">{schema.description}</p>
           )}
 
           {renderFormField(key, schema, parameters[key], (value) =>
@@ -59,7 +59,7 @@ export function CallTool({ isOpen, onClose, server, tool }: CallToolProps) {
     onChange: (value: any) => void
   ) => {
     const commonClasses =
-      "w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent";
+      "w-full px-3 py-2 border border-blue-400/50 bg-blue-950/20 backdrop-blur-sm text-blue-300 placeholder:text-blue-400/60 font-mono focus:outline-none focus:ring-2 focus:ring-blue-400/50 focus:border-blue-300 shadow-[inset_0_0_10px_rgba(0,162,255,0.1)]";
 
     if (schema.type === "boolean") {
       return (
@@ -67,7 +67,7 @@ export function CallTool({ isOpen, onClose, server, tool }: CallToolProps) {
           type="checkbox"
           checked={value || false}
           onChange={(e) => onChange(e.target.checked)}
-          className="rounded border-gray-300 focus:ring-2 focus:ring-blue-500"
+          className="rounded border-blue-400/50 bg-blue-950/20 focus:ring-2 focus:ring-blue-400/50 text-blue-300"
         />
       );
     }
@@ -168,10 +168,10 @@ export function CallTool({ isOpen, onClose, server, tool }: CallToolProps) {
         if (item.type === "text") {
           return (
             <div key={index} className="mb-2">
-              <div className="mb-1 text-xs font-medium text-gray-600">
-                Text:
+              <div className="mb-1 text-xs font-medium text-blue-300 font-mono uppercase tracking-wider">
+                TEXT_OUTPUT:
               </div>
-              <div className="text-sm whitespace-pre-wrap text-gray-800">
+              <div className="text-sm whitespace-pre-wrap text-blue-200 font-mono">
                 {item.text}
               </div>
             </div>
@@ -180,23 +180,23 @@ export function CallTool({ isOpen, onClose, server, tool }: CallToolProps) {
         if (item.type === "image") {
           return (
             <div key={index} className="mb-2">
-              <div className="mb-1 text-xs font-medium text-gray-600">
-                Image:
+              <div className="mb-1 text-xs font-medium text-blue-300 font-mono uppercase tracking-wider">
+                IMAGE_OUTPUT:
               </div>
               <img
                 src={`data:${item.mimeType};base64,${item.data}`}
                 alt="Tool result"
-                className="max-w-full rounded border"
+                className="max-w-full border border-blue-400/30 shadow-[0_0_10px_rgba(0,162,255,0.2)]"
               />
             </div>
           );
         }
         return (
           <div key={index} className="mb-2">
-            <div className="mb-1 text-xs font-medium text-gray-600">
-              {item.type || "Unknown"}:
+            <div className="mb-1 text-xs font-medium text-blue-300 font-mono uppercase tracking-wider">
+              {item.type || "UNKNOWN"}_OUTPUT:
             </div>
-            <pre className="overflow-x-auto rounded bg-gray-50 p-2 text-xs text-gray-800">
+            <pre className="overflow-x-auto bg-black/30 border border-blue-400/20 p-2 text-xs text-blue-300/80 font-mono">
               {JSON.stringify(item, null, 2)}
             </pre>
           </div>
@@ -205,7 +205,7 @@ export function CallTool({ isOpen, onClose, server, tool }: CallToolProps) {
     }
 
     return (
-      <pre className="overflow-x-auto rounded bg-gray-50 p-3 text-sm text-gray-800">
+      <pre className="overflow-x-auto bg-black/30 border border-blue-400/20 p-3 text-sm text-blue-300/80 font-mono">
         {JSON.stringify(result, null, 2)}
       </pre>
     );
@@ -221,19 +221,19 @@ export function CallTool({ isOpen, onClose, server, tool }: CallToolProps) {
       <div className="space-y-4">
         {/* Tool Description */}
         {tool.description && (
-          <div className="rounded-md border border-blue-200 bg-blue-50 p-3">
-            <p className="text-sm text-blue-800">{tool.description}</p>
+          <div className="border border-blue-400/30 bg-blue-950/20 backdrop-blur-sm p-3 shadow-[0_0_15px_rgba(0,162,255,0.1)]">
+            <p className="text-sm text-blue-300 font-mono">{tool.description}</p>
           </div>
         )}
 
         {/* Parameters Form */}
         <div>
-          <h3 className="mb-3 text-sm font-medium text-gray-700">Parameters</h3>
+          <h3 className="mb-3 text-sm font-medium text-blue-300 font-mono uppercase tracking-wider">PARAMETERS</h3>
           {tool.inputSchema?.properties ? (
             <div className="space-y-3">{generateFormFields()}</div>
           ) : (
-            <p className="text-sm text-gray-500 italic">
-              This tool takes no parameters
+            <p className="text-sm text-blue-400/80 font-mono">
+              NO_PARAMETERS_REQUIRED
             </p>
           )}
         </div>
@@ -245,22 +245,22 @@ export function CallTool({ isOpen, onClose, server, tool }: CallToolProps) {
             disabled={isLoading}
             className="min-w-24"
           >
-            {isLoading ? "Calling..." : "Call Tool"}
+            {isLoading ? "EXECUTING..." : "EXECUTE_TOOL"}
           </Button>
         </div>
 
         {/* Error Display */}
         {error && (
-          <div className="rounded-md border border-red-200 bg-red-50 p-3">
-            <h4 className="mb-1 text-sm font-medium text-red-800">Error</h4>
-            <p className="text-sm text-red-700">{error}</p>
+          <div className="border border-red-400/50 bg-red-950/20 backdrop-blur-sm p-3 shadow-[0_0_15px_rgba(239,68,68,0.2)]">
+            <h4 className="mb-1 text-sm font-medium text-red-400 font-mono uppercase tracking-wider">ERROR</h4>
+            <p className="text-sm text-red-300 font-mono">{error}</p>
           </div>
         )}
 
         {/* Result Display */}
         {result && (
-          <div className="rounded-md border border-green-200 bg-green-50 p-3">
-            <h4 className="mb-2 text-sm font-medium text-green-800">Result</h4>
+          <div className="border border-green-400/50 bg-green-950/20 backdrop-blur-sm p-3 shadow-[0_0_15px_rgba(34,197,94,0.2)]">
+            <h4 className="mb-2 text-sm font-medium text-green-400 font-mono uppercase tracking-wider">RESULT</h4>
             <div className="text-sm">{formatResult(result)}</div>
           </div>
         )}

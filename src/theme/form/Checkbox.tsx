@@ -21,12 +21,12 @@ const Checkbox: React.FC<{
           checked={checked}
           onChange={() => onChange(!checked)}
           type="checkbox"
-          className="col-start-1 row-start-1 appearance-none rounded-sm border border-gray-300 bg-white checked:border-indigo-600 checked:bg-indigo-600 indeterminate:border-indigo-600 indeterminate:bg-indigo-600 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600 disabled:border-gray-300 disabled:bg-gray-100 disabled:checked:bg-gray-100 forced-colors:appearance-auto"
+          className="col-start-1 row-start-1 appearance-none rounded-sm border border-blue-400/50 bg-blue-950/20 backdrop-blur-sm checked:border-blue-300 checked:bg-blue-500/30 checked:shadow-[0_0_10px_rgba(59,130,246,0.3)] indeterminate:border-blue-300 indeterminate:bg-blue-500/30 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-400 disabled:border-blue-400/30 disabled:bg-blue-950/10 disabled:checked:bg-blue-950/10 forced-colors:appearance-auto transition-all duration-300"
         />
         <svg
           fill="none"
           viewBox="0 0 14 14"
-          className="pointer-events-none col-start-1 row-start-1 size-3.5 self-center justify-self-center stroke-white group-has-disabled:stroke-gray-950/25"
+          className="pointer-events-none col-start-1 row-start-1 size-3.5 self-center justify-self-center stroke-blue-100 group-has-disabled:stroke-blue-400/25"
         >
           <path
             d="M3 8L6 11L11 3.5"
@@ -45,7 +45,7 @@ const Checkbox: React.FC<{
         </svg>
       </div>
     </div>
-    <label htmlFor={id} className="text-sm text-gray-600">
+    <label htmlFor={id} className="text-sm text-blue-300 font-mono">
       {label}
     </label>
   </div>

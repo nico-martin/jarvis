@@ -74,20 +74,20 @@ function MessagePartRenderer({ part }: { part: MessagePart }) {
       <div>
         {Boolean(parsed.thinking) &&
           nl2brJsx(parsed.thinking).filter(Boolean).length > 0 && (
-            <p className="mb-4 text-xs font-thin text-stone-500">
-              <span className="mb-2 block font-normal">Thinking:</span>
+            <p className="mb-4 text-xs font-thin text-blue-300/80 font-mono">
+              <span className="mb-2 block font-normal text-blue-200">PROCESSING:</span>
               {nl2brJsx(parsed.thinking).flat()}
             </p>
           )}
-        {Boolean(parsed.content) && <p>{nl2brJsx(parsed.content).flat()}</p>}
+        {Boolean(parsed.content) && <p className="text-blue-100 font-mono text-sm leading-relaxed">{nl2brJsx(parsed.content).flat()}</p>}
       </div>
     );
   }
 
   if (part.type === MessagePartType.TOOL_CALL) {
     return (
-      <div className="my-4 rounded border border-blue-200 bg-blue-50 p-3">
-        <div className="mb-2 flex items-center gap-2 text-xs font-medium text-blue-700">
+      <div className="my-4 border border-blue-400/60 bg-blue-950/40 backdrop-blur-sm p-3 shadow-[0_0_25px_rgba(0,162,255,0.3)]">
+        <div className="mb-2 flex items-center gap-2 text-xs font-medium text-blue-200 font-mono">
           <svg
             xmlns="http://www.w3.org/2000/svg"
             width="1rem"
@@ -97,21 +97,22 @@ function MessagePartRenderer({ part }: { part: MessagePart }) {
             strokeWidth="2"
             strokeLinecap="round"
             strokeLinejoin="round"
+            className="text-blue-300"
           >
             <path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z" />
           </svg>
-          Tool Call: {part.functionName}
+          TOOL_EXECUTION: {part.functionName}
         </div>
-        <div className="mb-2 text-xs text-gray-600">
-          <strong>Parameters:</strong>
-          <pre className="mt-1 max-w-full overflow-x-auto text-xs text-gray-500">
+        <div className="mb-2 text-xs text-blue-200/90 font-mono">
+          <strong>PARAMETERS:</strong>
+          <pre className="mt-1 max-w-full overflow-x-auto text-xs text-blue-100/80 bg-black/50 border border-blue-400/30 p-2 rounded">
             {JSON.stringify(part.parameters, null, 2)}
           </pre>
         </div>
         {part.response && (
-          <div className="text-xs text-gray-600">
-            <strong>Response:</strong>
-            <p className="mt-1">{part.response}</p>
+          <div className="text-xs text-blue-200/90 font-mono">
+            <strong>OUTPUT:</strong>
+            <p className="mt-1 text-blue-100">{part.response}</p>
           </div>
         )}
         {part.responseMedia && (
@@ -120,7 +121,7 @@ function MessagePartRenderer({ part }: { part: MessagePart }) {
               <img
                 src={`data:${part.responseMedia.mimeType};base64,${part.responseMedia.data}`}
                 alt="Tool response"
-                className="max-w-full rounded"
+                className="max-w-full rounded border border-blue-400/50 shadow-[0_0_15px_rgba(0,162,255,0.4)]"
               />
             )}
             {part.responseMedia.type === "audio" && (
@@ -128,6 +129,9 @@ function MessagePartRenderer({ part }: { part: MessagePart }) {
                 src={`data:${part.responseMedia.mimeType};base64,${part.responseMedia.data}`}
                 controls
                 className="max-w-full"
+                style={{
+                  filter: 'invert(1) hue-rotate(180deg) brightness(0.8)',
+                }}
               />
             )}
           </div>
@@ -154,19 +158,22 @@ export function Message({
         message.role === MessageRole.USER ? "flex-row" : "flex-row-reverse"
       )}
     >
-      <div className="w-19/20 rounded-md border border-stone-300 bg-stone-100 p-4">
-        <p className="mb-4 text-xs text-stone-600">
+      <div className="w-19/20 border border-blue-400/60 bg-blue-950/30 backdrop-blur-sm p-4 shadow-[0_0_30px_rgba(0,162,255,0.3)]">
+        <p className="mb-4 text-xs text-blue-200 font-mono">
           {message.role === MessageRole.ASSISTANT ? (
             <span className="flex items-center gap-2">
-              {icons[MessageRole.ASSISTANT]} Agent
+              <span className="text-blue-300">{icons[MessageRole.ASSISTANT]}</span>
+              <span className="text-blue-100">ALFRED_SYSTEM</span>
             </span>
           ) : message.role === MessageRole.USER ? (
             <span className="flex items-center gap-2">
-              {icons[MessageRole.USER]} User Prompt
+              <span className="text-blue-300">{icons[MessageRole.USER]}</span>
+              <span className="text-blue-100">USER_INPUT</span>
             </span>
           ) : message.role === MessageRole.SYSTEM ? (
             <span className="flex items-center gap-2">
-              {icons[MessageRole.SYSTEM]} System Prompt
+              <span className="text-blue-300">{icons[MessageRole.SYSTEM]}</span>
+              <span className="text-blue-100">SYSTEM_DIRECTIVE</span>
             </span>
           ) : (
             ""
@@ -178,9 +185,9 @@ export function Message({
               <MessagePartRenderer key={part.id} part={part} />
             ))
           ) : (
-            <div className="flex items-center gap-2 text-sm text-gray-500">
-              <div className="h-4 w-4 animate-spin rounded-full border-2 border-gray-300 border-t-gray-600"></div>
-              thinking...
+            <div className="flex items-center gap-2 text-sm text-blue-200 font-mono">
+              <div className="h-4 w-4 animate-spin rounded-full border-2 border-blue-300/50 border-t-blue-200 shadow-[0_0_15px_rgba(0,162,255,0.5)]"></div>
+              PROCESSING_REQUEST...
             </div>
           )}
         </div>

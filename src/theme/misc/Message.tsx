@@ -11,24 +11,24 @@ interface MessageProps {
 }
 
 const messageStyles: Record<MessageType, string> = {
-  info: "border-blue-200 bg-blue-50",
-  warning: "border-yellow-200 bg-yellow-50",
-  success: "border-green-200 bg-green-50",
-  error: "border-red-200 bg-red-50",
+  info: "border-blue-400/50 bg-blue-950/20 backdrop-blur-sm shadow-[0_0_15px_rgba(59,130,246,0.2)]",
+  warning: "border-yellow-400/50 bg-yellow-950/20 backdrop-blur-sm shadow-[0_0_15px_rgba(234,179,8,0.2)]",
+  success: "border-green-400/50 bg-green-950/20 backdrop-blur-sm shadow-[0_0_15px_rgba(34,197,94,0.2)]",
+  error: "border-red-400/50 bg-red-950/20 backdrop-blur-sm shadow-[0_0_15px_rgba(239,68,68,0.2)]",
 };
 
 const titleStyles: Record<MessageType, string> = {
-  info: "text-blue-800",
-  warning: "text-yellow-800",
-  success: "text-green-800",
-  error: "text-red-800",
+  info: "text-blue-300 font-mono uppercase tracking-wider",
+  warning: "text-yellow-300 font-mono uppercase tracking-wider",
+  success: "text-green-300 font-mono uppercase tracking-wider",
+  error: "text-red-300 font-mono uppercase tracking-wider",
 };
 
 const contentStyles: Record<MessageType, string> = {
-  info: "text-blue-700",
-  warning: "text-yellow-700",
-  success: "text-green-700",
-  error: "text-red-700",
+  info: "text-blue-200 font-mono",
+  warning: "text-yellow-200 font-mono",
+  success: "text-green-200 font-mono",
+  error: "text-red-200 font-mono",
 };
 
 export function Message({ type, title, children, className }: MessageProps) {

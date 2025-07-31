@@ -13,7 +13,7 @@ const Loader: React.FC<{ size?: 4 | 5 | 6 | 8 | 10 }> = ({ size = 5 }) => {
   return (
     <svg
       aria-hidden="true"
-      className={`${sizeClass} animate-spin fill-white text-current`}
+      className={`${sizeClass} animate-spin fill-blue-300 text-blue-400 drop-shadow-[0_0_10px_rgba(0,162,255,0.5)]`}
       viewBox="0 0 100 101"
       fill="none"
       xmlns="http://www.w3.org/2000/svg"
