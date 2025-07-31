@@ -1,4 +1,5 @@
 import { McpServerContextProvider } from "@ai/mcp/react/McpServerContextProvider";
+import { Background } from "@theme";
 import ConversationProvider from "@utils/conversation/ConversationContextProvider";
 import React from "react";
 import { Route, BrowserRouter as Router, Routes } from "react-router-dom";
@@ -12,6 +13,7 @@ function App() {
   return (
     <McpServerContextProvider>
       <ConversationProvider>
+        <Background />
         <Router>
           <Routes>
             <Route path="/" element={<ChatPage />} />

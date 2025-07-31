@@ -1,1 +1,57 @@
 @import "tailwindcss";
+
+@theme {
+  --default-font-family: var(--font-mono);
+  --color-text: var(--color-blue-300);
+  --color-text-bright: var(--color-blue-100);
+  --color-text-superbright: var(--color-white);
+
+  --color-primary-50: var(--color-blue-50);
+  --color-primary-100: var(--color-blue-100);
+  --color-primary-200: var(--color-blue-200);
+  --color-primary-300: var(--color-blue-300);
+  --color-primary-400: var(--color-blue-400);
+  --color-primary-500: var(--color-blue-500);
+  --color-primary-600: var(--color-blue-600);
+  --color-primary-700: var(--color-blue-700);
+  --color-primary-800: var(--color-blue-800);
+  --color-primary-900: var(--color-blue-900);
+  --color-primary-950: var(--color-blue-950);
+
+  /*  --color-primary-50: var(--color-red-50);
+  --color-primary-100: var(--color-red-100);
+  --color-primary-200: var(--color-red-200);
+  --color-primary-300: var(--color-red-300);
+  --color-primary-400: var(--color-red-400);
+  --color-primary-500: var(--color-red-500);
+  --color-primary-600: var(--color-red-600);
+  --color-primary-700: var(--color-red-700);
+  --color-primary-800: var(--color-red-800);
+  --color-primary-900: var(--color-red-900);
+  --color-primary-950: var(--color-red-950);*/
+
+  --color-secondary-50: var(--color-green-50);
+  --color-secondary-100: var(--color-green-100);
+  --color-secondary-200: var(--color-green-200);
+  --color-secondary-300: var(--color-green-300);
+  --color-secondary-400: var(--color-green-400);
+  --color-secondary-500: var(--color-green-500);
+  --color-secondary-600: var(--color-green-600);
+  --color-secondary-700: var(--color-green-700);
+  --color-secondary-800: var(--color-green-800);
+  --color-secondary-900: var(--color-green-900);
+  --color-secondary-950: var(--color-green-950);
+}
+
+html {
+  color: var(--color-text);
+}
+
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}

@@ -1,4 +1,9 @@
-import { Message as MessageI, ModelStatus } from "@ai/types";
+import {
+  Message as MessageI,
+  MessagePartType,
+  MessageRole,
+  ModelStatus,
+} from "@ai/types";
 import { VoiceActivityDetectionStatus } from "@ai/voiceActivityDetection/VoiceActivityDetection";
 import {
   EllipsisHorizontalIcon,
@@ -8,28 +13,27 @@ import {
   SpeakerXMarkIcon,
 } from "@heroicons/react/24/outline";
 import { MicrophoneIcon as MicrophoneIconSolid } from "@heroicons/react/24/solid";
-import { Button, Loader, McpIcon } from "@theme";
+import { Button, InputText, Loader, McpIcon } from "@theme";
 import cn from "@utils/classnames";
 import React, { FormEvent } from "react";
 
 import { Message } from "./Message";
 
 export function Chat({
-  modelLoading = false,
   thinking = false,
   onSubmitPrompt,
   messages,
   status,
+  statusText,
   className = "",
   recording,
   mute,
-  openMcpSettings,
 }: {
-  modelLoading?: boolean;
   thinking?: boolean;
   onSubmitPrompt: (prompt: string) => void;
   messages: Array<MessageI>;
   status: ModelStatus;
+  statusText: string;
   className?: string;
   recording: {
     status: VoiceActivityDetectionStatus;
@@ -39,7 +43,6 @@ export function Chat({
     isMute: boolean;
     toggle: () => void;
   };
-  openMcpSettings: () => void;
 }) {
   const listRef = React.useRef<HTMLUListElement>(null);
   const messagesLengthRef = React.useRef<number>(0);
@@ -69,52 +72,64 @@ export function Chat({
   return (
     <div
       className={cn(
-        "flex flex-col justify-end gap-2 space-y-2 border border-blue-400/60 bg-black/80 backdrop-blur-sm p-6 shadow-[0_0_40px_rgba(0,162,255,0.4)]",
+        "border-primary-400/30 flex flex-col justify-end border bg-black/80 shadow-[0_0_30px_rgba(0,162,255,0.2)] backdrop-blur-sm",
         className
       )}
     >
-      <ul ref={listRef} className="space-y-4 overflow-y-auto max-h-[60vh]">
-        {messages.map((message) => (
+      <ul
+        ref={listRef}
+        className="scrollbar-hide max-h-[60vh] space-y-4 overflow-y-auto p-4"
+      >
+        {[
+          ...messages,
+          {
+            id: "uuidv4()44",
+            role: MessageRole.ASSISTANT,
+            messageParts: [
+              {
+                id: "uuidv4()3",
+                type: MessagePartType.TEXT,
+                text: "Hello!",
+              },
+              {
+                id: "uuidv4()4",
+                type: MessagePartType.TEXT,
+                text: "How can I help you today?",
+              },
+              {
+                id: "uuidv4()4",
+                type: MessagePartType.TOOL_CALL,
+                functionName: "my-function",
+                parameters: { test: 1, foo: "BAR" },
+                response: "mweomxdowelx",
+              },
+            ],
+          },
+        ].map((message) => (
           <li key={message.id}>
             <Message message={message} />
           </li>
         ))}
       </ul>
-      {modelLoading && (
-        <p className="flex w-19/20 items-center gap-4 self-end border border-blue-400/60 bg-blue-950/40 backdrop-blur-sm p-4 text-blue-200 font-mono text-sm shadow-[0_0_20px_rgba(0,162,255,0.3)]">
-          <Loader /> LOADING_MODEL_COMPONENTS...
-        </p>
-      )}
-      <form className="flex w-full items-stretch gap-2" onSubmit={onSubmit}>
-        <input
+      <form
+        className="border-primary-400/30 flex w-full items-stretch gap-2 border-t-1 p-4"
+        onSubmit={onSubmit}
+      >
+        <InputText
           type="text"
           name="prompt"
-          ref={promptRef}
           placeholder="ENTER_COMMAND..."
-          className="w-full border border-blue-400/70 bg-blue-950/40 backdrop-blur-sm px-3.5 py-2 text-base text-blue-100 placeholder:text-blue-300/70 font-mono focus:border-blue-300 focus:ring-2 focus:ring-blue-400/70 focus:outline-none shadow-[inset_0_0_15px_rgba(0,162,255,0.2)]"
+          ref={promptRef}
+          className="w-full"
         />
-        <Button 
-          type="submit" 
-          disabled={thinking}
-          className="border border-blue-400/50 bg-blue-950/20 backdrop-blur-sm text-blue-300 hover:bg-blue-900/30 hover:shadow-[0_0_20px_rgba(0,162,255,0.3)] hover:border-blue-300 transition-all duration-300"
-        >
+        <Button type="submit">
           <PaperAirplaneIcon width="1.5em" />
         </Button>
       </form>
-      <div className="flex items-center justify-between">
-        <p className="text-xs font-mono text-blue-200">
-          AI_CORE: {status === ModelStatus.IDLE && "OFFLINE"}
-          {status === ModelStatus.LOADING && "INITIALIZING..."}
-          {status === ModelStatus.LOADED && "ONLINE"}
-        </p>
+      <div className="flex items-center justify-between p-4 pt-0">
+        <p className="text-text-bright text-xs">AI_CORE: {statusText}</p>
         <div className="flex gap-2">
-          <Button 
-            variant="outline" 
-            size="sm" 
-            title="MCP_INTERFACE" 
-            to="/mcp"
-            className="border border-blue-400/50 bg-blue-950/20 backdrop-blur-sm text-blue-300 hover:bg-blue-900/30 hover:shadow-[0_0_15px_rgba(0,162,255,0.3)] hover:border-blue-300 transition-all duration-300"
-          >
+          <Button variant="outline" size="sm" title="MCP_INTERFACE" to="/mcp">
             <McpIcon />
           </Button>
           <Button
@@ -122,7 +137,6 @@ export function Chat({
             size="sm"
             onClick={mute.toggle}
             title={mute.isMute ? "AUDIO_ENABLE" : "AUDIO_DISABLE"}
-            className="border border-blue-400/50 bg-blue-950/20 backdrop-blur-sm text-blue-300 hover:bg-blue-900/30 hover:shadow-[0_0_15px_rgba(0,162,255,0.3)] hover:border-blue-300 transition-all duration-300"
           >
             {mute.isMute ? (
               <SpeakerXMarkIcon width="1.25em" />
@@ -135,9 +149,8 @@ export function Chat({
             size="sm"
             onClick={recording.toggle}
             className={cn(
-              "border border-blue-400/50 bg-blue-950/20 backdrop-blur-sm text-blue-300 hover:bg-blue-900/30 hover:shadow-[0_0_15px_rgba(0,162,255,0.3)] hover:border-blue-300 transition-all duration-300",
               recording.status === VoiceActivityDetectionStatus.RECORDING
-                ? "animate-pulse [animation-duration:0.75s] shadow-[0_0_20px_rgba(0,162,255,0.5)]"
+                ? "animate-pulse [animation-duration:0.75s]"
                 : ""
             )}
             title={
