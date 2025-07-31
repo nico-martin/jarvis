@@ -5,7 +5,7 @@ import { NavLink } from "react-router-dom";
 
 import { Loader } from "../index";
 
-type ButtonColor = "primary" | "secondary";
+type ButtonColor = "primary" | "secondary" | "danger";
 type ButtonVariant = "solid" | "outline" | "ghost";
 type ButtonSize = "sm" | "md" | "lg";
 
@@ -51,6 +51,14 @@ const colorVariantStyles: Record<ButtonColor, Record<ButtonVariant, string>> = {
     ghost:
       "bg-transparent text-primary-300 border-transparent hover:bg-primary-950/20 hover:shadow-[0_0_10px_rgba(0,162,255,0.2)] focus:ring-primary-400/50",
   },
+  danger: {
+    solid:
+      "bg-red-950/20 text-red-300 hover:bg-red-900/30 hover:shadow-[0_0_20px_rgba(255,0,0,0.3)] focus:ring-red-400/50 border-red-400/50 backdrop-blur-sm",
+    outline:
+      "bg-red-950/20 text-red-300 border-red-400/50 hover:bg-red-900/30 hover:shadow-[0_0_15px_rgba(255,0,0,0.3)] hover:border-red-300 focus:ring-red-400/50 backdrop-blur-sm",
+    ghost:
+      "bg-transparent text-red-300 border-transparent hover:bg-red-950/20 hover:shadow-[0_0_10px_rgba(255,0,0,0.2)] focus:ring-red-400/50",
+  },
 };
 
 const sizeStyles: Record<ButtonSize, string> = {
@@ -88,7 +96,7 @@ export default function Button({
       {!loading && iconLeft && (
         <span className="flex-shrink-0">{iconLeft}</span>
       )}
-      <span>{children}</span>
+      <span className="flex gap-2">{children}</span>
       {!loading && iconRight && (
         <span className="flex-shrink-0">{iconRight}</span>
       )}

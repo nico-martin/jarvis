@@ -7,7 +7,6 @@ import {
 import { Loader } from "@theme";
 import cn from "@utils/classnames";
 import nl2brJsx from "@utils/nl2brJsx";
-import parseThinkingJsx from "@utils/parseThinkingJsx";
 
 const icons = {
   [MessageRole.ASSISTANT]: (

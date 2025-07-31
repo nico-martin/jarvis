@@ -17,9 +17,9 @@ const getStateColor = (state: McpState) => {
     case McpState.FAILED:
       return "bg-red-500/20 text-red-400 border-red-400/50 shadow-[0_0_10px_rgba(239,68,68,0.3)]";
     case McpState.IDLE:
-      return "bg-blue-500/20 text-blue-400 border-blue-400/50 shadow-[0_0_10px_rgba(59,130,246,0.3)]";
+      return "bg-primary500/20 text-primary-400 border-primary400/50 shadow-[0_0_10px_rgba(59,130,246,0.3)]";
     default:
-      return "bg-blue-500/20 text-blue-400 border-blue-400/50 shadow-[0_0_10px_rgba(59,130,246,0.3)]";
+      return "bg-primary500/20 text-primary-400 border-primary400/50 shadow-[0_0_10px_rgba(59,130,246,0.3)]";
   }
 };
 
@@ -52,7 +52,7 @@ const getStateText = (state: McpState) => {
     case McpState.IDLE:
       return "STANDBY";
     default:
-      return state.toUpperCase();
+      return "";
   }
 };
 
@@ -66,90 +66,85 @@ function McpServerHeader({
   const { removeHttpServer, updateServerConfig } = useMcpServer();
 
   return (
-    <div className="border-b border-blue-400/20 px-6 py-4 bg-gradient-to-r from-blue-500/10 via-transparent to-blue-500/10">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center space-x-3">
-          <span
-            className={cn(
-              "inline-flex items-center border px-2 py-1 text-xs font-medium font-mono backdrop-blur-sm",
-              getStateColor(serverInfo.state)
-            )}
-          >
-            <span className="mr-1">{getStateIcon(serverInfo.state)}</span>
-            {getStateText(serverInfo.state)}
-          </span>
+    <div className="flex items-center justify-between">
+      <div className="flex items-center space-x-3">
+        <span
+          className={cn(
+            "inline-flex items-center border px-2 py-1 text-xs font-medium backdrop-blur-sm",
+            getStateColor(serverInfo.state)
+          )}
+        >
+          <span className="mr-1">{getStateIcon(serverInfo.state)}</span>
+          {getStateText(serverInfo.state)}
+        </span>
 
-          <span
-            className={cn(
-              "inline-flex items-center border px-2 py-1 text-xs font-medium font-mono backdrop-blur-sm",
-              {
-                "border-blue-400/50 bg-blue-500/20 text-blue-300 shadow-[0_0_10px_rgba(59,130,246,0.3)]": serverInfo.active,
-                "border-blue-400/30 bg-blue-950/10 text-blue-400/60": !serverInfo.active,
-              }
-            )}
-          >
-            {serverInfo.active ? "ACTIVE" : "INACTIVE"}
-          </span>
+        <span
+          className={cn(
+            "inline-flex items-center border px-2 py-1 text-xs font-medium backdrop-blur-sm",
+            {
+              "border-primary400/50 bg-primary500/20 text-primary-300 shadow-[0_0_10px_rgba(59,130,246,0.3)]":
+                serverInfo.active,
+              "border-primary400/30 bg-primary950/10 text-primary-400/60":
+                !serverInfo.active,
+            }
+          )}
+        >
+          {serverInfo.active ? "ACTIVE" : "INACTIVE"}
+        </span>
 
-          <div>
-            <div className="flex items-center gap-2">
-              <h3 className="text-lg font-semibold text-blue-300 font-mono uppercase tracking-wider">
-                {serverInfo.name}
-              </h3>
-              {serverInfo.server && (
-                <span className="text-sm text-blue-400/80 font-mono">
-                  ({serverInfo.activeTools.length}/
-                  {serverInfo.server.tools.length} TOOL
-                  {serverInfo.server.tools.length !== 1 ? "S" : ""} ACTIVE)
-                </span>
-              )}
-            </div>
-            <p className="text-xs text-blue-400/60 font-mono">
-              {isBuiltin
-                ? `BUILTIN_MODULE • ${(serverInfo as any).serverType.toUpperCase()}`
-                : `HTTP_ENDPOINT • ${(serverInfo as any).url}`}
-            </p>
-            {serverInfo.error && (
-              <p className="mt-1 text-xs text-red-400 font-mono">
-                ERROR: {serverInfo.error}
-              </p>
+        <div>
+          <div className="flex items-center gap-2">
+            <h3 className="text-primary-300 text-lg font-semibold tracking-wider uppercase">
+              {serverInfo.name}
+            </h3>
+            {serverInfo.server && (
+              <span className="text-primary-400/80 text-sm">
+                ({serverInfo.activeTools.length}/
+                {serverInfo.server.tools.length} TOOL
+                {serverInfo.server.tools.length !== 1 ? "S" : ""} ACTIVE)
+              </span>
             )}
           </div>
+          <p className="text-primary-400/60 text-xs">
+            {isBuiltin
+              ? `BUILTIN_MODULE • ${(serverInfo as any).serverType.toUpperCase()}`
+              : `HTTP_ENDPOINT • ${(serverInfo as any).url}`}
+          </p>
+          {serverInfo.error && (
+            <p className="mt-1 text-xs text-red-400">
+              ERROR: {serverInfo.error}
+            </p>
+          )}
         </div>
+      </div>
 
-        <div className="flex items-center gap-2">
+      <div className="flex items-center gap-2">
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() =>
+            updateServerConfig({
+              ...serverInfo,
+              active: !serverInfo.active,
+            })
+          }
+          color={serverInfo.active ? "primary" : "secondary"}
+          title={serverInfo.active ? "DEACTIVATE_SERVER" : "ACTIVATE_SERVER"}
+        >
+          <PowerIcon width="1em" />
+        </Button>
+
+        {!isBuiltin && (
           <Button
             variant="outline"
             size="sm"
-            onClick={() =>
-              updateServerConfig({
-                ...serverInfo,
-                active: !serverInfo.active,
-              })
-            }
-            className={cn({
-              "text-amber-400 hover:bg-amber-500/20 hover:text-amber-300 hover:shadow-[0_0_15px_rgba(245,158,11,0.3)]":
-                serverInfo.active,
-              "text-green-400 hover:bg-green-500/20 hover:text-green-300 hover:shadow-[0_0_15px_rgba(34,197,94,0.3)]":
-                !serverInfo.active,
-            })}
-            title={serverInfo.active ? "DEACTIVATE_SERVER" : "ACTIVATE_SERVER"}
+            onClick={() => removeHttpServer((serverInfo as any).url)}
+            color="danger"
+            title="TERMINATE_CONNECTION"
           >
-            <PowerIcon width="1em" />
+            <TrashIcon width="1em" />
           </Button>
-
-          {!isBuiltin && (
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => removeHttpServer((serverInfo as any).url)}
-              className="text-red-400 hover:bg-red-500/20 hover:text-red-300 hover:shadow-[0_0_15px_rgba(239,68,68,0.3)]"
-              title="TERMINATE_CONNECTION"
-            >
-              <TrashIcon width="1em" />
-            </Button>
-          )}
-        </div>
+        )}
       </div>
     </div>
   );

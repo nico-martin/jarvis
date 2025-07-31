@@ -1,7 +1,7 @@
 import { McpState } from "@ai/mcp/McpServer";
 import useMcpServer from "@ai/mcp/react/useMcpServer";
 import { Tool } from "@modelcontextprotocol/sdk/types.js";
-import { Message } from "@theme";
+import { ContentBox, Message } from "@theme";
 import cn from "@utils/classnames";
 import React from "react";
 
@@ -46,7 +46,7 @@ function McpOverview({ className = "" }: { className?: string }) {
 
   if (error) {
     return (
-      <div className={cn("space-y-6", className)}>
+      <div className={cn(className, "relative")}>
         <div className="py-12 text-center">
           <Message
             type="error"
@@ -64,24 +64,24 @@ function McpOverview({ className = "" }: { className?: string }) {
 
   return (
     <div className={cn("space-y-6", className)}>
-      <AddHttpServer />
+      <ContentBox>
+        <AddHttpServer />
+      </ContentBox>
 
       <div className="space-y-4">
         {unifiedServers.length === 0 ? (
-          <div className="border border-blue-400/30 bg-blue-950/10 backdrop-blur-sm p-12 text-center shadow-[0_0_30px_rgba(0,162,255,0.1)]">
-            <p className="text-lg text-blue-300 font-mono">NO_MCP_SERVERS_DETECTED</p>
-            <p className="mt-2 text-sm text-blue-400/80 font-mono">
+          <ContentBox className="p-12 text-center">
+            <p className="text-text-bright text-lg">NO_MCP_SERVERS_DETECTED</p>
+            <p className="text-text/80 mt-2 text-sm">
               INITIALIZE_HTTP_SERVER_CONNECTION_ABOVE
             </p>
-          </div>
+          </ContentBox>
         ) : (
           unifiedServers.map((serverInfo) => (
-            <div
+            <ContentBox
               key={serverInfo.name}
-              className="overflow-hidden border border-blue-400/30 bg-blue-950/10 backdrop-blur-sm shadow-[0_0_20px_rgba(0,162,255,0.1)]"
+              header={<McpServerHeader serverInfo={serverInfo} />}
             >
-              <McpServerHeader serverInfo={serverInfo} />
-
               {serverInfo.active && serverInfo.server && (
                 <>
                   {serverInfo.server.tools.length > 0 && (
@@ -112,12 +112,11 @@ function McpOverview({ className = "" }: { className?: string }) {
                   )}
                 </>
               )}
-            </div>
+            </ContentBox>
           ))
         )}
       </div>
 
-      {/* Call Tool Modal */}
       {callToolModal.isOpen && callToolModal.server && callToolModal.tool && (
         <CallTool
           isOpen={callToolModal.isOpen}

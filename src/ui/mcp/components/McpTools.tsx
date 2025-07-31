@@ -22,14 +22,14 @@ function McpTools({
 }) {
   return (
     <div className={cn("px-6 py-4", className)}>
-      <h4 className="mb-3 text-sm font-medium text-blue-300 font-mono uppercase tracking-wider">
+      <h4 className="text-primary-300 mb-3 text-sm font-medium tracking-wider uppercase">
         TOOLS_AVAILABLE ({activeTools.length}/{tools.length} ACTIVE)
       </h4>
       <div className="space-y-3">
         {tools.map((tool) => (
           <div
             key={tool.name}
-            className="border border-blue-400/30 bg-blue-950/10 backdrop-blur-sm p-4 shadow-[0_0_15px_rgba(0,162,255,0.1)]"
+            className="border-primary-400/30 bg-primary-950/10 border p-4"
           >
             <div className="flex items-start justify-between">
               <div className="flex-1">
@@ -42,17 +42,17 @@ function McpTools({
                     checked={activeTools.includes(tool.name)}
                     onChange={(checked) => handleToggleTool(tool.name, checked)}
                   />
-                  <h5 className="text-sm font-medium text-blue-300 font-mono uppercase tracking-wider">
+                  <h5 className="text-primary-300 text-sm font-medium tracking-wider uppercase">
                     {tool.name}
                   </h5>
-                  <span className="text-xs text-blue-400/80 font-mono">
+                  <span className="text-primary-400/80 text-xs">
                     {activeTools.includes(tool.name)
                       ? "(ACTIVE)"
                       : "(INACTIVE)"}
                   </span>
                 </div>
                 {tool.description && (
-                  <p className="mt-1 text-sm text-blue-400/80 font-mono">
+                  <p className="text-primary-400/80 mt-1 text-sm">
                     {tool.description}
                   </p>
                 )}
@@ -72,11 +72,11 @@ function McpTools({
             {tool.inputSchema && (
               <div className="mt-3">
                 <details className="group">
-                  <summary className="cursor-pointer text-xs font-medium text-blue-300 font-mono hover:text-blue-200 uppercase tracking-wider">
+                  <summary className="text-primary-300 hover:text-primary-200 cursor-pointer text-xs font-medium tracking-wider uppercase">
                     INPUT_SCHEMA
                   </summary>
-                  <div className="mt-2 border border-blue-400/20 bg-black/30 p-3 text-xs">
-                    <pre className="overflow-x-auto text-blue-300/80 font-mono">
+                  <div className="border-primary-400/20 mt-2 border bg-black/30 p-3 text-xs">
+                    <pre className="text-primary-300/80 scrollbar-hide overflow-x-auto">
                       {JSON.stringify(tool.inputSchema, null, 2)}
                     </pre>
                   </div>

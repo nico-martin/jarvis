@@ -1,5 +1,6 @@
 export { default as Background } from "./page/Background";
 export { default as PageContent } from "./page/PageContent";
+export { default as ContentBox } from "./page/ContentBox";
 export { default as Loader } from "./misc/Loader";
 export { default as McpIcon } from "./misc/McpIcon";
 export { default as Dot } from "./misc/Dot";

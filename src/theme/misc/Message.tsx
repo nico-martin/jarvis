@@ -11,17 +11,20 @@ interface MessageProps {
 }
 
 const messageStyles: Record<MessageType, string> = {
-  info: "border-blue-400/50 bg-blue-950/20 backdrop-blur-sm shadow-[0_0_15px_rgba(59,130,246,0.2)]",
-  warning: "border-yellow-400/50 bg-yellow-950/20 backdrop-blur-sm shadow-[0_0_15px_rgba(234,179,8,0.2)]",
-  success: "border-green-400/50 bg-green-950/20 backdrop-blur-sm shadow-[0_0_15px_rgba(34,197,94,0.2)]",
-  error: "border-red-400/50 bg-red-950/20 backdrop-blur-sm shadow-[0_0_15px_rgba(239,68,68,0.2)]",
+  info: "border-blue-400/50 bg-blue-950/20 shadow-[0_0_15px_rgba(59,130,246,0.2)]",
+  warning:
+    "border-yellow-400/50 bg-yellow-950/20 shadow-[0_0_15px_rgba(234,179,8,0.2)]",
+  success:
+    "border-green-400/50 bg-green-950/20 shadow-[0_0_15px_rgba(34,197,94,0.2)]",
+  error:
+    "border-red-400/50 bg-red-950/20 shadow-[0_0_15px_rgba(239,68,68,0.2)]",
 };
 
 const titleStyles: Record<MessageType, string> = {
-  info: "text-blue-300 font-mono uppercase tracking-wider",
-  warning: "text-yellow-300 font-mono uppercase tracking-wider",
-  success: "text-green-300 font-mono uppercase tracking-wider",
-  error: "text-red-300 font-mono uppercase tracking-wider",
+  info: "text-blue-300 uppercase tracking-wider",
+  warning: "text-yellow-300 uppercase tracking-wider",
+  success: "text-green-300 uppercase tracking-wider",
+  error: "text-red-300 uppercase tracking-wider",
 };
 
 const contentStyles: Record<MessageType, string> = {
@@ -33,11 +36,9 @@ const contentStyles: Record<MessageType, string> = {
 
 export function Message({ type, title, children, className }: MessageProps) {
   return (
-    <div
-      className={cn("rounded-md border p-4", messageStyles[type], className)}
-    >
+    <div className={cn("border p-4", messageStyles[type], className)}>
       {title && (
-        <h3 className={cn("mb-2 text-sm font-medium", titleStyles[type])}>
+        <h3 className={cn("mb-2 text-sm font-bold", titleStyles[type])}>
           {title}
         </h3>
       )}

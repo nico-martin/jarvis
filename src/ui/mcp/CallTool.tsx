@@ -1,5 +1,5 @@
 import { McpServer } from "@ai/mcp/McpServer";
-import { Button, Modal } from "@theme";
+import { Button, Message, Modal } from "@theme";
 import React from "react";
 
 interface Tool {
@@ -35,13 +35,15 @@ export function CallTool({ isOpen, onClose, server, tool }: CallToolProps) {
 
       return (
         <div key={key} className="mb-4">
-          <label className="mb-1 block text-sm font-medium text-blue-300 font-mono uppercase tracking-wider">
+          <label className="text-text mb-1 block text-sm font-medium uppercase">
             {key}
-            {isRequired && <span className="ml-1 text-red-400">*</span>}
+            {isRequired && <span className="ml-1 text-red-200">*</span>}
           </label>
 
           {schema.description && (
-            <p className="mb-2 text-xs text-blue-400/80 font-mono">{schema.description}</p>
+            <p className="text-primary-400/80 mb-2 text-xs">
+              {schema.description}
+            </p>
           )}
 
           {renderFormField(key, schema, parameters[key], (value) =>
@@ -59,7 +61,7 @@ export function CallTool({ isOpen, onClose, server, tool }: CallToolProps) {
     onChange: (value: any) => void
   ) => {
     const commonClasses =
-      "w-full px-3 py-2 border border-blue-400/50 bg-blue-950/20 backdrop-blur-sm text-blue-300 placeholder:text-blue-400/60 font-mono focus:outline-none focus:ring-2 focus:ring-blue-400/50 focus:border-blue-300 shadow-[inset_0_0_10px_rgba(0,162,255,0.1)]";
+      "w-full px-3 py-2 border border-primary-400/50 bg-primary-950/20 backdrop-blur-sm text-text placeholder:text-primary-400/60  focus:outline-none focus:ring-2 focus:ring-primary-400/50 focus:border-primary-300 shadow-[inset_0_0_10px_rgba(0,162,255,0.1)]";
 
     if (schema.type === "boolean") {
       return (
@@ -67,7 +69,7 @@ export function CallTool({ isOpen, onClose, server, tool }: CallToolProps) {
           type="checkbox"
           checked={value || false}
           onChange={(e) => onChange(e.target.checked)}
-          className="rounded border-blue-400/50 bg-blue-950/20 focus:ring-2 focus:ring-blue-400/50 text-blue-300"
+          className="text-text border-primary-400/50 bg-primary-950/20 focus:ring-primary-400/50 rounded focus:ring-2"
         />
       );
     }
@@ -168,10 +170,10 @@ export function CallTool({ isOpen, onClose, server, tool }: CallToolProps) {
         if (item.type === "text") {
           return (
             <div key={index} className="mb-2">
-              <div className="mb-1 text-xs font-medium text-blue-300 font-mono uppercase tracking-wider">
+              <div className="text-text mb-1 text-xs font-medium uppercase">
                 TEXT_OUTPUT:
               </div>
-              <div className="text-sm whitespace-pre-wrap text-blue-200 font-mono">
+              <div className="text-primary-200 text-sm whitespace-pre-wrap">
                 {item.text}
               </div>
             </div>
@@ -180,23 +182,23 @@ export function CallTool({ isOpen, onClose, server, tool }: CallToolProps) {
         if (item.type === "image") {
           return (
             <div key={index} className="mb-2">
-              <div className="mb-1 text-xs font-medium text-blue-300 font-mono uppercase tracking-wider">
+              <div className="text-text mb-1 text-xs font-medium uppercase">
                 IMAGE_OUTPUT:
               </div>
               <img
                 src={`data:${item.mimeType};base64,${item.data}`}
                 alt="Tool result"
-                className="max-w-full border border-blue-400/30 shadow-[0_0_10px_rgba(0,162,255,0.2)]"
+                className="border-primary-400/30 max-w-full border shadow-[0_0_10px_rgba(0,162,255,0.2)]"
               />
             </div>
           );
         }
         return (
           <div key={index} className="mb-2">
-            <div className="mb-1 text-xs font-medium text-blue-300 font-mono uppercase tracking-wider">
+            <div className="text-text mb-1 text-xs font-medium uppercase">
               {item.type || "UNKNOWN"}_OUTPUT:
             </div>
-            <pre className="overflow-x-auto bg-black/30 border border-blue-400/20 p-2 text-xs text-blue-300/80 font-mono">
+            <pre className="text-text/80 border-primary-400/20 overflow-x-auto border bg-black/30 p-2 text-xs">
               {JSON.stringify(item, null, 2)}
             </pre>
           </div>
@@ -205,7 +207,7 @@ export function CallTool({ isOpen, onClose, server, tool }: CallToolProps) {
     }
 
     return (
-      <pre className="overflow-x-auto bg-black/30 border border-blue-400/20 p-3 text-sm text-blue-300/80 font-mono">
+      <pre className="text-text/80 border-primary-400/20 overflow-x-auto border bg-black/30 p-3 text-sm">
         {JSON.stringify(result, null, 2)}
       </pre>
     );
@@ -216,53 +218,39 @@ export function CallTool({ isOpen, onClose, server, tool }: CallToolProps) {
       open={isOpen}
       setOpen={handleClose}
       title={`Call Tool: ${tool.name}`}
+      subtitle={tool.description}
       size="lg"
     >
       <div className="space-y-4">
-        {/* Tool Description */}
-        {tool.description && (
-          <div className="border border-blue-400/30 bg-blue-950/20 backdrop-blur-sm p-3 shadow-[0_0_15px_rgba(0,162,255,0.1)]">
-            <p className="text-sm text-blue-300 font-mono">{tool.description}</p>
-          </div>
-        )}
-
-        {/* Parameters Form */}
         <div>
-          <h3 className="mb-3 text-sm font-medium text-blue-300 font-mono uppercase tracking-wider">PARAMETERS</h3>
+          <h3 className="text-text mb-3 text-sm font-medium uppercase">
+            PARAMETERS
+          </h3>
           {tool.inputSchema?.properties ? (
             <div className="space-y-3">{generateFormFields()}</div>
           ) : (
-            <p className="text-sm text-blue-400/80 font-mono">
+            <p className="text-primary-400/80 text-sm">
               NO_PARAMETERS_REQUIRED
             </p>
           )}
         </div>
 
-        {/* Call Button */}
         <div className="flex justify-end">
-          <Button
-            onClick={handleCall}
-            disabled={isLoading}
-            className="min-w-24"
-          >
+          <Button onClick={handleCall} disabled={isLoading}>
             {isLoading ? "EXECUTING..." : "EXECUTE_TOOL"}
           </Button>
         </div>
 
-        {/* Error Display */}
         {error && (
-          <div className="border border-red-400/50 bg-red-950/20 backdrop-blur-sm p-3 shadow-[0_0_15px_rgba(239,68,68,0.2)]">
-            <h4 className="mb-1 text-sm font-medium text-red-400 font-mono uppercase tracking-wider">ERROR</h4>
-            <p className="text-sm text-red-300 font-mono">{error}</p>
-          </div>
+          <Message type="error" title="ERROR">
+            {error}
+          </Message>
         )}
 
-        {/* Result Display */}
         {result && (
-          <div className="border border-green-400/50 bg-green-950/20 backdrop-blur-sm p-3 shadow-[0_0_15px_rgba(34,197,94,0.2)]">
-            <h4 className="mb-2 text-sm font-medium text-green-400 font-mono uppercase tracking-wider">RESULT</h4>
+          <Message type="success" title="RESULT">
             <div className="text-sm">{formatResult(result)}</div>
-          </div>
+          </Message>
         )}
       </div>
     </Modal>
