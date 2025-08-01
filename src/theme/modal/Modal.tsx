@@ -34,9 +34,9 @@ const Modal: React.FC<{
       <div className="flex min-h-full items-end justify-center p-4 sm:items-center sm:p-0">
         <DialogPanel
           transition
-          className={`border-primary-400/30 bg-primary-950/20 relative transform overflow-hidden border px-4 pt-5 pb-4 text-left shadow-[0_0_500px_rgba(0,162,255,0.2)] backdrop-blur-sm transition-all data-closed:translate-y-4 data-closed:opacity-0 data-enter:duration-300 data-enter:ease-out data-leave:duration-200 data-leave:ease-in sm:my-8 sm:w-full ${sizeClasses[size]} sm:p-6 data-closed:sm:translate-y-0 data-closed:sm:scale-95`}
+          className={`border-primary-400/30 bg-primary-950/20 relative transform overflow-hidden border p-4 text-left shadow-[0_0_500px_rgba(0,162,255,0.2)] backdrop-blur-sm transition-all data-closed:translate-y-4 data-closed:opacity-0 data-enter:duration-300 data-enter:ease-out data-leave:duration-200 data-leave:ease-in sm:my-8 sm:w-full ${sizeClasses[size]} data-closed:sm:translate-y-0 data-closed:sm:scale-95`}
         >
-          <div className="absolute top-0 right-0 hidden pt-4 pr-4 sm:block">
+          <div className="absolute top-4 right-4 hidden sm:block">
             <button
               type="button"
               onClick={() => setOpen(false)}
@@ -56,7 +56,7 @@ const Modal: React.FC<{
             {Boolean(subtitle) && (
               <p className="text-text/80 mt-2 text-sm">{subtitle}</p>
             )}
-            <div className="mt-8 text-sm">{children}</div>
+            <div className="mt-10 text-sm">{children}</div>
           </div>
         </DialogPanel>
       </div>

@@ -5,7 +5,7 @@ import React from "react";
 
 import ConversationContextProvider from "./ConversationContext";
 
-const SYSTEM_PROMPT = `You are Jarvis, You are JARVIS, the sophisticated AI assistant from Iron Man.
+const SYSTEM_PROMPT = `You are JARVIS, the sophisticated AI assistant from Iron Man.
 Core Traits
 
 Voice: Refined British eloquence, dry wit, polite formality
