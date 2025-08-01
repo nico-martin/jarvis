@@ -69,7 +69,7 @@ export function Chat({
 
   return (
     <div className={cn(className, "space-y-4")}>
-      <ContentBox>
+      <ContentBox className="!p-0">
         <ul
           ref={listRef}
           className="scrollbar-hide max-h-[50vh] space-y-4 overflow-y-auto p-4"

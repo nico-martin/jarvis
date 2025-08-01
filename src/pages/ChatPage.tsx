@@ -1,111 +1,33 @@
-import SpeechToText from "@ai/speechToText/SpeechToText";
-import Kokoro from "@ai/textToSpeech/kokoro/Kokoro";
-import { MessagePartType, MessageRole, ModelStatus } from "@ai/types";
-import VoiceActivityDetection, {
-  VoiceActivityDetectionStatus,
-} from "@ai/voiceActivityDetection/VoiceActivityDetection";
+import useConversation from "@ai/agentContext/useConversation";
+import useSpeaker from "@ai/agentContext/useSpeaker";
+import useVad from "@ai/agentContext/useVad";
+import { ModelStatus } from "@ai/types";
+import { VoiceActivityDetectionStatus } from "@ai/voiceActivityDetection/VoiceActivityDetection";
 import { Dot, PageContent } from "@theme";
 import { Chat } from "@ui/chat/Chat";
-import useConversation from "@utils/conversation/useConversation";
 import React from "react";
-import { v4 as uuidv4 } from "uuid";
 
 import { version } from "../../package.json";
 
-const FILL_WORDS = [
-  // Non-speech sounds
-  "(laughs)",
-  "(laughter)",
-  "(chuckles)",
-  "(coughs)",
-  "(clears throat)",
-  "(sighs)",
-  "(sniffs)",
-  "(breathing)",
-  "(inhales)",
-  "(exhales)",
-  "(applause)",
-  "(music)",
-  "(silence)",
-
-  // Whisper-specific artifacts
-  "[BLANK_AUDIO]",
-  "[Music]",
-  "[Applause]",
-  "[Laughter]",
-  "[Silence]",
-  "[Inaudible]",
-  "[Background noise]",
-].map((s) => s.toLowerCase());
-
 export function ChatPage() {
-  const [mute, setMute] = React.useState<boolean>(false);
-  const [speakerAbortController, setSpeakerAbortController] = React.useState(
-    () => new AbortController()
-  );
+  const { messages, conversationStatus, submit, onVadDetected } =
+    useConversation();
+  const { vad, vadStatus } = useVad();
+  const { mute, setMute, abortSpeaker } = useSpeaker();
 
-  const { messages, status, processPrompt } = useConversation();
-
-  const speechToText = React.useMemo(() => {
-    const stt = new SpeechToText();
-    //stt.preload();
-    return stt;
-  }, []);
-
-  const tts = React.useMemo(() => {
-    const k = new Kokoro();
-    //k.preload();
-    return k;
-  }, []);
-
-  const submit = React.useCallback(
-    (prompt: string) =>
-      processPrompt(
-        {
-          id: uuidv4(),
-          messageParts: [
-            {
-              type: MessagePartType.TEXT,
-              id: uuidv4(),
-              text: prompt,
-            },
-          ],
-          role: MessageRole.USER,
-        },
-        (feedback) =>
-          !mute && tts.speak(feedback, speakerAbortController.signal)
-      ),
-    [processPrompt, mute, tts, speakerAbortController.signal]
-  );
-
-  const vad = React.useMemo(() => {
-    const vad = new VoiceActivityDetection();
-    //vad.preload();
-    vad.setCallbacks({
-      onSpeechChunk: (buffer, timing) => {
-        timing.duration > 200 &&
-          speechToText.generate(buffer).then((text) => {
-            return (
-              FILL_WORDS.indexOf(text.trim().toLowerCase()) === -1 &&
-              submit(text)
-            );
-          });
-      },
+  React.useEffect(() => {
+    const unsubscribe = onVadDetected((text: string) => {
+      submit(text);
     });
-    return vad;
-  }, [speechToText, submit]);
-
-  const vadStatus = React.useSyncExternalStore(
-    (cb) => vad.onStatusChange(cb),
-    () => vad.status
-  );
+    return unsubscribe;
+  }, [onVadDetected, submit]);
 
   const statusText =
-    status === ModelStatus.IDLE
+    conversationStatus === ModelStatus.IDLE
       ? "OFFLINE"
-      : status === ModelStatus.LOADING
+      : conversationStatus === ModelStatus.LOADING
         ? "INITIALIZING..."
-        : status === ModelStatus.LOADED
+        : conversationStatus === ModelStatus.LOADED
           ? "ONLINE"
           : "ERROR";
 
@@ -125,7 +47,7 @@ export function ChatPage() {
         <Chat
           onSubmitPrompt={submit}
           messages={messages}
-          status={status}
+          status={conversationStatus}
           statusText={statusText}
           className=""
           recording={{
@@ -142,8 +64,7 @@ export function ChatPage() {
                 setMute(false);
               } else {
                 setMute(true);
-                speakerAbortController.abort();
-                setSpeakerAbortController(new AbortController());
+                abortSpeaker();
               }
             },
           }}

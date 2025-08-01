@@ -37,12 +37,20 @@ class ConversationWebLlm extends EventTarget implements Conversation {
   private mcpServers: Array<
     (McpServerStoreHttp | McpServerStoreBuiltIn) & McpServerWithState
   > = [];
+  private onConversationEnded?: () => void;
+  private conversationEndKeyword?: string;
 
   public constructor(options?: ConversationConstructorOptions) {
     super();
 
     if (options?.log) {
       this.log = options.log;
+    }
+    if (options?.onConversationEnded) {
+      this.onConversationEnded = options.onConversationEnded;
+    }
+    if (options?.conversationEndKeyword) {
+      this.conversationEndKeyword = options.conversationEndKeyword;
     }
   }
 
@@ -240,15 +248,34 @@ ${toolsToSystemPrompt(tools)}`;
         );
       hasToolCalls = toolsToCall.length !== 0;
 
-      this.webLlmMessages.push({
-        role: "user",
-        content: `This is the response of the called tools: ${responses
-          .map(
-            (resp) => `${resp.functionName}:
+      if (hasToolCalls) {
+        this.webLlmMessages.push({
+          role: "user",
+          content: `This is the response of the called tools: ${responses
+            .map(
+              (resp) => `${resp.functionName}:
 Response: ${resp.response}`
-          )
-          .join("\n\n")}`,
-      });
+            )
+            .join("\n\n")}`,
+        });
+      }
+    }
+
+    const lastMessage = this.webLlmMessages[this.webLlmMessages.length - 1];
+    if (
+      this.conversationEndKeyword &&
+      lastMessage &&
+      lastMessage.role === "assistant" &&
+      typeof lastMessage.content === "string" &&
+      lastMessage.content.endsWith(this.conversationEndKeyword)
+    ) {
+      if (this.onConversationEnded) {
+        this.onConversationEnded();
+      }
+      this.createConversation(
+        this.webLlmMessages[0].content as string,
+        this.mcpServers
+      );
     }
 
     return;

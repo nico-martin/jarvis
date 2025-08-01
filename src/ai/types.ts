@@ -73,6 +73,8 @@ export interface Conversation {
 
 export interface ConversationConstructorOptions {
   log?: (message?: any, ...optionalParams: any[]) => void;
+  onConversationEnded?: () => void;
+  conversationEndKeyword?: string;
 }
 
 export interface McpServerStoreBase {

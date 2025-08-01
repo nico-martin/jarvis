@@ -205,7 +205,7 @@ const TakePictureModal: React.FC = () => {
         </div>
       </div>
 
-      <style jsx={true}>{`
+      <style jsx="true">{`
         @keyframes scan {
           0% {
             top: 0;

@@ -1,3 +1,4 @@
+import AgentContextProvider from "@ai/agentContext/AgentContextProvider";
 import { McpServerContextProvider } from "@ai/mcp/react/McpServerContextProvider";
 import { Background } from "@theme";
 import ConversationProvider from "@utils/conversation/ConversationContextProvider";
@@ -9,20 +10,28 @@ import McpPage from "./pages/McpPage";
 import OAuthCallbackPage from "./pages/OAuthCallbackPage";
 import TakePictureModal from "./ui/mcp/TakePictureModal";
 
+/**
+ * TODO:
+ * - Jarvis mode: VAD listens for "Jarvis". If so start with "Yes, Sir? How can I help you with" (already added to the conversation before first prompt)
+ * - Also add an "EndConversation" tool that ends the current conversation and goes back to "listening" for Jarvis
+ */
+
 function App() {
   return (
     <McpServerContextProvider>
-      <ConversationProvider>
-        <Background />
-        <Router>
-          <Routes>
-            <Route path="/" element={<ChatPage />} />
-            <Route path="/mcp" element={<McpPage />} />
-            <Route path="/oauth/callback" element={<OAuthCallbackPage />} />
-          </Routes>
-        </Router>
-        <TakePictureModal />
-      </ConversationProvider>
+      <AgentContextProvider>
+        <ConversationProvider>
+          <Background />
+          <Router>
+            <Routes>
+              <Route path="/" element={<ChatPage />} />
+              <Route path="/mcp" element={<McpPage />} />
+              <Route path="/oauth/callback" element={<OAuthCallbackPage />} />
+            </Routes>
+          </Router>
+          <TakePictureModal />
+        </ConversationProvider>
+      </AgentContextProvider>
     </McpServerContextProvider>
   );
 }
