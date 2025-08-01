@@ -5,15 +5,17 @@ export default function ContentBox({
   children,
   header,
   className = "",
+  wrapperClassName = "",
 }: {
   children?: React.ReactNode;
   header?: React.ReactNode;
   className?: string;
+  wrapperClassName?: string;
 }) {
   return (
     <div
       className={cn(
-        className,
+        wrapperClassName,
         "border-primary-400/30 bg-primary-950/10 border shadow-[0_0_20px_rgba(0,162,255,0.1)] backdrop-blur-sm"
       )}
     >
@@ -22,7 +24,7 @@ export default function ContentBox({
           {header}
         </div>
       )}
-      <div className="p-4">{children}</div>
+      <div className={cn(className, "p-4")}>{children}</div>
     </div>
   );
 }

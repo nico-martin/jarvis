@@ -9,7 +9,7 @@ class Kokoro implements TextToSpeech {
   private queue: Array<{ text: string; signal: AbortSignal }> = [];
   private isProcessing = false;
   private player = new SequentialAudioPlayer();
-  private voice: string = "bm_george";
+  private voice: string = "bm_fable";
   private speed: number = 1.3;
 
   constructor(options: { voice?: string; speed?: number } = {}) {

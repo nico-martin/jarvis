@@ -8,7 +8,7 @@ import tsconfigPaths from "vite-tsconfig-paths";
 
 dotenv.config();
 
-const TITLE = "Alfred - your private, personal assistant";
+const TITLE = "Jarvis - your private, personal assistant";
 
 export default defineConfig({
   server: {
