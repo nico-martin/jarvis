@@ -1,5 +1,14 @@
 import { McpServer } from "@ai/mcp/McpServer";
-import { Button, Message, Modal } from "@theme";
+import {
+  Button,
+  Checkbox,
+  InputText,
+  Message,
+  Modal,
+  Select,
+  Textarea,
+} from "@theme";
+import type { SelectOption } from "@theme";
 import React from "react";
 
 interface Tool {
@@ -33,23 +42,12 @@ export function CallTool({ isOpen, onClose, server, tool }: CallToolProps) {
     return Object.entries(properties).map(([key, schema]: [string, any]) => {
       const isRequired = required.includes(key);
 
-      return (
-        <div key={key} className="mb-4">
-          <label className="text-text mb-1 block text-sm font-medium uppercase">
-            {key}
-            {isRequired && <span className="ml-1 text-red-200">*</span>}
-          </label>
-
-          {schema.description && (
-            <p className="text-primary-400/80 mb-2 text-xs">
-              {schema.description}
-            </p>
-          )}
-
-          {renderFormField(key, schema, parameters[key], (value) =>
-            setParameters((prev) => ({ ...prev, [key]: value }))
-          )}
-        </div>
+      return renderFormField(
+        key,
+        schema,
+        parameters[key],
+        isRequired,
+        (value) => setParameters((prev) => ({ ...prev, [key]: value }))
       );
     });
   };
@@ -58,60 +56,97 @@ export function CallTool({ isOpen, onClose, server, tool }: CallToolProps) {
     key: string,
     schema: any,
     value: any,
+    isRequired: boolean,
     onChange: (value: any) => void
   ) => {
-    const commonClasses =
-      "w-full px-3 py-2 border border-primary-400/50 bg-primary-950/20 backdrop-blur-sm text-text placeholder:text-primary-400/60  focus:outline-none focus:ring-2 focus:ring-primary-400/50 focus:border-primary-300 shadow-[inset_0_0_10px_rgba(0,162,255,0.1)]";
+    const fieldId = `tool-${tool.name}-${key}`;
 
     if (schema.type === "boolean") {
       return (
-        <input
-          type="checkbox"
-          checked={value || false}
-          onChange={(e) => onChange(e.target.checked)}
-          className="text-text border-primary-400/50 bg-primary-950/20 focus:ring-primary-400/50 rounded focus:ring-2"
-        />
+        <div key={key}>
+          <div className="mb-1">
+            <span className="text-primary-300 text-xs font-medium tracking-wider uppercase">
+              {key.toUpperCase()}
+              {isRequired && <span className="ml-1 text-red-400">*</span>}
+            </span>
+          </div>
+          {schema.description && (
+            <p className="text-primary-400/80 mb-2 text-xs">
+              {schema.description}
+            </p>
+          )}
+          <Checkbox
+            id={fieldId}
+            name={key}
+            value={value ? "true" : "false"}
+            label="Enable"
+            checked={value || false}
+            onChange={(checked) => onChange(checked)}
+          />
+        </div>
       );
     }
 
     if (schema.type === "number" || schema.type === "integer") {
       return (
-        <input
+        <InputText
+          key={key}
+          id={fieldId}
+          name={key}
           type="number"
-          value={value || ""}
-          onChange={(e) =>
-            onChange(e.target.value ? Number(e.target.value) : undefined)
-          }
-          min={schema.minimum}
-          max={schema.maximum}
-          step={schema.type === "integer" ? 1 : "any"}
-          className={commonClasses}
+          label={key.toUpperCase()}
+          description={schema.description}
+          required={isRequired}
+          value={value?.toString() || ""}
           placeholder={`Enter ${key}...`}
+          onChange={(e) => {
+            const numValue = e.target.value
+              ? Number(e.target.value)
+              : undefined;
+            onChange(numValue);
+          }}
         />
       );
     }
 
     if (schema.enum) {
+      const options: SelectOption[] = schema.enum.map((option: string) => ({
+        value: option,
+        label: option,
+      }));
+
       return (
-        <select
+        <Select
+          key={key}
+          id={fieldId}
+          name={key}
+          label={key.toUpperCase()}
+          description={schema.description}
+          required={isRequired}
           value={value || ""}
+          options={options}
+          placeholder={`Select ${key}...`}
           onChange={(e) => onChange(e.target.value || undefined)}
-          className={commonClasses}
-        >
-          <option value="">Select {key}...</option>
-          {schema.enum.map((option: string) => (
-            <option key={option} value={option}>
-              {option}
-            </option>
-          ))}
-        </select>
+        />
       );
     }
 
     if (schema.type === "object" || schema.type === "array") {
       return (
-        <textarea
+        <Textarea
+          key={key}
+          id={fieldId}
+          name={key}
+          label={key.toUpperCase()}
+          description={
+            schema.description
+              ? `${schema.description} (JSON format)`
+              : "Enter as JSON"
+          }
+          required={isRequired}
           value={value ? JSON.stringify(value, null, 2) : ""}
+          rows={4}
+          placeholder={`Enter ${key} as JSON...`}
           onChange={(e) => {
             try {
               const parsed = e.target.value
@@ -123,21 +158,22 @@ export function CallTool({ isOpen, onClose, server, tool }: CallToolProps) {
               onChange(e.target.value);
             }
           }}
-          rows={4}
-          className={commonClasses}
-          placeholder={`Enter ${key} as JSON...`}
         />
       );
     }
 
     // Default to text input
     return (
-      <input
-        type="text"
+      <InputText
+        key={key}
+        id={fieldId}
+        name={key}
+        label={key.toUpperCase()}
+        description={schema.description}
+        required={isRequired}
         value={value || ""}
-        onChange={(e) => onChange(e.target.value || undefined)}
-        className={commonClasses}
         placeholder={`Enter ${key}...`}
+        onChange={(e) => onChange(e.target.value || undefined)}
       />
     );
   };
@@ -227,7 +263,7 @@ export function CallTool({ isOpen, onClose, server, tool }: CallToolProps) {
             PARAMETERS
           </h3>
           {tool.inputSchema?.properties ? (
-            <div className="space-y-3">{generateFormFields()}</div>
+            <div className="space-y-4">{generateFormFields()}</div>
           ) : (
             <p className="text-primary-400/80 text-sm">
               NO_PARAMETERS_REQUIRED
