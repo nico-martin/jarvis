@@ -1,3 +1,8 @@
+import {
+  ConversationTransformersJSWorkerResponse,
+  TransformersJSMessage,
+} from "@ai/llm/tfjsLlm/types";
+import toolsToSystemPrompt from "@ai/llm/utils/toolsToSystemPrompt";
 import { McpServerWithState } from "@ai/mcp/react/types";
 import {
   Conversation,
@@ -5,12 +10,21 @@ import {
   McpServerStoreBuiltIn,
   McpServerStoreHttp,
   Message,
+  MessagePartType,
+  MessageRole,
   MessageUser,
   ModelStatus,
+  XMLToolSignature,
 } from "@ai/types";
+import isFullSentence from "@utils/isFullSentence";
+import isFullXMLToolCall from "@utils/isFullXMLToolCall";
+import { v4 as uuidv4 } from "uuid";
 
 class ConversationTransformersJS implements Conversation {
-  private engineLoading: boolean;
+  private _engineStatus: ModelStatus = ModelStatus.IDLE;
+  private worker: Worker;
+  private workerRequestId: number = 0;
+  private tfjsMessages: Array<TransformersJSMessage> = [];
   private _messages: Array<Message> = [];
   private log: (message?: any, ...optionalParams: any[]) => void = () => {};
   private temperature: number = 1;
@@ -25,6 +39,9 @@ class ConversationTransformersJS implements Conversation {
     new Set();
 
   public constructor(options?: ConversationConstructorOptions) {
+    this.worker = new Worker(new URL("./worker.ts", import.meta.url), {
+      type: "module",
+    });
     if (options?.log) {
       this.log = options.log;
     }
@@ -41,16 +58,55 @@ class ConversationTransformersJS implements Conversation {
     mcpServers: Array<
       (McpServerStoreHttp | McpServerStoreBuiltIn) & McpServerWithState
     >
-  ) {}
+  ) {
+    this.mcpServers = mcpServers;
+    const tools = mcpServers.reduce(
+      (acc, server) => [
+        ...acc,
+        ...server.server.tools.filter((tool) =>
+          server.activeTools.includes(tool.name)
+        ),
+      ],
+      []
+    );
+
+    if (tools.length) {
+      systemPrompt += `
+
+${toolsToSystemPrompt(tools)}`;
+    }
+
+    const systemMessageId = uuidv4();
+
+    this.tfjsMessages = [
+      {
+        role: "system",
+        content: systemPrompt,
+      },
+    ];
+
+    this.messages = [
+      {
+        id: systemMessageId,
+        role: MessageRole.SYSTEM,
+        messageParts: [
+          {
+            type: MessagePartType.TEXT,
+            id: systemMessageId,
+            text: systemPrompt,
+          },
+        ],
+      },
+    ];
+  }
 
   public get status() {
-    if (this.engineLoading) {
-      return ModelStatus.LOADING;
-    }
-    /* if (ENGINE) {
-      return ModelStatus.LOADED;
-    }*/
-    return ModelStatus.IDLE;
+    return this._engineStatus;
+  }
+
+  public set status(status: ModelStatus) {
+    this._engineStatus = status;
+    this.statusEventListeners.forEach((listener) => listener(this.status));
   }
 
   public onStatusChange = (callback: (status: ModelStatus) => void) => {
@@ -74,10 +130,257 @@ class ConversationTransformersJS implements Conversation {
     return () => this.messagesEventListeners.delete(listener);
   };
 
+  public preLoadEngine = async () =>
+    new Promise<void>((resolve) => {
+      const id = (this.workerRequestId++).toString();
+      this.status = ModelStatus.LOADING;
+      const listener = (
+        e: MessageEvent<ConversationTransformersJSWorkerResponse>
+      ) => {
+        if (e.data.status === "complete") {
+          this.status = ModelStatus.LOADED;
+          this.worker.removeEventListener("message", listener);
+          resolve();
+        }
+      };
+
+      this.worker.addEventListener("message", listener);
+      this.worker.postMessage({
+        id,
+        type: "preload",
+      });
+    });
+
   public processPrompt = async (
     message: MessageUser,
     onTextFeedback?: (feedback: string) => void
-  ): Promise<void> => {};
+  ): Promise<void> => {
+    this.tfjsMessages = [
+      ...this.tfjsMessages,
+      {
+        role: "user",
+        content: message.messageParts[0].text,
+      },
+    ];
+
+    this.messages = [...this.messages, message];
+
+    this.log("-- MESSAGES --");
+    this.log(this.tfjsMessages);
+
+    let hasToolCalls = true;
+    const assistantId = uuidv4();
+
+    this.messages.push({
+      id: assistantId,
+      role: MessageRole.ASSISTANT,
+      messageParts: [],
+    });
+
+    while (hasToolCalls) {
+      const { toolsToCall } = await this.generateAnswer(
+        assistantId,
+        onTextFeedback
+      );
+
+      const responses: Array<{ functionName: string; response: string }> =
+        await Promise.all(
+          toolsToCall.map(async (tool) => {
+            const server = this.mcpServers.find((server) =>
+              server.activeTools.includes(tool.functionName)
+            );
+
+            if (!server) {
+              return {
+                functionName: tool.functionName,
+                response: "Cannot call tool",
+              };
+            }
+            const response = await server.server.callTool(
+              tool.functionName,
+              tool.parameters
+            );
+
+            const textResponse = response.content
+              .filter(({ type }) => type === "text")
+              .map(({ text }) => text)
+              .join("\n");
+
+            const mediaResponse = response.content.find(
+              ({ type }) => type === "image" || type === "audio"
+            );
+
+            this.messages = this.messages.map((message) => {
+              if (message.id === assistantId) {
+                return {
+                  ...message,
+                  messageParts: message.messageParts.map((part) =>
+                    part.type === MessagePartType.TOOL_CALL &&
+                    part.functionName === tool.functionName
+                      ? {
+                          ...part,
+                          response: textResponse,
+                          responseMedia: mediaResponse
+                            ? {
+                                type:
+                                  mediaResponse.type === "audio"
+                                    ? "audio"
+                                    : "image",
+                                data: (mediaResponse.data as string) || "",
+                                mimeType:
+                                  (mediaResponse.mimeType as string) || "",
+                              }
+                            : null,
+                        }
+                      : part
+                  ),
+                };
+              }
+              return message;
+            });
+
+            return {
+              functionName: tool.functionName,
+              response: textResponse,
+            };
+          })
+        );
+      hasToolCalls = toolsToCall.length !== 0;
+
+      if (hasToolCalls) {
+        this.tfjsMessages.push({
+          role: "user",
+          content: `This is the response of the called tools: ${responses
+            .map(
+              (resp) => `${resp.functionName}:
+Response: ${resp.response}`
+            )
+            .join("\n\n")}`,
+        });
+      }
+    }
+
+    const lastMessage = this.tfjsMessages[this.tfjsMessages.length - 1];
+
+    if (
+      this.conversationEndKeyword &&
+      lastMessage &&
+      lastMessage.role === "assistant" &&
+      typeof lastMessage.content === "string" &&
+      lastMessage.content.endsWith(this.conversationEndKeyword)
+    ) {
+      if (this.onConversationEnded) {
+        this.onConversationEnded();
+      }
+      this.createConversation(
+        this.tfjsMessages[0].content as string,
+        this.mcpServers
+      );
+    }
+
+    return;
+  };
+
+  private generateAnswer = async (
+    assistantId: string,
+    onTextFeedback?: (feedback: string) => void
+  ): Promise<{
+    text: string;
+    toolsToCall: Array<XMLToolSignature>;
+  }> => {
+    return new Promise<{
+      text: string;
+      toolsToCall: Array<XMLToolSignature>;
+    }>((resolve, reject) => {
+      const id = (this.workerRequestId++).toString();
+
+      let reply = "";
+      let processedReply: string = "";
+
+      const toolsToCall: Array<XMLToolSignature> = [];
+
+      if (this.status === ModelStatus.IDLE) {
+        this.status = ModelStatus.LOADING;
+      }
+      const listener = (
+        e: MessageEvent<ConversationTransformersJSWorkerResponse>
+      ) => {
+        if (e.data.id !== id) return;
+
+        if (e.data.status === "ready") {
+          this.status = ModelStatus.LOADED;
+        }
+
+        if (e.data.status === "token_update") {
+          reply += e.data.decodedTokens;
+          const clean = reply.replace("<think>\n\n</think>\n\n", "");
+          const newReply = clean.replace(processedReply, "");
+
+          const fullSentence = isFullSentence(newReply);
+          const fullXMLToolCall = isFullXMLToolCall(newReply);
+
+          if (fullSentence) {
+            processedReply = clean;
+            onTextFeedback && onTextFeedback(fullSentence);
+            this.messages = this.messages.map((message) => ({
+              ...message,
+              messageParts:
+                message.id === assistantId
+                  ? [
+                      ...message.messageParts,
+                      {
+                        type: MessagePartType.TEXT,
+                        id: uuidv4(),
+                        text: fullSentence,
+                      },
+                    ]
+                  : message.messageParts,
+            }));
+          }
+
+          if (fullXMLToolCall) {
+            processedReply = clean;
+            toolsToCall.push(fullXMLToolCall);
+            this.messages = this.messages.map((message) => ({
+              ...message,
+              messageParts:
+                message.id === assistantId
+                  ? [
+                      ...message.messageParts,
+                      {
+                        type: MessagePartType.TOOL_CALL,
+                        id: uuidv4(),
+                        functionName: fullXMLToolCall.functionName,
+                        parameters: fullXMLToolCall.parameters,
+                        response: "",
+                      },
+                    ]
+                  : message.messageParts,
+            }));
+          }
+        }
+
+        if (e.data.status === "complete") {
+          this.worker.removeEventListener("message", listener);
+          this.tfjsMessages = e.data.messages;
+          console.log("STATS", e.data.stats);
+
+          resolve({
+            text: reply,
+            toolsToCall,
+          });
+        }
+      };
+
+      this.worker.addEventListener("message", listener);
+      this.worker.postMessage({
+        id,
+        type: "generate",
+        messages: this.tfjsMessages,
+        temperature: this.temperature,
+      });
+    });
+  };
 }
 
 export default ConversationTransformersJS;

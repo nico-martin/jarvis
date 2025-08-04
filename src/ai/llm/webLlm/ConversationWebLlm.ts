@@ -354,6 +354,10 @@ Response: ${resp.response}`
               : message.messageParts,
         }));
       }
+
+      if (chunk.usage) {
+        console.log("Webllm usage", chunk?.usage);
+      }
     }
 
     this.webLlmMessages = [

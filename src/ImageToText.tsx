@@ -36,6 +36,7 @@ export default function ImageToText() {
       },
     ];
 
+    // @ts-ignore
     const text = processor.apply_chat_template(messages, {
       add_generation_prompt: true,
     });
@@ -58,9 +59,9 @@ export default function ImageToText() {
 
     console.log(stopping_criteria);
 
+    // @ts-ignore
     const { past_key_values, sequences } = await model.generate({
       ...inputs,
-      // TODO: Add back when fixed
       // past_key_values: past_key_values_cache,
 
       // Sampling

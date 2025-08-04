@@ -69,6 +69,7 @@ export interface Conversation {
     message: MessageUser,
     onTextFeedback?: (feedback: string) => void
   ) => Promise<void>;
+  preLoadEngine?: () => Promise<void>;
 }
 
 export interface ConversationConstructorOptions {

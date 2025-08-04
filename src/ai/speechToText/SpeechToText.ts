@@ -1,18 +1,11 @@
-interface SpeechToTextWorkerMessage {
-  id: string;
-  audioData: Float32Array;
-  sampleRate: number;
-}
-
-interface SpeechToTextWorkerResponse {
-  id: string;
-  status: "loading" | "complete" | "error";
-  text?: string;
-  error?: string;
-}
+import {
+  SpeechToTextWorkerMessage,
+  SpeechToTextWorkerResponse,
+} from "@ai/speechToText/types";
 
 class SpeechToText {
   private worker: Worker;
+  private id: number = 0;
 
   constructor() {
     this.worker = new Worker(
@@ -36,7 +29,7 @@ class SpeechToText {
     sampleRate: number = 16000
   ): Promise<string> {
     return new Promise((resolve, reject) => {
-      const id = Math.random().toString(36);
+      const id = (this.id++).toString();
 
       const listener = (e: MessageEvent<SpeechToTextWorkerResponse>) => {
         if (e.data.id !== id) return;

@@ -11,6 +11,9 @@ dotenv.config();
 const TITLE = "Jarvis - your private, personal assistant";
 
 export default defineConfig({
+  worker: {
+    format: "es",
+  },
   server: {
     ...(fs.existsSync(process.env.SSL_KEY || "") &&
     fs.existsSync(process.env.SSL_CRT || "")

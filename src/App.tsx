@@ -1,7 +1,6 @@
 import AgentContextProvider from "@ai/agentContext/AgentContextProvider";
 import { McpServerContextProvider } from "@ai/mcp/react/McpServerContextProvider";
 import { Background } from "@theme";
-import ConversationProvider from "@utils/conversation/ConversationContextProvider";
 import Router, { Route } from "preact-router";
 
 import ImageToText from "./ImageToText";
@@ -21,17 +20,15 @@ function App() {
   return (
     <McpServerContextProvider>
       <AgentContextProvider>
-        <ConversationProvider>
-          <Background />
-          <Router>
-            <Route path="/" component={ChatPage} />
-            <Route path="/mcp" component={McpPage} />
-            <Route path="/oauth/callback" component={OAuthCallbackPage} />
-            <Route path="/imgtotext" component={ImageToText} />
-            <Route path="/textgen" component={TextGeneration} />
-          </Router>
-          <TakePictureModal />
-        </ConversationProvider>
+        <Background />
+        <Router>
+          <Route path="/" component={ChatPage} />
+          <Route path="/mcp" component={McpPage} />
+          <Route path="/oauth/callback" component={OAuthCallbackPage} />
+          <Route path="/imgtotext" component={ImageToText} />
+          <Route path="/textgen" component={TextGeneration} />
+        </Router>
+        <TakePictureModal />
       </AgentContextProvider>
     </McpServerContextProvider>
   );

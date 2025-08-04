@@ -1,3 +1,5 @@
+import workletUrl from "./vad-processor.ts?worker&url";
+
 export enum VoiceActivityDetectionStatus {
   IDLE = "idle",
   WAITING = "waiting",
@@ -60,6 +62,7 @@ class VoiceActivityDetection extends EventTarget {
   constructor(callbacks: VadCallbacks = {}) {
     super();
     this.callbacks = callbacks;
+    // Use dynamic import for Vite compatibility
     this.worker = new Worker(new URL("./vadWorker.ts", import.meta.url), {
       type: "module",
     });
@@ -142,9 +145,7 @@ class VoiceActivityDetection extends EventTarget {
         sampleRate: 16000,
       });
 
-      await this.audioContext.audioWorklet.addModule(
-        new URL("./vad-processor.ts", import.meta.url)
-      );
+      await this.audioContext.audioWorklet.addModule(workletUrl);
 
       this.sourceNode = this.audioContext.createMediaStreamSource(
         this.mediaStream

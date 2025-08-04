@@ -3,26 +3,16 @@ import {
   pipeline,
 } from "@huggingface/transformers";
 
-interface SpeechToTextWorkerMessage {
-  id: string;
-  audioData: Float32Array;
-  sampleRate: number;
-}
-
-interface SpeechToTextWorkerResponse {
-  id: string;
-  status: "loading" | "complete" | "error";
-  text?: string;
-  error?: string;
-}
+import { SpeechToTextWorkerMessage, SpeechToTextWorkerResponse } from "./types";
 
 let whisperPipeline: AutomaticSpeechRecognitionPipeline | null = null;
 
 async function initializeWhisper() {
   if (!whisperPipeline) {
+    // @ts-ignore
     whisperPipeline = await pipeline(
       "automatic-speech-recognition",
-      "Xenova/whisper-tiny.en", //"Xenova/whisper-tiny",
+      "Xenova/whisper-base.en", //"Xenova/whisper-tiny.en", //"Xenova/whisper-tiny",
       {
         device: "webgpu",
       }

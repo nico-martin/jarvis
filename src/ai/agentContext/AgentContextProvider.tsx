@@ -1,9 +1,16 @@
+import ConversationTransformersJS from "@ai/llm/tfjsLlm/ConversationTransformersJS";
 import VoiceActivityDetection from "@ai/voiceActivityDetection/VoiceActivityDetection";
-import { useState, useMemo, useEffect, useCallback, useRef } from "preact/hooks";
 import { ComponentChildren } from "preact";
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "preact/hooks";
 import { v4 as uuidv4 } from "uuid";
 
-import ConversationWebLlm from "../llm/webLlm/ConversationWebLlm";
+//import ConversationWebLlm from "../llm/webLlm/ConversationWebLlm";
 import useMcpServer from "../mcp/react/useMcpServer";
 import SpeechToText from "../speechToText/SpeechToText";
 import Kokoro from "../textToSpeech/kokoro/Kokoro";
@@ -25,6 +32,7 @@ Provide precise, proactive solutions
 End: Offer additional assistance
 
 When the user indicates they want to end the conversation (through phrases like "goodbye," "bye," "talk to you later," "that's all," "thanks, I'm done," or similar farewell expressions), respond with a polite farewell message and then include the exact keyword [END] on a new line at the very end of your response.
+But only use that if you are 100% sure the user explicitly told you to end the conversation!
 
 Example format:
 Thank you for the conversation! Have a great day.
@@ -60,14 +68,14 @@ export default function AgentContextProvider({
     return k;
   }, []);
 
-  const conversation = useMemo(
-    () =>
-      new ConversationWebLlm({
-        onConversationEnded: () => console.log("ENDED"),
-        conversationEndKeyword: "<END>",
-      }),
-    []
-  );
+  const conversation = useMemo(() => {
+    const c = new ConversationTransformersJS({
+      onConversationEnded: () => console.log("ENDED"),
+      conversationEndKeyword: "<END>",
+    });
+    "preLoadEngine" in c && c.preLoadEngine();
+    return c;
+  }, []);
 
   useEffect(() => {
     conversation.createConversation(
@@ -77,7 +85,9 @@ export default function AgentContextProvider({
   }, [active, conversation]);
 
   const [messages, setMessages] = useState(() => conversation.messages);
-  const [conversationStatus, setConversationStatus] = useState(() => conversation.status);
+  const [conversationStatus, setConversationStatus] = useState(
+    () => conversation.status
+  );
 
   useEffect(() => {
     const unsubscribeMessages = conversation.onMessagesChange(() => {
@@ -125,13 +135,10 @@ export default function AgentContextProvider({
 
   const vadListeners = useRef<Set<(text: string) => void>>(new Set());
 
-  const onVadDetected = useCallback(
-    (callback: (text: string) => void) => {
-      vadListeners.current.add(callback);
-      return () => vadListeners.current.delete(callback);
-    },
-    []
-  );
+  const onVadDetected = useCallback((callback: (text: string) => void) => {
+    vadListeners.current.add(callback);
+    return () => vadListeners.current.delete(callback);
+  }, []);
 
   const vad = useMemo(() => {
     const vad = new VoiceActivityDetection();
