@@ -1,12 +1,12 @@
 import cn from "@utils/classnames";
-import React from "react";
+import { ComponentChildren } from "preact";
 
 export type MessageType = "info" | "warning" | "success" | "error";
 
 interface MessageProps {
   type: MessageType;
   title?: string;
-  children: React.ReactNode;
+  children: ComponentChildren;
   className?: string;
 }
 

@@ -1,7 +1,7 @@
 import cn from "@utils/classnames";
 import { type } from "node:os";
-import { ReactNode } from "react";
-import { NavLink } from "react-router-dom";
+import { ComponentChildren } from "preact";
+import { Link } from "preact-router";
 
 import { Loader } from "../index";
 
@@ -10,13 +10,13 @@ type ButtonVariant = "solid" | "outline" | "ghost";
 type ButtonSize = "sm" | "md" | "lg";
 
 interface BaseButtonProps {
-  children: ReactNode;
+  children: ComponentChildren;
   className?: string;
   color?: ButtonColor;
   variant?: ButtonVariant;
   size?: ButtonSize;
-  iconLeft?: ReactNode;
-  iconRight?: ReactNode;
+  iconLeft?: ComponentChildren;
+  iconRight?: ComponentChildren;
   disabled?: boolean;
   loading?: boolean;
   title?: string;
@@ -105,9 +105,9 @@ export default function Button({
 
   if ("to" in props) {
     return (
-      <NavLink to={props.to} className={combinedClassName} title={title}>
+      <Link to={props.to} className={combinedClassName} title={title}>
         {content}
-      </NavLink>
+      </Link>
     );
   }
 

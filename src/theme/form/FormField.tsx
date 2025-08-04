@@ -1,8 +1,8 @@
 import cn from "@utils/classnames";
-import React, { ReactNode } from "react";
+import { ComponentChildren } from "preact";
 
 interface FormFieldProps {
-  children: ReactNode;
+  children: ComponentChildren;
   className?: string;
   label?: string;
   description?: string;

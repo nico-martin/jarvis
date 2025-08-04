@@ -5,7 +5,6 @@ import { McpServerStoreBuiltIn, McpServerStoreHttp } from "@ai/types";
 import { PowerIcon, TrashIcon } from "@heroicons/react/24/outline";
 import { Button } from "@theme";
 import cn from "@utils/classnames";
-import React from "react";
 
 const getStateColor = (state: McpState) => {
   switch (state) {

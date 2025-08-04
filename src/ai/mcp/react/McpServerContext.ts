@@ -1,8 +1,8 @@
-import React from "react";
+import { createContext } from "preact";
 
 import { McpServerContextType } from "./types";
 
 const McpServerContextProvider =
-  React.createContext<McpServerContextType>(null);
+  createContext<McpServerContextType>(null);
 
 export default McpServerContextProvider;

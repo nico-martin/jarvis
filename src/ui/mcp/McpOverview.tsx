@@ -3,7 +3,7 @@ import useMcpServer from "@ai/mcp/react/useMcpServer";
 import { Tool } from "@modelcontextprotocol/sdk/types.js";
 import { ContentBox, Message } from "@theme";
 import cn from "@utils/classnames";
-import React from "react";
+import { useState } from "preact/hooks";
 
 import AddHttpServer from "./AddHttpServer";
 import CallTool from "./CallTool";
@@ -15,7 +15,7 @@ import McpTools from "./components/McpTools";
 function McpOverview({ className = "" }: { className?: string }) {
   const { httpServers, builtinServers, error, updateServerConfig } =
     useMcpServer();
-  const [callToolModal, setCallToolModal] = React.useState<{
+  const [callToolModal, setCallToolModal] = useState<{
     isOpen: boolean;
     server: any;
     tool: any;

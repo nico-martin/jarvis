@@ -1,5 +1,4 @@
 import cn from "@utils/classnames";
-import React from "react";
 import FormField from "./FormField";
 import { InputTextProps } from "./types";
 

@@ -1,7 +1,6 @@
 import { ChatBubbleLeftRightIcon } from "@heroicons/react/24/outline";
 import { PageContent } from "@theme";
 import McpOverview from "@ui/mcp/McpOverview";
-import React from "react";
 
 import { version } from "../../package.json";
 

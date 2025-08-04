@@ -1,9 +1,9 @@
-import React from "react";
+import { useContext } from "preact/hooks";
 
 import { ConversationContext } from "./ConversationContext";
 
 function useConversation() {
-  const context = React.useContext(ConversationContext);
+  const context = useContext(ConversationContext);
   if (!context) {
     throw new Error("useConversation must be used within a ConversationProvider");
   }

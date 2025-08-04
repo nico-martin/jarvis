@@ -1,6 +1,5 @@
 import { Prompt } from "@modelcontextprotocol/sdk/types.js";
 import cn from "@utils/classnames";
-import React from "react";
 
 function McpPrompts({
   className = "",

@@ -1,7 +1,8 @@
 import ConversationWebLlm from "@ai/llm/webLlm/ConversationWebLlm";
 import useMcpServer from "@ai/mcp/react/useMcpServer";
 import { MessageUser } from "@ai/types";
-import React from "react";
+import { useMemo, useEffect, useCallback, useState } from "preact/hooks";
+import { ComponentChildren } from "preact";
 
 import ConversationContextProvider from "./ConversationContext";
 
@@ -27,32 +28,39 @@ const INSTRUCTIONS = [
 ];
 
 interface ConversationProviderProps {
-  children: React.ReactNode;
+  children: ComponentChildren;
 }
 
 export function ConversationProvider({ children }: ConversationProviderProps) {
   const { active } = useMcpServer();
 
-  const conversation = React.useMemo(() => new ConversationWebLlm(), []);
+  const conversation = useMemo(() => new ConversationWebLlm(), []);
 
-  React.useEffect(() => {
+  useEffect(() => {
     conversation.createConversation(
       SYSTEM_PROMPT + "\n\n# Instructions:\n" + INSTRUCTIONS.join("\n"),
       active
     );
   }, [active, conversation]);
 
-  const messages = React.useSyncExternalStore(
-    (cb) => conversation.onMessagesChange(cb),
-    () => conversation.messages
-  );
+  const [messages, setMessages] = useState(() => conversation.messages);
+  const [status, setStatus] = useState(() => conversation.status);
 
-  const status = React.useSyncExternalStore(
-    (cb) => conversation.onStatusChange(cb),
-    () => conversation.status
-  );
+  useEffect(() => {
+    const unsubscribeMessages = conversation.onMessagesChange(() => {
+      setMessages(conversation.messages);
+    });
+    const unsubscribeStatus = conversation.onStatusChange(() => {
+      setStatus(conversation.status);
+    });
 
-  const processPrompt = React.useCallback(
+    return () => {
+      unsubscribeMessages();
+      unsubscribeStatus();
+    };
+  }, [conversation]);
+
+  const processPrompt = useCallback(
     async (
       message: MessageUser,
       onTextFeedback?: (feedback: string) => void
@@ -62,7 +70,7 @@ export function ConversationProvider({ children }: ConversationProviderProps) {
     [conversation]
   );
 
-  const contextValue = React.useMemo(
+  const contextValue = useMemo(
     () => ({
       conversation,
       messages,

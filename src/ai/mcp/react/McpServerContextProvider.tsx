@@ -5,7 +5,8 @@ import {
   McpServerStoreBuiltIn,
   McpServerStoreHttp,
 } from "@ai/types";
-import React from "react";
+import { useState, useEffect, useMemo } from "preact/hooks";
+import { ComponentChildren } from "preact";
 
 import { getBuiltInServerTransport } from "../mcpServers/builtinMcp";
 import {
@@ -18,19 +19,19 @@ import McpServerContext from "./McpServerContext";
 import type { McpServerWithState } from "./types";
 
 interface McpServerContextProviderProps {
-  children: React.ReactNode;
+  children: ComponentChildren;
 }
 
 export function McpServerContextProvider({
   children,
 }: McpServerContextProviderProps) {
-  const [httpServers, setHttpServers] = React.useState<
+  const [httpServers, setHttpServers] = useState<
     Array<McpServerStoreHttp & McpServerWithState>
   >([]);
-  const [builtinServers, setBuiltinServers] = React.useState<
+  const [builtinServers, setBuiltinServers] = useState<
     Array<McpServerStoreBuiltIn & McpServerWithState>
   >([]);
-  const [error, setError] = React.useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
   // Helper function to create server with state tracking
   const createServerWithState = (
@@ -306,14 +307,14 @@ export function McpServerContextProvider({
     }
   };
 
-  React.useEffect(() => {
+  useEffect(() => {
     setError(null);
     initializeServers().catch((e) => {
       setError(e.message);
     });
   }, []);
 
-  const activeServersAndTools = React.useMemo(() => {
+  const activeServersAndTools = useMemo(() => {
     const servers = [...httpServers, ...builtinServers];
     return servers.filter((server) => {
       return server.active && server.state === McpState.READY;

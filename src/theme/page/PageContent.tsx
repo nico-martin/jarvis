@@ -1,5 +1,6 @@
 import cn from "@utils/classnames";
-import React from "react";
+import { useState, useEffect, useMemo } from "preact/hooks";
+import { ComponentChildren } from "preact";
 
 import { ButtonProps } from "../button/Button";
 import { Button } from "../index";
@@ -14,21 +15,21 @@ export default function PageContent({
 }: {
   title: string;
   subtitle?: string;
-  children?: React.ReactNode;
+  children?: ComponentChildren;
   className?: string;
   statusBar?: Record<string, boolean>;
   button?: ButtonProps;
 }) {
-  const [time, setTime] = React.useState<number>(new Date().getTime());
+  const [time, setTime] = useState<number>(new Date().getTime());
 
-  React.useEffect(() => {
+  useEffect(() => {
     const interval = setInterval(() => {
       setTime(new Date().getTime());
     }, 1000);
     return () => clearInterval(interval);
   }, []);
 
-  const timeString: string = React.useMemo(
+  const timeString: string = useMemo(
     () => new Date().toLocaleTimeString(),
     [time]
   );

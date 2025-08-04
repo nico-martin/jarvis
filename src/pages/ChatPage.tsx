@@ -5,7 +5,8 @@ import { ModelStatus } from "@ai/types";
 import { VoiceActivityDetectionStatus } from "@ai/voiceActivityDetection/VoiceActivityDetection";
 import { Dot, McpIcon, PageContent } from "@theme";
 import { Chat } from "@ui/chat/Chat";
-import React from "react";
+import { useEffect } from "preact/hooks";
+import { Fragment } from "preact";
 
 import { version } from "../../package.json";
 
@@ -15,7 +16,7 @@ export function ChatPage() {
   const { vad, vadStatus } = useVad();
   const { mute, setMute, abortSpeaker } = useSpeaker();
 
-  React.useEffect(() => {
+  useEffect(() => {
     const unsubscribe = onVadDetected((text: string) => {
       submit(text);
     });
@@ -32,7 +33,7 @@ export function ChatPage() {
           : "ERROR";
 
   return (
-    <React.Fragment>
+    <Fragment>
       <PageContent
         title={`JARVIS`}
         statusBar={{
@@ -86,7 +87,7 @@ export function ChatPage() {
           <span>AUDIO_OUTPUT: {mute ? "MUTED" : "ENABLED"}</span>
         </div>
       </div>
-    </React.Fragment>
+    </Fragment>
   );
 }
 

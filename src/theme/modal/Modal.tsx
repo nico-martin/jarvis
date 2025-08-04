@@ -5,7 +5,7 @@ import {
   DialogTitle,
 } from "@headlessui/react";
 import { XMarkIcon } from "@heroicons/react/24/outline";
-import React from "react";
+import { ComponentChildren, FunctionComponent } from "preact";
 
 export type ModalSize = "sm" | "md" | "lg" | "xl" | "2xl";
 
@@ -17,12 +17,12 @@ const sizeClasses: Record<ModalSize, string> = {
   "2xl": "sm:max-w-6xl",
 };
 
-const Modal: React.FC<{
+const Modal: FunctionComponent<{
   open: boolean;
   setOpen: (open: boolean) => void;
   title: string;
   subtitle?: string;
-  children: React.ReactNode;
+  children: ComponentChildren;
   size?: ModalSize;
 }> = ({ open, setOpen, title, subtitle, children, size = "md" }) => (
   <Dialog open={open} onClose={setOpen} className="relative z-10">

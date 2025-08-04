@@ -1,5 +1,5 @@
+import preact from "@preact/preset-vite";
 import tailwindcss from "@tailwindcss/vite";
-import react from "@vitejs/plugin-react";
 import dotenv from "dotenv";
 import fs from "fs";
 import { defineConfig } from "vite";
@@ -24,7 +24,7 @@ export default defineConfig({
     port: process.env.PORT ? parseInt(process.env.PORT) : 8080,
   },
   plugins: [
-    react(),
+    preact(),
     tsconfigPaths(),
     tailwindcss(),
     htmlPlugin({

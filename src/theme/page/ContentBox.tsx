@@ -1,5 +1,5 @@
 import cn from "@utils/classnames";
-import React from "react";
+import { ComponentChildren } from "preact";
 
 export default function ContentBox({
   children,
@@ -7,8 +7,8 @@ export default function ContentBox({
   className = "",
   wrapperClassName = "",
 }: {
-  children?: React.ReactNode;
-  header?: React.ReactNode;
+  children?: ComponentChildren;
+  header?: ComponentChildren;
   className?: string;
   wrapperClassName?: string;
 }) {

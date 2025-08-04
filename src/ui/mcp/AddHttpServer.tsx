@@ -2,7 +2,8 @@ import useMcpServer from "@ai/mcp/react/useMcpServer";
 import { PlusIcon } from "@heroicons/react/24/outline";
 import { Button, InputText, Message } from "@theme";
 import cn from "@utils/classnames";
-import React from "react";
+import { useState } from "preact/hooks";
+import { JSX } from "preact";
 
 interface AddHttpServerProps {
   className?: string;
@@ -11,12 +12,12 @@ interface AddHttpServerProps {
 function AddHttpServer({ className = "" }: AddHttpServerProps) {
   const { addHttpServer } = useMcpServer();
 
-  const [newServer, setNewServer] = React.useState({ name: "", url: "" });
-  const [addServerError, setAddServerError] = React.useState<string | null>(
+  const [newServer, setNewServer] = useState({ name: "", url: "" });
+  const [addServerError, setAddServerError] = useState<string | null>(
     null
   );
   const [addServerLoading, setAddServerLoading] =
-    React.useState<boolean>(false);
+    useState<boolean>(false);
 
   const handleAddServer = async () => {
     if (!newServer.name.trim() || !newServer.url.trim()) {
@@ -35,7 +36,7 @@ function AddHttpServer({ className = "" }: AddHttpServerProps) {
     }
   };
 
-  const handleKeyDown = (e: React.KeyboardEvent) => {
+  const handleKeyDown = (e: JSX.TargetedKeyboardEvent<HTMLInputElement>) => {
     if (e.key === "Enter" && newServer.name.trim() && newServer.url.trim()) {
       e.preventDefault();
       handleAddServer();

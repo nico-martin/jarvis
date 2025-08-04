@@ -1,5 +1,4 @@
 import cn from "@utils/classnames";
-import React from "react";
 
 export default function Crosshair({ className = "" }: { className?: string }) {
   return (

@@ -15,7 +15,8 @@ import {
 import { MicrophoneIcon as MicrophoneIconSolid } from "@heroicons/react/24/solid";
 import { Button, ContentBox, InputText, Loader, McpIcon } from "@theme";
 import cn from "@utils/classnames";
-import React, { FormEvent } from "react";
+import { useRef, useState, useMemo, useEffect } from "preact/hooks";
+import { JSX } from "preact";
 
 import { Message } from "./Message";
 
@@ -44,16 +45,16 @@ export function Chat({
     toggle: () => void;
   };
 }) {
-  const listRef = React.useRef<HTMLUListElement>(null);
-  const messagesLengthRef = React.useRef<number>(0);
-  const [prompt, setPrompt] = React.useState<string>("");
+  const listRef = useRef<HTMLUListElement>(null);
+  const messagesLengthRef = useRef<number>(0);
+  const [prompt, setPrompt] = useState<string>("");
 
-  const messagesLength = React.useMemo(
+  const messagesLength = useMemo(
     () => JSON.stringify(messages).length,
     [messages]
   );
 
-  React.useEffect(() => {
+  useEffect(() => {
     if (messagesLength === messagesLengthRef.current) return;
     const list = listRef.current;
     if (!list) return;
@@ -61,7 +62,7 @@ export function Chat({
     messagesLengthRef.current = messagesLength;
   }, [messagesLength]);
 
-  const onSubmit = async (e: FormEvent<HTMLFormElement>) => {
+  const onSubmit = async (e: JSX.TargetedEvent<HTMLFormElement, Event>) => {
     e.preventDefault();
     if (prompt) onSubmitPrompt(prompt);
     setPrompt("");
@@ -90,7 +91,7 @@ export function Chat({
             placeholder="ENTER_COMMAND..."
             className="w-full"
             value={prompt}
-            onChange={(e) => setPrompt(e.target.value)}
+            onChange={(e) => setPrompt((e.target as HTMLInputElement).value)}
           />
           <Button type="submit">
             <PaperAirplaneIcon width="1.5em" />

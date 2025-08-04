@@ -1,5 +1,6 @@
 import VoiceActivityDetection from "@ai/voiceActivityDetection/VoiceActivityDetection";
-import React from "react";
+import { useState, useMemo, useEffect, useCallback, useRef } from "preact/hooks";
+import { ComponentChildren } from "preact";
 import { v4 as uuidv4 } from "uuid";
 
 import ConversationWebLlm from "../llm/webLlm/ConversationWebLlm";
@@ -38,28 +39,28 @@ const INSTRUCTIONS = [
 export default function AgentContextProvider({
   children,
 }: {
-  children: React.ReactNode;
+  children: ComponentChildren;
 }) {
   const { active } = useMcpServer();
-  const [mute, setMute] = React.useState<boolean>(false);
+  const [mute, setMute] = useState<boolean>(false);
 
-  const [speakerAbortController, setSpeakerAbortController] = React.useState(
+  const [speakerAbortController, setSpeakerAbortController] = useState(
     () => new AbortController()
   );
 
-  const speechToText = React.useMemo(() => {
+  const speechToText = useMemo(() => {
     const stt = new SpeechToText();
     stt.preload();
     return stt;
   }, []);
 
-  const tts = React.useMemo(() => {
+  const tts = useMemo(() => {
     const k = new Kokoro();
     k.preload();
     return k;
   }, []);
 
-  const conversation = React.useMemo(
+  const conversation = useMemo(
     () =>
       new ConversationWebLlm({
         onConversationEnded: () => console.log("ENDED"),
@@ -68,24 +69,31 @@ export default function AgentContextProvider({
     []
   );
 
-  React.useEffect(() => {
+  useEffect(() => {
     conversation.createConversation(
       SYSTEM_PROMPT + "\n\n# Instructions:\n" + INSTRUCTIONS.join("\n"),
       active
     );
   }, [active, conversation]);
 
-  const messages = React.useSyncExternalStore(
-    (cb) => conversation.onMessagesChange(cb),
-    () => conversation.messages
-  );
+  const [messages, setMessages] = useState(() => conversation.messages);
+  const [conversationStatus, setConversationStatus] = useState(() => conversation.status);
 
-  const conversationStatus = React.useSyncExternalStore(
-    (cb) => conversation.onStatusChange(cb),
-    () => conversation.status
-  );
+  useEffect(() => {
+    const unsubscribeMessages = conversation.onMessagesChange(() => {
+      setMessages(conversation.messages);
+    });
+    const unsubscribeStatus = conversation.onStatusChange(() => {
+      setConversationStatus(conversation.status);
+    });
 
-  const processPrompt = React.useCallback(
+    return () => {
+      unsubscribeMessages();
+      unsubscribeStatus();
+    };
+  }, [conversation]);
+
+  const processPrompt = useCallback(
     async (
       message: MessageUser,
       onTextFeedback?: (feedback: string) => void
@@ -95,7 +103,7 @@ export default function AgentContextProvider({
     [conversation]
   );
 
-  const submit = React.useCallback(
+  const submit = useCallback(
     (prompt: string) =>
       processPrompt(
         {
@@ -115,9 +123,9 @@ export default function AgentContextProvider({
     [processPrompt, mute, tts, speakerAbortController.signal]
   );
 
-  const vadListeners = React.useRef<Set<(text: string) => void>>(new Set());
+  const vadListeners = useRef<Set<(text: string) => void>>(new Set());
 
-  const onVadDetected = React.useCallback(
+  const onVadDetected = useCallback(
     (callback: (text: string) => void) => {
       vadListeners.current.add(callback);
       return () => vadListeners.current.delete(callback);
@@ -125,7 +133,7 @@ export default function AgentContextProvider({
     []
   );
 
-  const vad = React.useMemo(() => {
+  const vad = useMemo(() => {
     const vad = new VoiceActivityDetection();
     vad.preload();
     vad.setCallbacks({
@@ -141,12 +149,19 @@ export default function AgentContextProvider({
     return vad;
   }, [speechToText, submit]);
 
-  const vadStatus = React.useSyncExternalStore(
-    (cb) => vad.onStatusChange(cb),
-    () => vad.status
-  );
+  const [vadStatus, setVadStatus] = useState(() => vad.status);
 
-  const contextValue: AgentContextValues = React.useMemo(
+  useEffect(() => {
+    const unsubscribeVad = vad.onStatusChange(() => {
+      setVadStatus(vad.status);
+    });
+
+    return () => {
+      unsubscribeVad();
+    };
+  }, [vad]);
+
+  const contextValue: AgentContextValues = useMemo(
     () => ({
       messages,
       conversationStatus,

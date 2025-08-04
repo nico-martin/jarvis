@@ -1,5 +1,5 @@
 import { Message, ModelStatus } from "@ai/types";
-import React from "react";
+import { createContext } from "preact";
 
 import VoiceActivityDetection, {
   VoiceActivityDetectionStatus,
@@ -17,6 +17,6 @@ export interface AgentContextValues {
   onVadDetected: (callback: (text: string) => void) => () => void;
 }
 
-const AgentContext = React.createContext<AgentContextValues>(null);
+const AgentContext = createContext<AgentContextValues>(null);
 
 export default AgentContext;

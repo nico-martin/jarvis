@@ -1,9 +1,9 @@
-import React from "react";
+import { useContext } from "preact/hooks";
 
 import AgentContext from "./AgentContext";
 
 function useSpeaker() {
-  const context = React.useContext(AgentContext);
+  const context = useContext(AgentContext);
   if (!context) {
     throw new Error(
       "useConversation must be used within a AgentContextProvider"

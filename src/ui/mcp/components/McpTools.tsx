@@ -1,7 +1,6 @@
 import { Tool } from "@modelcontextprotocol/sdk/types.js";
 import { Button, Checkbox } from "@theme";
 import cn from "@utils/classnames";
-import React from "react";
 
 function McpTools({
   className = "",

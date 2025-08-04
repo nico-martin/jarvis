@@ -1,21 +1,22 @@
 import ImageToText from "@ai/imageToText/ImageToText";
 import { Crosshair, Modal } from "@theme";
 import { eventEmitter } from "@utils/eventEmitter";
-import React from "react";
+import { useState, useRef, useEffect } from "preact/hooks";
+import { FunctionComponent } from "preact";
 
 const TIMEOUT = 5;
 
-const TakePictureModal: React.FC = () => {
-  const [isOpen, setIsOpen] = React.useState(false);
-  const [query, setQuery] = React.useState<string>("");
-  const [countdown, setCountdown] = React.useState<number | null>(5);
-  const [isProcessing, setIsProcessing] = React.useState(false);
-  const [capturedImageUrl, setCapturedImageUrl] = React.useState<string>("");
-  const videoRef = React.useRef<HTMLVideoElement>(null);
-  const streamRef = React.useRef<MediaStream | null>(null);
-  const imageToTextRef = React.useRef<ImageToText | null>(null);
+const TakePictureModal: FunctionComponent = () => {
+  const [isOpen, setIsOpen] = useState(false);
+  const [query, setQuery] = useState<string>("");
+  const [countdown, setCountdown] = useState<number | null>(5);
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [capturedImageUrl, setCapturedImageUrl] = useState<string>("");
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const streamRef = useRef<MediaStream | null>(null);
+  const imageToTextRef = useRef<ImageToText | null>(null);
 
-  React.useEffect(() => {
+  useEffect(() => {
     // Initialize ImageToText instance
     imageToTextRef.current = new ImageToText();
     imageToTextRef.current.preload();
@@ -34,7 +35,7 @@ const TakePictureModal: React.FC = () => {
     return () => unsubscribe();
   }, []);
 
-  React.useEffect(() => {
+  useEffect(() => {
     if (isOpen) {
       navigator.mediaDevices
         .getUserMedia({
@@ -63,7 +64,7 @@ const TakePictureModal: React.FC = () => {
     }
   }, [isOpen]);
 
-  React.useEffect(() => {
+  useEffect(() => {
     if (countdown === null) return;
 
     if (countdown > 0) {

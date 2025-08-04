@@ -1,9 +1,9 @@
-import React from "react";
+import { useContext } from "preact/hooks";
 
 import McpServerContext from "./McpServerContext";
 
 const useMcpServer = () => {
-  return React.use(McpServerContext);
+  return useContext(McpServerContext);
 };
 
 export default useMcpServer;

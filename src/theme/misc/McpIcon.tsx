@@ -1,4 +1,4 @@
-import React from "react";
+import { FunctionComponent } from "preact";
 
 interface McpIconProps {
   width?: string;
@@ -6,7 +6,7 @@ interface McpIconProps {
   className?: string;
 }
 
-const McpIcon: React.FC<McpIconProps> = ({
+const McpIcon: FunctionComponent<McpIconProps> = ({
   width = "1em",
   height = "1em",
   className = "",

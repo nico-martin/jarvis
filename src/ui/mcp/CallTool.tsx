@@ -9,7 +9,8 @@ import {
   Textarea,
 } from "@theme";
 import type { SelectOption } from "@theme";
-import React from "react";
+import { useState } from "preact/hooks";
+import { JSX } from "preact";
 
 interface Tool {
   name: string;
@@ -25,10 +26,10 @@ interface CallToolProps {
 }
 
 export function CallTool({ isOpen, onClose, server, tool }: CallToolProps) {
-  const [parameters, setParameters] = React.useState<Record<string, any>>({});
-  const [result, setResult] = React.useState<any>(null);
-  const [error, setError] = React.useState<string | null>(null);
-  const [isLoading, setIsLoading] = React.useState(false);
+  const [parameters, setParameters] = useState<Record<string, any>>({});
+  const [result, setResult] = useState<any>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
 
   // Generate form fields based on the tool's input schema
   const generateFormFields = () => {

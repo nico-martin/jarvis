@@ -1,7 +1,7 @@
 import cn from "@utils/classnames";
-import React from "react";
+import { FunctionComponent } from "preact";
 
-const Loader: React.FC<{ size?: 4 | 5 | 6 | 8 | 10 }> = ({ size = 5 }) => {
+const Loader: FunctionComponent<{ size?: 4 | 5 | 6 | 8 | 10 }> = ({ size = 5 }) => {
   const sizeClass =
     {
       4: "h-4 w-4",

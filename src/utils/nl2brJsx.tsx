@@ -1,6 +1,6 @@
-import React from "react";
+import { JSX } from "preact";
 
-const nl2brJsx = (text: string): React.ReactElement[] => {
+const nl2brJsx = (text: string): JSX.Element[] => {
   const lines = text.split("\n");
   // remove leading empty lines
   while (lines.length > 0 && lines[0] === "") {

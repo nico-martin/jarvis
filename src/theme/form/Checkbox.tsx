@@ -1,8 +1,8 @@
-import React from "react";
+import { FunctionComponent } from "preact";
 
 import cn from "../../utils/classnames";
 
-const Checkbox: React.FC<{
+const Checkbox: FunctionComponent<{
   value: string;
   name: string;
   label: string;

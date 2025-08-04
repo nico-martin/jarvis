@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import { useEffect } from 'preact/hooks';
 import { onMcpAuthorization } from '@ai/mcp/auth/callback';
 
 export default function OAuthCallbackPage() {

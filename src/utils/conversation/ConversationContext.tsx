@@ -1,5 +1,6 @@
 import { Conversation, Message, MessageUser, ModelStatus } from "@ai/types";
-import React from "react";
+import { createContext } from "preact";
+import { ComponentChildren } from "preact";
 
 interface ConversationContextValue {
   conversation: Conversation | null;
@@ -12,11 +13,11 @@ interface ConversationContextValue {
 }
 
 const ConversationContext =
-  React.createContext<ConversationContextValue | null>(null);
+  createContext<ConversationContextValue | null>(null);
 
 interface ConversationContextProps {
   value: ConversationContextValue;
-  children: React.ReactNode;
+  children: ComponentChildren;
 }
 
 export default function ConversationContextProvider({

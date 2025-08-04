@@ -1,4 +1,4 @@
-import React from "react";
+import { JSX } from "preact";
 
 // Base form field props shared by all form components
 export interface BaseFormFieldProps {
@@ -14,13 +14,13 @@ export interface BaseFormFieldProps {
 
 // Input-specific props
 export interface InputTextProps extends BaseFormFieldProps {
-  type?: React.HTMLInputTypeAttribute;
+  type?: string;
   placeholder?: string;
   value: string;
-  onChange?: (e: React.ChangeEvent<HTMLInputElement>) => void;
-  onKeyDown?: (e: React.KeyboardEvent<HTMLInputElement>) => void;
-  onFocus?: (e: React.FocusEvent<HTMLInputElement>) => void;
-  onBlur?: (e: React.FocusEvent<HTMLInputElement>) => void;
+  onChange?: (e: JSX.TargetedEvent<HTMLInputElement, Event>) => void;
+  onKeyDown?: (e: JSX.TargetedKeyboardEvent<HTMLInputElement>) => void;
+  onFocus?: (e: JSX.TargetedFocusEvent<HTMLInputElement>) => void;
+  onBlur?: (e: JSX.TargetedFocusEvent<HTMLInputElement>) => void;
 }
 
 // Textarea-specific props
@@ -30,10 +30,10 @@ export interface TextareaProps extends BaseFormFieldProps {
   rows?: number;
   cols?: number;
   resize?: "none" | "both" | "horizontal" | "vertical";
-  onChange?: (e: React.ChangeEvent<HTMLTextAreaElement>) => void;
-  onKeyDown?: (e: React.KeyboardEvent<HTMLTextAreaElement>) => void;
-  onFocus?: (e: React.FocusEvent<HTMLTextAreaElement>) => void;
-  onBlur?: (e: React.FocusEvent<HTMLTextAreaElement>) => void;
+  onChange?: (e: JSX.TargetedEvent<HTMLTextAreaElement, Event>) => void;
+  onKeyDown?: (e: JSX.TargetedKeyboardEvent<HTMLTextAreaElement>) => void;
+  onFocus?: (e: JSX.TargetedFocusEvent<HTMLTextAreaElement>) => void;
+  onBlur?: (e: JSX.TargetedFocusEvent<HTMLTextAreaElement>) => void;
 }
 
 // Select option type
@@ -48,7 +48,7 @@ export interface SelectProps extends BaseFormFieldProps {
   value: string;
   options: SelectOption[];
   placeholder?: string;
-  onChange?: (e: React.ChangeEvent<HTMLSelectElement>) => void;
-  onFocus?: (e: React.FocusEvent<HTMLSelectElement>) => void;
-  onBlur?: (e: React.FocusEvent<HTMLSelectElement>) => void;
+  onChange?: (e: JSX.TargetedEvent<HTMLSelectElement, Event>) => void;
+  onFocus?: (e: JSX.TargetedFocusEvent<HTMLSelectElement>) => void;
+  onBlur?: (e: JSX.TargetedFocusEvent<HTMLSelectElement>) => void;
 }

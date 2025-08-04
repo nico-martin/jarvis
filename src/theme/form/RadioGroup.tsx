@@ -1,13 +1,13 @@
 import { RadioGroup as HeadlessRadioGroup, Radio } from "@headlessui/react";
-import React from "react";
+import { ComponentChildren, FunctionComponent } from "preact";
 
 import cn from "../../utils/classnames";
 
-const RadioGroup: React.FC<{
+const RadioGroup: FunctionComponent<{
   value: string;
   onChange: (value: string) => void;
   className?: string;
-  choices: Array<{ value: string; label: React.ReactNode; className?: string }>;
+  choices: Array<{ value: string; label: ComponentChildren; className?: string }>;
 }> = ({ value, onChange, className = "", choices }) => (
   <HeadlessRadioGroup
     value={value}
