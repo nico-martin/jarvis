@@ -33,7 +33,7 @@ class ConversationWebLlm extends EventTarget implements Conversation {
   private webLlmMessages: Array<ChatCompletionMessageParam> = [];
   private _messages: Array<Message> = [];
   private log: (message?: any, ...optionalParams: any[]) => void = () => {};
-  private temperature: number = 0.2;
+  private temperature: number = 1;
   private mcpServers: Array<
     (McpServerStoreHttp | McpServerStoreBuiltIn) & McpServerWithState
   > = [];

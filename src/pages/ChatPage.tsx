@@ -3,7 +3,7 @@ import useSpeaker from "@ai/agentContext/useSpeaker";
 import useVad from "@ai/agentContext/useVad";
 import { ModelStatus } from "@ai/types";
 import { VoiceActivityDetectionStatus } from "@ai/voiceActivityDetection/VoiceActivityDetection";
-import { Dot, PageContent } from "@theme";
+import { Dot, McpIcon, PageContent } from "@theme";
 import { Chat } from "@ui/chat/Chat";
 import React from "react";
 
@@ -41,6 +41,7 @@ export function ChatPage() {
         }}
         button={{
           to: "/mcp",
+          iconLeft: <McpIcon />,
           children: "MCP_SETTINGS",
         }}
       >

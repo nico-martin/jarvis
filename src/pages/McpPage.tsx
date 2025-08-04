@@ -16,11 +16,8 @@ export function McpPage() {
       }}
       button={{
         to: "/",
-        children: (
-          <>
-            <ChatBubbleLeftRightIcon width="1.25em" /> RETURN_TO_CHAT
-          </>
-        ),
+        iconLeft: <ChatBubbleLeftRightIcon width="1.25em" />,
+        children: "RETURN_TO_CHAT",
       }}
     >
       <McpOverview />

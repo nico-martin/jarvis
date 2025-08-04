@@ -5,6 +5,8 @@ import ConversationProvider from "@utils/conversation/ConversationContextProvide
 import React from "react";
 import { Route, BrowserRouter as Router, Routes } from "react-router-dom";
 
+import ImageToText from "./ImageToText";
+import TextGeneration from "./TextGeneration";
 import ChatPage from "./pages/ChatPage";
 import McpPage from "./pages/McpPage";
 import OAuthCallbackPage from "./pages/OAuthCallbackPage";
@@ -27,6 +29,8 @@ function App() {
               <Route path="/" element={<ChatPage />} />
               <Route path="/mcp" element={<McpPage />} />
               <Route path="/oauth/callback" element={<OAuthCallbackPage />} />
+              <Route path="/imgtotext" element={<ImageToText />} />
+              <Route path="/textgen" element={<TextGeneration />} />
             </Routes>
           </Router>
           <TakePictureModal />
