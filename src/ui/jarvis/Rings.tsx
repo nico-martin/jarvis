@@ -180,27 +180,31 @@ export default function Rings({
       {/* Audio Level Indicators */}
       {isActive && (
         <div
+          id="audio"
           className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2"
           style={{ width: "24em", height: "24em" }}
         >
-          {audioLevels.map((level, i) => (
-            <div
-              key={i}
-              className="absolute bg-cyan-400 transition-all duration-150"
-              style={{
-                width: "0.125em",
-                height: `${Math.max(0.25, level * 0.01875)}em`,
-                left: "50%",
-                top: "50%",
-                transformOrigin: "bottom center",
-                transform: `rotate(${i * 60}deg) translateY(-${9.375 + level * 0.0125}em) translateX(-0.0625em)`,
-                opacity: isSpeaking ? 0.8 : 0.3,
-                boxShadow: isSpeaking
-                  ? `0 0 0.625em rgba(6, 182, 212, ${level * 0.01})`
-                  : "none",
-              }}
-            />
-          ))}
+          {audioLevels.map((level, i) => {
+            return (
+              <div
+                key={i}
+                className="absolute bg-cyan-400 transition-all duration-150"
+                style={{
+                  width: "0.125em",
+                  height: "1em",
+                  //height: `${Math.max(0.25, level * 0.01875)}em`,
+                  left: "50%",
+                  top: "50%",
+                  transformOrigin: "top left",
+                  transform: `rotate(${i * 60}deg) translateY(calc(-${10 + level * 0.01}em)) translateX(-0.0625em)`,
+                  opacity: isSpeaking ? 0.8 : 0.3,
+                  boxShadow: isSpeaking
+                    ? `0 0 0.625em rgba(6, 182, 212, ${level * 0.01})`
+                    : "none",
+                }}
+              />
+            );
+          })}
         </div>
       )}
 

@@ -88,7 +88,6 @@ export default function AgentContextProvider({
       },
       conversationEndKeyword: "<END>",
     });
-    "preLoadEngine" in c && c.preLoadEngine();
     return c;
   }, []);
 

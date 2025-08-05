@@ -1,21 +1,20 @@
 import useConversation from "@ai/agentContext/useConversation";
 import useSpeaker from "@ai/agentContext/useSpeaker";
 import useVad from "@ai/agentContext/useVad";
-import { VoiceActivityDetectionStatus } from "@ai/voiceActivityDetection/VoiceActivityDetection";
 import Rings from "@ui/jarvis/Rings";
 import { useEffect, useState } from "preact/hooks";
 
 export default function Jarvis({}: {}) {
-  const { vad, vadStatus } = useVad();
+  const { vad } = useVad();
   const { isSpeaking } = useSpeaker();
-  const { onEnded } = useConversation();
-  const isActive = vadStatus !== VoiceActivityDetectionStatus.IDLE;
+  const { onEnded, onVadDetected, submit } = useConversation();
   const [audioLevels, setAudioLevels] = useState<number[]>([0, 0, 0, 0, 0, 0]);
+  const [conversationActive, setConversationActive] = useState<boolean>(false);
 
   useEffect(() => {
-    if (!isActive || !isSpeaking) {
-      setAudioLevels([0, 0, 0, 0, 0, 0]);
-      return;
+    if (!conversationActive || !isSpeaking) {
+      //setAudioLevels([0, 0, 0, 0, 0, 0]);
+      //return;
     }
 
     const interval = setInterval(() => {
@@ -27,35 +26,40 @@ export default function Jarvis({}: {}) {
     }, 100);
 
     return () => clearInterval(interval);
-  }, [isActive, isSpeaking]);
+  }, [conversationActive, isSpeaking]);
 
   useEffect(() => {
+    vad.startMicrophone();
     const unsubscribe = onEnded(() => {
-      console.log("onended stopMicrophone");
-      vad.stopMicrophone();
+      setConversationActive(false);
     });
 
     return () => {
       unsubscribe();
+      vad.stopMicrophone();
     };
   }, []);
 
+  useEffect(() => {
+    const unsubscribe = onVadDetected((text: string) => {
+      if (conversationActive) {
+        submit(text);
+      } else if (text.toLowerCase().indexOf("jarvis") !== -1) {
+        setConversationActive(true);
+        submit(text);
+      } else {
+        console.log(text);
+      }
+    });
+    return () => {
+      unsubscribe();
+    };
+  }, [onVadDetected, submit, conversationActive]);
+
   return (
-    <div
-      //onClick={() => setIsSpeaking(!isSpeaking)}
-      className="relative flex w-full flex-col items-center justify-center gap-12 pt-24"
-    >
-      <button
-        onClick={() =>
-          vadStatus !== VoiceActivityDetectionStatus.IDLE
-            ? vad.stopMicrophone()
-            : vad.startMicrophone()
-        }
-      >
-        voice
-      </button>
+    <div className="relative flex w-full flex-col items-center justify-center gap-12 pt-24">
       <Rings
-        isActive={isActive}
+        isActive={conversationActive || isSpeaking}
         isSpeaking={isSpeaking}
         audioLevels={audioLevels}
         size="1.5vmin"
@@ -63,14 +67,14 @@ export default function Jarvis({}: {}) {
       <div className="text-center">
         <div
           className={`font-mono text-sm transition-all duration-500 ${
-            isActive
+            conversationActive
               ? isSpeaking
                 ? "animate-pulse text-orange-400"
                 : "text-cyan-400"
               : "text-slate-500"
           }`}
         >
-          {isActive ? (isSpeaking ? "SPEAKING" : "ACTIVE") : "IDLE"}
+          {conversationActive ? (isSpeaking ? "SPEAKING" : "ACTIVE") : "IDLE"}
         </div>
         {isSpeaking && (
           <div className="mt-1 font-mono text-xs text-orange-300">

@@ -138,10 +138,10 @@ ${toolsToSystemPrompt(tools)}`;
     return () => this.messagesEventListeners.delete(listener);
   };
 
-  public preLoadEngine = async () =>
+  /*public preLoadEngine = async () =>
     new Promise<void>((resolve) => {
       const id = (this.workerRequestId++).toString();
-      this.status = ModelStatus.LOADING;
+      this.status = ModelStatus.MODEL_LOADING;
       const listener = (
         e: MessageEvent<ConversationTransformersJSWorkerResponse>
       ) => {
@@ -157,7 +157,7 @@ ${toolsToSystemPrompt(tools)}`;
         id,
         type: "preload",
       });
-    });
+    });*/
 
   public processPrompt = async (
     message: MessageUser,
@@ -280,10 +280,12 @@ Response: ${resp.response}`
       if (this.onConversationEnded) {
         this.onConversationEnded();
       }
-      this.createConversation(
-        this.tfjsMessages[0].content as string,
-        this.mcpServers
-      );
+      window.setTimeout(() => {
+        this.createConversation(
+          this.tfjsMessages[0].content as string,
+          this.mcpServers
+        );
+      }, 2000);
     }
 
     return;
@@ -301,7 +303,6 @@ Response: ${resp.response}`
       toolsToCall: Array<XMLToolSignature>;
     }>((resolve, reject) => {
       const id = (this.workerRequestId++).toString();
-      const start = performance.now();
       let firstToken: DOMHighResTimeStamp = null;
 
       let reply = "";
@@ -309,17 +310,10 @@ Response: ${resp.response}`
 
       const toolsToCall: Array<XMLToolSignature> = [];
 
-      if (this.status === ModelStatus.IDLE) {
-        this.status = ModelStatus.LOADING;
-      }
       const listener = (
         e: MessageEvent<ConversationTransformersJSWorkerResponse>
       ) => {
         if (e.data.id !== id) return;
-
-        if (e.data.status === "ready") {
-          this.status = ModelStatus.LOADED;
-        }
 
         if (e.data.status === "token_update") {
           firstToken ??= performance.now();
@@ -401,7 +395,14 @@ Response: ${resp.response}`
       ) => {
         if (e.data.id !== id) return;
 
+        if (e.data.status === "loading") {
+          this.status = ModelStatus.MODEL_LOADING;
+        }
+        if (e.data.status === "ready") {
+          this.status = ModelStatus.CONVERSATION_LOADING;
+        }
         if (e.data.status === "complete") {
+          this.status = ModelStatus.READY;
           this.tfjsMessages = e.data.messages;
           this.worker.removeEventListener("message", listener);
           resolve();

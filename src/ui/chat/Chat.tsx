@@ -1,6 +1,7 @@
 import useConversation from "@ai/agentContext/useConversation";
 import useSpeaker from "@ai/agentContext/useSpeaker";
 import useVad from "@ai/agentContext/useVad";
+import { ModelStatus } from "@ai/types";
 import { VoiceActivityDetectionStatus } from "@ai/voiceActivityDetection/VoiceActivityDetection";
 import {
   EllipsisHorizontalIcon,
@@ -10,7 +11,7 @@ import {
   SpeakerXMarkIcon,
 } from "@heroicons/react/24/outline";
 import { MicrophoneIcon as MicrophoneIconSolid } from "@heroicons/react/24/solid";
-import { Button, ContentBox, InputText, Loader, McpIcon } from "@theme";
+import { Button, ContentBox, InputText, McpIcon } from "@theme";
 import cn from "@utils/classnames";
 import { JSX } from "preact";
 import { useEffect, useMemo, useRef, useState } from "preact/hooks";
@@ -58,7 +59,8 @@ export default function Chat({
 
   const onSubmit = async (e: JSX.TargetedEvent<HTMLFormElement, Event>) => {
     e.preventDefault();
-    if (prompt) onSubmitPrompt(prompt);
+    if (prompt && conversationStatus === ModelStatus.READY)
+      onSubmitPrompt(prompt);
     setPrompt("");
   };
 
@@ -87,7 +89,10 @@ export default function Chat({
             value={prompt}
             onChange={(e) => setPrompt((e.target as HTMLInputElement).value)}
           />
-          <Button type="submit">
+          <Button
+            type="submit"
+            disabled={conversationStatus !== ModelStatus.READY}
+          >
             <PaperAirplaneIcon width="1.5em" />
           </Button>
         </form>

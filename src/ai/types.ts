@@ -2,8 +2,9 @@ import { McpServerWithState } from "@ai/mcp/react/types";
 
 export enum ModelStatus {
   IDLE,
-  LOADING,
-  LOADED,
+  MODEL_LOADING,
+  CONVERSATION_LOADING,
+  READY,
 }
 
 /* MESSAGES */
@@ -69,7 +70,6 @@ export interface Conversation {
     message: MessageUser,
     onTextFeedback?: (feedback: string) => void
   ) => Promise<void>;
-  preLoadEngine?: () => Promise<void>;
 }
 
 export interface ConversationConstructorOptions {

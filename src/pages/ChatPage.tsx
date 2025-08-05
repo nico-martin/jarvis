@@ -12,7 +12,7 @@ import { useState } from "preact/hooks";
 import { version } from "../../package.json";
 
 export function ChatPage() {
-  const [ui, setUi] = useState<"chat" | "jarvis">("chat");
+  const [ui, setUi] = useState<"chat" | "jarvis">("jarvis");
   const { conversationStatus, submit } = useConversation();
   const { vadStatus } = useVad();
   const { mute, setMute, abortSpeaker } = useSpeaker();
@@ -20,11 +20,13 @@ export function ChatPage() {
   const statusText =
     conversationStatus === ModelStatus.IDLE
       ? "OFFLINE"
-      : conversationStatus === ModelStatus.LOADING
-        ? "INITIALIZING..."
-        : conversationStatus === ModelStatus.LOADED
-          ? "ONLINE"
-          : "ERROR";
+      : conversationStatus === ModelStatus.MODEL_LOADING
+        ? "LOADING..."
+        : conversationStatus === ModelStatus.CONVERSATION_LOADING
+          ? "LOADING..."
+          : conversationStatus === ModelStatus.READY
+            ? "ONLINE"
+            : "ERROR";
 
   return (
     <Fragment>
