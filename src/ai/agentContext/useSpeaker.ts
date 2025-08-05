@@ -9,10 +9,12 @@ function useSpeaker() {
       "useConversation must be used within a AgentContextProvider"
     );
   }
+
   return {
     mute: context.mute,
     setMute: context.setMute,
     abortSpeaker: context.abortSpeaker,
+    isSpeaking: context.isSpeaking,
   };
 }
 

@@ -1,3 +1,5 @@
+import { ModelStatus } from "@ai/types";
+
 import { TextToSpeech } from "../types";
 import SequentialAudioPlayer from "./SequentialAudioPlayer";
 import { KokoroInput, KokoroOutput, WorkerResponseKokoro } from "./types";
@@ -8,7 +10,7 @@ class Kokoro implements TextToSpeech {
   private worker: Worker;
   private queue: Array<{ text: string; signal: AbortSignal }> = [];
   private isProcessing = false;
-  private player = new SequentialAudioPlayer();
+  public player = new SequentialAudioPlayer();
   private voice: string = "bm_fable";
   private speed: number = 1.3;
 
@@ -92,7 +94,6 @@ class Kokoro implements TextToSpeech {
     if (signal.aborted) {
       throw new DOMException("Operation aborted", "AbortError");
     }
-
     this.player.play(audioBlob, signal);
   }
 

@@ -1,6 +1,6 @@
 export interface ConversationTransformersJSWorkerMessage {
   id: string;
-  type: "preload" | "generate" | "interrupt" | "reset";
+  type: "preload" | "initialize-cache" | "generate" | "interrupt" | "reset";
   messages?: Array<TransformersJSMessage>;
   temperature?: number;
 }
@@ -22,16 +22,21 @@ interface ConversationTransformersJSWorkerResponseTokenUpdate {
   decodedTokens: string;
 }
 
+interface Stats {
+  tps: number;
+  tokens_generated: number;
+  loading_time_ms: number;
+  time_to_first_token_ms: number;
+  encoding_duration_ms: number;
+  decoding_duration_ms: number;
+}
+
 interface ConversationTransformersJSWorkerResponseComplete {
   id: string;
   status: "complete";
+  statusText?: string;
   messages: Array<TransformersJSMessage>;
-  stats: {
-    tps: number;
-    tokens_generated: number;
-    encoding_duration_ms: number;
-    decoding_duration_ms: number;
-  };
+  stats?: Stats;
 }
 
 interface ConversationTransformersJSWorkerResponseError {
@@ -50,4 +55,5 @@ export type ConversationTransformersJSWorkerResponse =
 export interface TransformersJSMessage {
   role: "system" | "user" | "assistant";
   content: string;
+  hidden?: boolean;
 }

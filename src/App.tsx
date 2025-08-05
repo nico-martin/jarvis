@@ -4,7 +4,6 @@ import { Background } from "@theme";
 import Router, { Route } from "preact-router";
 
 import ImageToText from "./ImageToText";
-import TextGeneration from "./TextGeneration";
 import ChatPage from "./pages/ChatPage";
 import McpPage from "./pages/McpPage";
 import OAuthCallbackPage from "./pages/OAuthCallbackPage";
@@ -26,7 +25,6 @@ function App() {
           <Route path="/mcp" component={McpPage} />
           <Route path="/oauth/callback" component={OAuthCallbackPage} />
           <Route path="/imgtotext" component={ImageToText} />
-          <Route path="/textgen" component={TextGeneration} />
         </Router>
         <TakePictureModal />
       </AgentContextProvider>

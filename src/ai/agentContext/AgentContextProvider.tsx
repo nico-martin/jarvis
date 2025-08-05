@@ -1,5 +1,6 @@
 import ConversationTransformersJS from "@ai/llm/tfjsLlm/ConversationTransformersJS";
 import VoiceActivityDetection from "@ai/voiceActivityDetection/VoiceActivityDetection";
+import useStableValue from "@utils/useStableValue";
 import { ComponentChildren } from "preact";
 import {
   useCallback,
@@ -10,7 +11,7 @@ import {
 } from "preact/hooks";
 import { v4 as uuidv4 } from "uuid";
 
-//import ConversationWebLlm from "../llm/webLlm/ConversationWebLlm";
+import ConversationWebLlm from "../llm/webLlm/ConversationWebLlm";
 import useMcpServer from "../mcp/react/useMcpServer";
 import SpeechToText from "../speechToText/SpeechToText";
 import Kokoro from "../textToSpeech/kokoro/Kokoro";
@@ -50,7 +51,10 @@ export default function AgentContextProvider({
   children: ComponentChildren;
 }) {
   const { active } = useMcpServer();
+  const stableActiveServers = useStableValue(active);
   const [mute, setMute] = useState<boolean>(false);
+  const [isSpeaking, setIsSpeaking] = useState<boolean>(false);
+  const endedListeners = useRef<Set<() => void>>(new Set());
 
   const [speakerAbortController, setSpeakerAbortController] = useState(
     () => new AbortController()
@@ -68,9 +72,20 @@ export default function AgentContextProvider({
     return k;
   }, []);
 
+  useEffect(() => {
+    const unsubscribe = tts.player.onIsPlayingChange(() => {
+      setIsSpeaking(tts.player.isPlaying);
+    });
+    return () => {
+      unsubscribe();
+    };
+  }, [tts]);
+
   const conversation = useMemo(() => {
     const c = new ConversationTransformersJS({
-      onConversationEnded: () => console.log("ENDED"),
+      onConversationEnded: () => {
+        endedListeners.current.forEach((callback) => callback());
+      },
       conversationEndKeyword: "<END>",
     });
     "preLoadEngine" in c && c.preLoadEngine();
@@ -78,11 +93,12 @@ export default function AgentContextProvider({
   }, []);
 
   useEffect(() => {
+    if (!stableActiveServers) return;
     conversation.createConversation(
       SYSTEM_PROMPT + "\n\n# Instructions:\n" + INSTRUCTIONS.join("\n"),
-      active
+      stableActiveServers
     );
-  }, [active, conversation]);
+  }, [stableActiveServers, conversation]);
 
   const [messages, setMessages] = useState(() => conversation.messages);
   const [conversationStatus, setConversationStatus] = useState(
@@ -134,10 +150,14 @@ export default function AgentContextProvider({
   );
 
   const vadListeners = useRef<Set<(text: string) => void>>(new Set());
-
   const onVadDetected = useCallback((callback: (text: string) => void) => {
     vadListeners.current.add(callback);
     return () => vadListeners.current.delete(callback);
+  }, []);
+
+  const onEnded = useCallback((callback: () => void) => {
+    endedListeners.current.add(callback);
+    return () => endedListeners.current.delete(callback);
   }, []);
 
   const vad = useMemo(() => {
@@ -154,7 +174,7 @@ export default function AgentContextProvider({
       },
     });
     return vad;
-  }, [speechToText, submit]);
+  }, [speechToText, vadListeners.current]);
 
   const [vadStatus, setVadStatus] = useState(() => vad.status);
 
@@ -177,13 +197,25 @@ export default function AgentContextProvider({
       submit,
       mute,
       setMute,
+      isSpeaking,
       abortSpeaker: () => {
         speakerAbortController.abort();
         setSpeakerAbortController(new AbortController());
       },
       onVadDetected,
+      onEnded,
     }),
-    [messages, conversationStatus, vad, vadStatus, submit, mute, onVadDetected]
+    [
+      messages,
+      conversationStatus,
+      vad,
+      vadStatus,
+      submit,
+      mute,
+      isSpeaking,
+      onVadDetected,
+      onEnded,
+    ]
   );
 
   return <AgentContext value={contextValue}>{children}</AgentContext>;

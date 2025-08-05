@@ -1,7 +1,23 @@
 class SequentialAudioPlayer {
   private queue: Array<{ blob: Blob; signal: AbortSignal }> = [];
-  private isPlaying = false;
+  private _isPlaying = false;
   private currentAudio: HTMLAudioElement | null = null;
+  private isPlayingEventListeners: Set<(isSpeaking: boolean) => void> =
+    new Set();
+
+  public get isPlaying() {
+    return this._isPlaying;
+  }
+
+  public set isPlaying(playing: boolean) {
+    this._isPlaying = playing;
+    this.isPlayingEventListeners.forEach((listener) => listener(playing));
+  }
+
+  public onIsPlayingChange(listener: (playing: boolean) => void) {
+    this.isPlayingEventListeners.add(listener);
+    return () => this.isPlayingEventListeners.delete(listener);
+  }
 
   public play(audioBlob: Blob, signal?: AbortSignal): void {
     if (signal?.aborted) return;

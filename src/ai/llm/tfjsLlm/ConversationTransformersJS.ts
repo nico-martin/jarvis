@@ -78,12 +78,18 @@ ${toolsToSystemPrompt(tools)}`;
 
     const systemMessageId = uuidv4();
 
-    this.tfjsMessages = [
+    const newMessages: Array<TransformersJSMessage> = [
       {
         role: "system",
         content: systemPrompt,
       },
     ];
+
+    if (JSON.stringify(this.tfjsMessages) === JSON.stringify(newMessages)) {
+      return;
+    }
+
+    this.tfjsMessages = newMessages;
 
     this.messages = [
       {
@@ -98,6 +104,8 @@ ${toolsToSystemPrompt(tools)}`;
         ],
       },
     ];
+
+    this.initializeCache();
   }
 
   public get status() {
@@ -293,6 +301,8 @@ Response: ${resp.response}`
       toolsToCall: Array<XMLToolSignature>;
     }>((resolve, reject) => {
       const id = (this.workerRequestId++).toString();
+      const start = performance.now();
+      let firstToken: DOMHighResTimeStamp = null;
 
       let reply = "";
       let processedReply: string = "";
@@ -312,6 +322,7 @@ Response: ${resp.response}`
         }
 
         if (e.data.status === "token_update") {
+          firstToken ??= performance.now();
           reply += e.data.decodedTokens;
           const clean = reply.replace("<think>\n\n</think>\n\n", "");
           const newReply = clean.replace(processedReply, "");
@@ -363,7 +374,6 @@ Response: ${resp.response}`
         if (e.data.status === "complete") {
           this.worker.removeEventListener("message", listener);
           this.tfjsMessages = e.data.messages;
-          console.log("STATS", e.data.stats);
 
           resolve({
             text: reply,
@@ -381,6 +391,30 @@ Response: ${resp.response}`
       });
     });
   };
+
+  private initializeCache = async () =>
+    new Promise<void>((resolve) => {
+      const id = (this.workerRequestId++).toString();
+
+      const listener = (
+        e: MessageEvent<ConversationTransformersJSWorkerResponse>
+      ) => {
+        if (e.data.id !== id) return;
+
+        if (e.data.status === "complete") {
+          this.tfjsMessages = e.data.messages;
+          this.worker.removeEventListener("message", listener);
+          resolve();
+        }
+      };
+
+      this.worker.addEventListener("message", listener);
+      this.worker.postMessage({
+        id,
+        type: "initialize-cache",
+        messages: this.tfjsMessages,
+      });
+    });
 }
 
 export default ConversationTransformersJS;

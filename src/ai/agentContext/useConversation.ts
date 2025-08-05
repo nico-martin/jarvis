@@ -14,6 +14,7 @@ function useConversation() {
     conversationStatus: context.conversationStatus,
     submit: context.submit,
     onVadDetected: context.onVadDetected,
+    onEnded: context.onEnded,
   };
 }
 

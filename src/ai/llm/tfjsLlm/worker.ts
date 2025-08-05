@@ -15,7 +15,7 @@ import {
 } from "@huggingface/transformers";
 
 class TextGenerationPipeline {
-  static model_id = "onnx-community/Qwen3-4B-ONNX";
+  static model_id = "onnx-community/Qwen3-4B-ONNX"; //"HuggingFaceTB/SmolLM3-3B-ONNX";
   static tokenizer: Promise<PreTrainedTokenizer>;
   static model: Promise<PreTrainedModel>;
 
@@ -60,10 +60,12 @@ async function generate({
   messages,
   temperature,
   id,
+  isInitCache,
 }: {
   messages: Array<TransformersJSMessage>;
   temperature: number;
   id: string;
+  isInitCache?: boolean;
 }) {
   postMessage({
     id,
@@ -71,7 +73,9 @@ async function generate({
     statusText: "Loading model...",
   });
 
+  const started = performance.now();
   const [tokenizer, model] = await TextGenerationPipeline.getInstance();
+  const loaded = performance.now();
 
   const inputs = tokenizer.apply_chat_template(messages, {
     add_generation_prompt: true,
@@ -111,9 +115,9 @@ async function generate({
     token_callback_function,
   });
 
-  const kvCache = past_key_values_cache.get(
-    generateConversationHash(messages.slice(0, -1))
-  );
+  const cacheKey = generateConversationHash(messages.slice(0, -1));
+
+  const kvCache = past_key_values_cache.get(cacheKey);
 
   // @ts-ignore
   const { past_key_values } = await model.generate({
@@ -127,7 +131,7 @@ async function generate({
     top_k: 20,
     temperature,
 
-    max_new_tokens: 16384,
+    max_new_tokens: isInitCache ? 1 : 16384,
     streamer,
     stopping_criteria,
     return_dict_in_generate: true,
@@ -140,6 +144,7 @@ async function generate({
     {
       role: "assistant",
       content: answer,
+      hidden: isInitCache,
     },
   ];
 
@@ -155,7 +160,9 @@ async function generate({
     stats: {
       tps,
       tokens_generated: numTokens,
-      encoding_duration_ms: encodingStartTime - decodingStartTime,
+      loading_time_ms: loaded - started,
+      time_to_first_token_ms: decodingStartTime - loaded,
+      encoding_duration_ms: decodingStartTime - encodingStartTime,
       decoding_duration_ms: decodingEndTime - decodingStartTime,
     },
   });
@@ -188,12 +195,6 @@ async function load(id: string) {
     id,
     status: "complete",
     messages: [],
-    stats: {
-      tps: 0,
-      tokens_generated: 0,
-      encoding_duration_ms: 0,
-      decoding_duration_ms: 0,
-    },
   });
 }
 
@@ -206,6 +207,10 @@ self.addEventListener(
     switch (type) {
       case "preload":
         load(id);
+        break;
+
+      case "initialize-cache":
+        generate({ id, messages, temperature, isInitCache: true });
         break;
 
       case "generate":

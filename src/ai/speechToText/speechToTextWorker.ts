@@ -12,7 +12,8 @@ async function initializeWhisper() {
     // @ts-ignore
     whisperPipeline = await pipeline(
       "automatic-speech-recognition",
-      "Xenova/whisper-base.en", //"Xenova/whisper-tiny.en", //"Xenova/whisper-tiny",
+      "Xenova/whisper-base.en",
+      //"Xenova/whisper-tiny.en", //"Xenova/whisper-tiny",
       {
         device: "webgpu",
       }

@@ -290,6 +290,8 @@ Response: ${resp.response}`
   }> => {
     const prevWebLlmMessages = this.webLlmMessages;
 
+    const start = performance.now();
+
     const chunks = await ENGINE.chat.completions.create({
       messages: this.webLlmMessages,
       temperature: this.temperature,
@@ -302,12 +304,16 @@ Response: ${resp.response}`
       },
     });
 
+    const loaded = performance.now();
+
     let reply = "";
     let processedReply: string = "";
 
     const toolsToCall: Array<XMLToolSignature> = [];
+    let decodingStartTime: DOMHighResTimeStamp = null;
 
     for await (const chunk of chunks) {
+      decodingStartTime ??= performance.now();
       reply += chunk.choices[0]?.delta.content || "";
       const clean = reply.replace("<think>\n\n</think>\n\n", "");
       const newReply = clean.replace(processedReply, "");
@@ -356,7 +362,16 @@ Response: ${resp.response}`
       }
 
       if (chunk.usage) {
-        console.log("Webllm usage", chunk?.usage);
+        //console.log("STATS", chunk?.usage);
+        console.log("STATS", {
+          tps: chunk?.usage?.extra?.decode_tokens_per_s,
+          tokens_generated: chunk?.usage.completion_tokens,
+          loading_time_ms: loaded - start,
+          time_to_first_token_ms:
+            chunk?.usage?.extra?.time_to_first_token_s * 1000,
+          encoding_duration_ms: 0,
+          decoding_duration_ms: 0,
+        });
       }
     }
 
