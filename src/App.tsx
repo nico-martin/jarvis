@@ -2,6 +2,7 @@ import AgentContextProvider from "@ai/agentContext/AgentContextProvider";
 import { McpServerContextProvider } from "@ai/mcp/react/McpServerContextProvider";
 import { Background } from "@theme";
 import Router, { Route } from "preact-router";
+import { Toaster } from "react-hot-toast";
 
 import ImageToText from "./ImageToText";
 import ChatPage from "./pages/ChatPage";
@@ -26,6 +27,11 @@ function App() {
           <Route path="/oauth/callback" component={OAuthCallbackPage} />
           <Route path="/imgtotext" component={ImageToText} />
         </Router>
+        <Toaster
+          position="bottom-right"
+          reverseOrder={false}
+          containerClassName="!right-8 !bottom-26"
+        />
         <TakePictureModal />
       </AgentContextProvider>
     </McpServerContextProvider>

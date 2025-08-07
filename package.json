@@ -24,6 +24,7 @@
     "phonemizer": "^1.2.1",
     "preact": "^10.25.4",
     "preact-router": "^4.1.2",
+    "react-hot-toast": "^2.5.2",
     "strict-url-sanitise": "^0.0.1",
     "uuid": "^11.1.0",
     "vite-tsconfig-paths": "^5.1.4"

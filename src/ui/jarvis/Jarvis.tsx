@@ -1,20 +1,30 @@
 import useConversation from "@ai/agentContext/useConversation";
 import useSpeaker from "@ai/agentContext/useSpeaker";
 import useVad from "@ai/agentContext/useVad";
+import { MessagePartTool, MessagePartType, MessageRole } from "@ai/types";
 import Rings from "@ui/jarvis/Rings";
-import { useEffect, useState } from "preact/hooks";
+import ToolCallPopup from "@ui/jarvis/ToolCallPopup";
+import { useEffect, useRef, useState } from "preact/hooks";
+import toast from "react-hot-toast";
+
+interface ToolCallPopupData {
+  id: string;
+  toolCall: MessagePartTool;
+  index: number;
+}
 
 export default function Jarvis({}: {}) {
   const { vad } = useVad();
   const { isSpeaking } = useSpeaker();
-  const { onEnded, onVadDetected, submit } = useConversation();
+  const { onEnded, onVadDetected, submit, messages } = useConversation();
   const [audioLevels, setAudioLevels] = useState<number[]>([0, 0, 0, 0, 0, 0]);
   const [conversationActive, setConversationActive] = useState<boolean>(false);
+  const processedToolCalls = useRef<Set<string>>(new Set());
 
   useEffect(() => {
     if (!conversationActive || !isSpeaking) {
-      //setAudioLevels([0, 0, 0, 0, 0, 0]);
-      //return;
+      setAudioLevels([0, 0, 0, 0, 0, 0]);
+      return;
     }
 
     const interval = setInterval(() => {
@@ -56,14 +66,36 @@ export default function Jarvis({}: {}) {
     };
   }, [onVadDetected, submit, conversationActive]);
 
+  useEffect(() => {
+    const toolCalls = messages
+      .filter((m) => m.role === MessageRole.ASSISTANT)
+      .flatMap(
+        (m) =>
+          m.messageParts.filter(
+            (mp) => mp.type === MessagePartType.TOOL_CALL
+          ) as MessagePartTool[]
+      );
+
+    toolCalls
+      .filter((tc) => !processedToolCalls.current.has(tc.id))
+      .forEach((tc) => {
+        toast.custom(<ToolCallPopup id={tc.id} />, { duration: 10000 });
+        processedToolCalls.current.add(tc.id);
+      });
+  }, [messages]);
+
   return (
-    <div className="relative flex w-full flex-col items-center justify-center gap-12 pt-24">
-      <Rings
-        isActive={conversationActive || isSpeaking}
-        isSpeaking={isSpeaking}
-        audioLevels={audioLevels}
-        size="1.5vmin"
-      />
+    <div className="relative flex w-full flex-col items-center justify-center gap-12 pt-44">
+      {/* Rings container with tool call popups */}
+      <div className="relative">
+        <Rings
+          isActive={conversationActive || isSpeaking}
+          isSpeaking={isSpeaking}
+          audioLevels={audioLevels}
+          size="1.5vmin"
+        />
+      </div>
+
       <div className="text-center">
         <div
           className={`font-mono text-sm transition-all duration-500 ${

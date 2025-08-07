@@ -11,7 +11,6 @@ import {
 } from "preact/hooks";
 import { v4 as uuidv4 } from "uuid";
 
-import ConversationWebLlm from "../llm/webLlm/ConversationWebLlm";
 import useMcpServer from "../mcp/react/useMcpServer";
 import SpeechToText from "../speechToText/SpeechToText";
 import Kokoro from "../textToSpeech/kokoro/Kokoro";
@@ -81,15 +80,16 @@ export default function AgentContextProvider({
     };
   }, [tts]);
 
-  const conversation = useMemo(() => {
-    const c = new ConversationTransformersJS({
-      onConversationEnded: () => {
-        endedListeners.current.forEach((callback) => callback());
-      },
-      conversationEndKeyword: "<END>",
-    });
-    return c;
-  }, []);
+  const conversation = useMemo(
+    () =>
+      new ConversationTransformersJS({
+        onConversationEnded: () => {
+          endedListeners.current.forEach((callback) => callback());
+        },
+        conversationEndKeyword: "<END>",
+      }),
+    []
+  );
 
   useEffect(() => {
     if (!stableActiveServers) return;
