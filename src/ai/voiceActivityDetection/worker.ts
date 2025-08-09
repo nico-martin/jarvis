@@ -1,4 +1,4 @@
-import { AutoModel, Tensor } from "@huggingface/transformers";
+import { AutoModel, ProgressInfo, Tensor } from "@huggingface/transformers";
 
 import {
   EXIT_THRESHOLD,
@@ -7,46 +7,39 @@ import {
   MAX_NUM_PREV_BUFFERS,
   MIN_SILENCE_DURATION_SAMPLES,
   MIN_SPEECH_DURATION_SAMPLES,
+  MODEL_ID,
   SPEECH_PAD_SAMPLES,
   SPEECH_THRESHOLD,
 } from "./constants";
-
-interface VadWorkerMessage {
-  type: "init" | "audio" | "reset";
-  buffer?: Float32Array;
-}
-
-interface VadWorkerResponse {
-  type: "ready" | "speech_start" | "speech_end" | "speech_chunk" | "error";
-  buffer?: Float32Array;
-  start?: number;
-  end?: number;
-  duration?: number;
-  error?: string;
-}
+import { VadWorkerMessage, VadWorkerResponse } from "./types";
 
 // Load VAD model
 let silero_vad: any = null;
 let isInitialized = false;
 
-async function initializeVAD() {
+async function initializeVAD(
+  request_id: string,
+  progress_callback = (progress: ProgressInfo) => {}
+) {
   if (isInitialized) return;
 
   try {
-    silero_vad = await AutoModel.from_pretrained("onnx-community/silero-vad", {
+    silero_vad = await AutoModel.from_pretrained(MODEL_ID, {
       // @ts-expect-error
       config: { model_type: "custom" },
       dtype: "fp32",
+      progress_callback,
     });
 
     isInitialized = true;
-    self.postMessage({ type: "ready" } as VadWorkerResponse);
+    postMessage({ type: "ready", id: request_id });
   } catch (error) {
-    self.postMessage({
+    postMessage({
       type: "error",
       error:
         error instanceof Error ? error.message : "Failed to initialize VAD",
-    } as VadWorkerResponse);
+      id: request_id,
+    });
   }
 }
 
@@ -93,7 +86,7 @@ function resetAfterRecording(offset = 0) {
   postSpeechSamples = 0;
 }
 
-function dispatchSpeechChunk(overflow?: Float32Array) {
+function dispatchSpeechChunk(request_id: string, overflow?: Float32Array) {
   // Get timing information
   const now = Date.now();
   const end =
@@ -115,14 +108,15 @@ function dispatchSpeechChunk(overflow?: Float32Array) {
   paddedBuffer.set(buffer, offset);
 
   // Send speech chunk
-  self.postMessage(
+  postMessage(
     {
       type: "speech_chunk",
       buffer: paddedBuffer,
       start,
       end,
       duration,
-    } as VadWorkerResponse,
+      id: request_id,
+    },
     // @ts-ignore
     [paddedBuffer.buffer]
   );
@@ -147,11 +141,16 @@ function resetState() {
 self.addEventListener(
   "message",
   async (event: MessageEvent<VadWorkerMessage>) => {
-    const { type, buffer } = event.data;
-
+    const { type, buffer, id } = event.data;
     switch (type) {
       case "init":
-        await initializeVAD();
+        await initializeVAD(id, (progress) => {
+          postMessage({
+            type: "progress",
+            progress,
+            id,
+          });
+        });
         return;
 
       case "reset":
@@ -160,13 +159,13 @@ self.addEventListener(
 
       case "audio":
         if (!buffer || !isInitialized) return;
-        await processAudioBuffer(buffer);
+        await processAudioBuffer(buffer, id);
         return;
     }
   }
 );
 
-async function processAudioBuffer(buffer: Float32Array) {
+async function processAudioBuffer(buffer: Float32Array, request_id: string) {
   const wasRecording = isRecording;
   const isSpeech = await vad(buffer);
 
@@ -187,7 +186,7 @@ async function processAudioBuffer(buffer: Float32Array) {
     bufferPointer += remaining;
 
     const overflow = buffer.subarray(remaining);
-    dispatchSpeechChunk(overflow);
+    dispatchSpeechChunk(request_id, overflow);
     return;
   } else {
     // Normal case - add buffer to global buffer
@@ -198,7 +197,7 @@ async function processAudioBuffer(buffer: Float32Array) {
   if (isSpeech) {
     if (!isRecording) {
       // Start of speech detected
-      self.postMessage({ type: "speech_start" } as VadWorkerResponse);
+      postMessage({ type: "speech_start", id: request_id });
       isRecording = true;
     }
     postSpeechSamples = 0; // Reset silence counter
@@ -221,8 +220,12 @@ async function processAudioBuffer(buffer: Float32Array) {
   }
 
   // End of speech chunk - dispatch it
-  self.postMessage({ type: "speech_end" } as VadWorkerResponse);
-  dispatchSpeechChunk();
+  postMessage({ type: "speech_end", id: request_id });
+  dispatchSpeechChunk(request_id);
 }
+
+const postMessage = (message: VadWorkerResponse, ...args: Array<any>) =>
+  // @ts-ignore
+  self.postMessage(message, args);
 
 export {};

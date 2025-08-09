@@ -105,7 +105,7 @@ export default function Button({
 
   if ("to" in props) {
     return (
-      <Link to={props.to} className={combinedClassName} title={title}>
+      <Link href={props.to} className={combinedClassName} title={title}>
         {content}
       </Link>
     );

@@ -1,5 +1,3 @@
-import ConversationTransformersJS from "@ai/llm/tfjsLlm/ConversationTransformersJS";
-import VoiceActivityDetection from "@ai/voiceActivityDetection/VoiceActivityDetection";
 import useStableValue from "@utils/useStableValue";
 import { ComponentChildren } from "preact";
 import {
@@ -11,11 +9,17 @@ import {
 } from "preact/hooks";
 import { v4 as uuidv4 } from "uuid";
 
+import ConversationTransformersJS from "../llm/tfjsLlm/ConversationTransformersJS";
 import useMcpServer from "../mcp/react/useMcpServer";
 import SpeechToText from "../speechToText/SpeechToText";
 import Kokoro from "../textToSpeech/kokoro/Kokoro";
 import { MessagePartType, MessageRole, MessageUser } from "../types";
-import AgentContext, { AgentContextValues } from "./AgentContext";
+import VoiceActivityDetection from "../voiceActivityDetection/VoiceActivityDetection";
+import AgentContext, {
+  AgentContextValues,
+  DownloadModelProgress,
+  DownloadedModels,
+} from "./AgentContext";
 import { FILL_WORDS } from "./constants";
 
 const SYSTEM_PROMPT = `You are JARVIS, the sophisticated AI assistant from Iron Man.
@@ -49,6 +53,13 @@ export default function AgentContextProvider({
 }: {
   children: ComponentChildren;
 }) {
+  const [downloadCheckDone, setDownloadCheckDone] = useState<boolean>(false);
+  const [downloadedModels, setDownloadedModels] = useState<DownloadedModels>({
+    vad: false,
+    llm: false,
+    tts: false,
+    stt: false,
+  });
   const { active } = useMcpServer();
   const stableActiveServers = useStableValue(active);
   const [mute, setMute] = useState<boolean>(false);
@@ -59,15 +70,11 @@ export default function AgentContextProvider({
     () => new AbortController()
   );
 
-  const speechToText = useMemo(() => {
-    const stt = new SpeechToText();
-    stt.preload();
-    return stt;
-  }, []);
+  const speechToText = useMemo(() => new SpeechToText(), []);
 
   const tts = useMemo(() => {
     const k = new Kokoro();
-    k.preload();
+    //k.preload();
     return k;
   }, []);
 
@@ -92,12 +99,12 @@ export default function AgentContextProvider({
   );
 
   useEffect(() => {
-    if (!stableActiveServers) return;
+    if (!stableActiveServers || !downloadedModels.llm) return;
     conversation.createConversation(
       SYSTEM_PROMPT + "\n\n# Instructions:\n" + INSTRUCTIONS.join("\n"),
       stableActiveServers
     );
-  }, [stableActiveServers, conversation]);
+  }, [stableActiveServers, conversation, downloadedModels]);
 
   const [messages, setMessages] = useState(() => conversation.messages);
   const [conversationStatus, setConversationStatus] = useState(
@@ -161,7 +168,6 @@ export default function AgentContextProvider({
 
   const vad = useMemo(() => {
     const vad = new VoiceActivityDetection();
-    vad.preload();
     vad.setCallbacks({
       onSpeechChunk: (buffer, timing) => {
         timing.duration > 200 &&
@@ -187,6 +193,44 @@ export default function AgentContextProvider({
     };
   }, [vad]);
 
+  const preloadModels = useCallback(
+    (callback: (progress: DownloadModelProgress) => void) =>
+      new Promise<void>((resolve) => {
+        const loaded: DownloadModelProgress = {
+          vad: 0,
+          llm: 0,
+          tts: 0,
+          stt: 0,
+        };
+
+        const listener = (model: string, progress: number) => {
+          loaded[model as keyof DownloadModelProgress] = progress;
+          callback({ ...loaded });
+          const allLoaded =
+            Object.values(loaded).filter((p) => p !== 100).length === 0;
+          if (allLoaded) {
+            resolve();
+          }
+        };
+        vad.preload((progress) => listener("vad", progress));
+        speechToText.preload((progress) => listener("stt", progress));
+      }),
+    []
+  );
+
+  useEffect(() => {
+    if (!vad) return;
+    Promise.all([vad.isCached(), speechToText.isCached(), false, false]).then(
+      ([vad, tts, stt, llm]) => {
+        setDownloadCheckDone(true);
+        if (vad && tts && stt && llm) {
+          preloadModels(() => {});
+        }
+        setDownloadedModels({ vad, llm, tts, stt });
+      }
+    );
+  }, [vad]);
+
   const contextValue: AgentContextValues = useMemo(
     () => ({
       messages,
@@ -203,6 +247,9 @@ export default function AgentContextProvider({
       },
       onVadDetected,
       onEnded,
+      downloadCheckDone,
+      downloadedModels,
+      preloadModels,
     }),
     [
       messages,
@@ -214,6 +261,9 @@ export default function AgentContextProvider({
       isSpeaking,
       onVadDetected,
       onEnded,
+      downloadCheckDone,
+      downloadedModels,
+      preloadModels,
     ]
   );
 

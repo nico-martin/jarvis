@@ -1,23 +1,26 @@
 import {
   AutomaticSpeechRecognitionPipeline,
+  ProgressInfo,
   pipeline,
 } from "@huggingface/transformers";
 
+import { MODEL_ID } from "./constants";
 import { SpeechToTextWorkerMessage, SpeechToTextWorkerResponse } from "./types";
 
 let whisperPipeline: AutomaticSpeechRecognitionPipeline | null = null;
 
-async function initializeWhisper() {
+async function initializeWhisper(request_id: string) {
   if (!whisperPipeline) {
     // @ts-ignore
-    whisperPipeline = await pipeline(
-      "automatic-speech-recognition",
-      "Xenova/whisper-base.en",
-      //"Xenova/whisper-tiny.en", //"Xenova/whisper-tiny",
-      {
-        device: "webgpu",
-      }
-    );
+    whisperPipeline = await pipeline("automatic-speech-recognition", MODEL_ID, {
+      device: "webgpu",
+      progress_callback: (p: ProgressInfo) =>
+        postMessage({
+          status: "progress",
+          progress: p,
+          id: request_id,
+        }),
+    });
   }
   return whisperPipeline;
 }
@@ -28,12 +31,12 @@ self.addEventListener(
     const { id, audioData, sampleRate } = event.data;
 
     try {
-      self.postMessage({
+      postMessage({
         id,
         status: "loading",
-      } as SpeechToTextWorkerResponse);
+      });
 
-      const pipeline = await initializeWhisper();
+      const pipeline = await initializeWhisper(id);
       if (sampleRate !== 16000) {
         throw new Error(`Expected 16kHz audio, got ${sampleRate}Hz`);
       }
@@ -48,20 +51,23 @@ self.addEventListener(
         ? result[0]?.text || ""
         : result.text || "";
 
-      self.postMessage({
+      postMessage({
         id,
         status: "complete",
         text,
-      } as SpeechToTextWorkerResponse);
+      });
     } catch (error) {
       console.error("Speech to text error:", error);
 
-      self.postMessage({
+      postMessage({
         id,
         status: "error",
         error:
           error instanceof Error ? error.message : "Unknown error occurred",
-      } as SpeechToTextWorkerResponse);
+      });
     }
   }
 );
+
+const postMessage = (message: SpeechToTextWorkerResponse) =>
+  self.postMessage(message);

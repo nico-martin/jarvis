@@ -10,12 +10,6 @@ import McpPage from "./pages/McpPage";
 import OAuthCallbackPage from "./pages/OAuthCallbackPage";
 import TakePictureModal from "./ui/mcp/TakePictureModal";
 
-/**
- * TODO:
- * - Jarvis mode: VAD listens for "Jarvis". If so start with "Yes, Sir? How can I help you with" (already added to the conversation before first prompt)
- * - Also add an "EndConversation" tool that ends the current conversation and goes back to "listening" for Jarvis
- */
-
 function App() {
   return (
     <McpServerContextProvider>

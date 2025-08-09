@@ -1,38 +1,19 @@
+import { MODEL_ONNX_URL } from "@ai/voiceActivityDetection/constants";
+import { ProgressInfo } from "@huggingface/transformers";
+import isFileInCache from "@utils/isFileInCache";
+import { data } from "autoprefixer";
+
+import {
+  VadCallbacks,
+  VadWorkerMessage,
+  VadWorkerResponse,
+  VoiceActivityDetectionStatus,
+} from "./types";
 import workletUrl from "./vad-processor.ts?worker&url";
 
-export enum VoiceActivityDetectionStatus {
-  IDLE = "idle",
-  WAITING = "waiting",
-  RECORDING = "recording",
-}
+//const STATUS_CHANGE_EVENT_KEY = "STATUS_CHANGE_EVENT_KEY";
 
-interface VadWorkerMessage {
-  type: "init" | "audio" | "reset";
-  buffer?: Float32Array;
-}
-
-interface VadWorkerResponse {
-  type: "ready" | "speech_start" | "speech_end" | "speech_chunk" | "error";
-  buffer?: Float32Array;
-  start?: number;
-  end?: number;
-  duration?: number;
-  error?: string;
-}
-
-interface VadCallbacks {
-  onSpeechStart?: () => void;
-  onSpeechEnd?: () => void;
-  onSpeechChunk?: (
-    audioBuffer: Float32Array,
-    timing: { start: number; end: number; duration: number }
-  ) => void;
-  onError?: (error: string) => void;
-}
-
-const STATUS_CHANGE_EVENT_KEY = "STATUS_CHANGE_EVENT_KEY";
-
-class VoiceActivityDetection extends EventTarget {
+class VoiceActivityDetection {
   private worker: Worker;
   private callbacks: VadCallbacks = {};
   private isReady = false;
@@ -41,6 +22,10 @@ class VoiceActivityDetection extends EventTarget {
   private sourceNode: MediaStreamAudioSourceNode | null = null;
   private workletNode: AudioWorkletNode | null = null;
   private _status = VoiceActivityDetectionStatus.IDLE;
+  private statusListener = new Set<
+    (status: VoiceActivityDetectionStatus) => void
+  >([]);
+  private requestId: number = 0;
 
   public get status() {
     return this._status;
@@ -48,33 +33,62 @@ class VoiceActivityDetection extends EventTarget {
 
   private set status(newStatus: VoiceActivityDetectionStatus) {
     this._status = newStatus;
-    this.dispatchEvent(new Event(STATUS_CHANGE_EVENT_KEY));
+    this.statusListener.forEach((listener) => listener(newStatus));
   }
 
   public onStatusChange = (
     callback: (status: VoiceActivityDetectionStatus) => void
   ) => {
     const listener = () => callback(this.status);
-    this.addEventListener(STATUS_CHANGE_EVENT_KEY, listener);
-    return () => this.removeEventListener(STATUS_CHANGE_EVENT_KEY, listener);
+    this.statusListener.add(listener);
+    return () => this.statusListener.delete(listener);
   };
 
   constructor(callbacks: VadCallbacks = {}) {
-    super();
     this.callbacks = callbacks;
     // Use dynamic import for Vite compatibility
-    this.worker = new Worker(new URL("./vadWorker.ts", import.meta.url), {
+    this.worker = new Worker(new URL("./worker.ts", import.meta.url), {
       type: "module",
     });
 
     this.worker.addEventListener("message", this.handleWorkerMessage);
   }
 
-  public preload(): void {
-    this.worker.postMessage({ type: "init" } as VadWorkerMessage);
+  public preload(
+    progressCallback: (progress: number) => void = () => {}
+  ): void {
+    const id = (this.requestId++).toString();
+
+    const listener = (message: MessageEvent<VadWorkerResponse>) => {
+      if (message.data.id !== id) return;
+      if (message.data.type === "ready") {
+        this.worker.removeEventListener("message", listener);
+      }
+
+      if (
+        message.data.type === "progress" &&
+        message.data.progress.status === "progress" &&
+        message.data.progress.file === "onnx/model.onnx"
+      ) {
+        progressCallback(Math.round(message.data.progress.progress));
+      }
+      if (
+        message.data.type === "progress" &&
+        message.data.progress.status === "done" &&
+        message.data.progress.file === "onnx/model.onnx"
+      ) {
+        progressCallback(100);
+      }
+    };
+    this.worker.addEventListener("message", listener);
+    this.postMessage({ type: "init", id });
   }
 
+  public isCached = async (): Promise<boolean> =>
+    await isFileInCache("transformers-cache", MODEL_ONNX_URL);
+
   private handleWorkerMessage = (event: MessageEvent<VadWorkerResponse>) => {
+    // @ts-ignore
     const { type, buffer, start, end, duration, error } = event.data;
 
     switch (type) {
@@ -114,11 +128,12 @@ class VoiceActivityDetection extends EventTarget {
   private handleWorkletMessage = (event: MessageEvent) => {
     const { buffer } = event.data;
     if (buffer && this.isReady) {
-      this.worker.postMessage(
+      this.postMessage(
         {
           type: "audio",
           buffer: buffer,
-        } as VadWorkerMessage,
+          id: (this.requestId++).toString(),
+        },
         [buffer.buffer]
       );
     }
@@ -213,7 +228,7 @@ class VoiceActivityDetection extends EventTarget {
   }
 
   public reset(): void {
-    this.worker.postMessage({ type: "reset" } as VadWorkerMessage);
+    this.postMessage({ type: "reset", id: (this.requestId++).toString() });
   }
 
   public setCallbacks(callbacks: VadCallbacks): void {
@@ -229,6 +244,10 @@ class VoiceActivityDetection extends EventTarget {
   public get ready(): boolean {
     return this.isReady;
   }
+
+  private postMessage = (message: VadWorkerMessage, ...args: Array<any>) => {
+    this.worker.postMessage(message, args);
+  };
 }
 
 export default VoiceActivityDetection;

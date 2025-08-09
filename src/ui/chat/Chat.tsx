@@ -2,7 +2,7 @@ import useConversation from "@ai/agentContext/useConversation";
 import useSpeaker from "@ai/agentContext/useSpeaker";
 import useVad from "@ai/agentContext/useVad";
 import { ModelStatus } from "@ai/types";
-import { VoiceActivityDetectionStatus } from "@ai/voiceActivityDetection/VoiceActivityDetection";
+import { VoiceActivityDetectionStatus } from "@ai/voiceActivityDetection/types";
 import {
   EllipsisHorizontalIcon,
   MicrophoneIcon,

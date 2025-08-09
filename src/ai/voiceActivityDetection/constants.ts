@@ -1,3 +1,6 @@
+export const MODEL_ID = "onnx-community/silero-vad";
+export const MODEL_ONNX_URL = `https://huggingface.co/${MODEL_ID}/resolve/main/onnx/model.onnx	`;
+
 /**
  * Sample rate of the input audio.
  * Coindicentally, this is the same for both models (Moonshine and Silero VAD)

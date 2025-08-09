@@ -1,9 +1,11 @@
 import useConversation from "@ai/agentContext/useConversation";
+import useModelDownload from "@ai/agentContext/useModelDownload";
 import useSpeaker from "@ai/agentContext/useSpeaker";
 import useVad from "@ai/agentContext/useVad";
 import { ModelStatus } from "@ai/types";
-import { VoiceActivityDetectionStatus } from "@ai/voiceActivityDetection/VoiceActivityDetection";
-import { Dot, McpIcon, PageContent } from "@theme";
+import { VoiceActivityDetectionStatus } from "@ai/voiceActivityDetection/types";
+import { Dot, Loader, McpIcon, PageContent } from "@theme";
+import DownLoadDisclaimer from "@ui/DownLoadDisclaimer";
 import Chat from "@ui/chat/Chat";
 import Jarvis from "@ui/jarvis/Jarvis";
 import { Fragment } from "preact";
@@ -13,6 +15,7 @@ import { version } from "../../package.json";
 
 export function ChatPage() {
   const [ui, setUi] = useState<"chat" | "jarvis">("jarvis");
+  const { downloadCheckDone, downloadedModels } = useModelDownload();
   const { conversationStatus, submit } = useConversation();
   const { vadStatus } = useVad();
   const { mute, setMute, abortSpeaker } = useSpeaker();
@@ -42,7 +45,14 @@ export function ChatPage() {
           children: "MCP_SETTINGS",
         }}
       >
-        {ui === "jarvis" ? (
+        {!downloadCheckDone ? (
+          <div className="mt-24 flex items-center justify-center">
+            <Loader size={10} />
+          </div>
+        ) : Object.values(downloadedModels).filter((dowloaded) => !dowloaded)
+            .length > 0 ? (
+          <DownLoadDisclaimer />
+        ) : ui === "jarvis" ? (
           <Jarvis />
         ) : (
           <Chat onSubmitPrompt={submit} statusText={statusText} className="" />
