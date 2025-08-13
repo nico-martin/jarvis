@@ -2,11 +2,13 @@ import {
   AutoTokenizer,
   PreTrainedModel,
   PreTrainedTokenizer,
+  ProgressInfo,
   RawAudio,
   StyleTextToSpeech2Model,
   Tensor,
 } from "@huggingface/transformers";
 
+import { MODEL_ID } from "./constants";
 import phonemize from "./phonemize";
 import { WorkerRequestKokoro, WorkerResponseKokoro } from "./types";
 import { VOICES, getVoiceData } from "./voices";
@@ -21,7 +23,7 @@ class ModelInstance {
   private static instance: ModelInstance = null;
   private tokenizer: PreTrainedTokenizer;
   private model: PreTrainedModel;
-  private modelId: string = "onnx-community/Kokoro-82M-v1.0-ONNX";
+  private modelId: string = MODEL_ID;
 
   public static getInstance() {
     if (!this.instance) {
@@ -31,7 +33,8 @@ class ModelInstance {
   }
 
   public loadModel = async (
-    log: () => void
+    log: (...data: Array<any>) => void,
+    progress: (progress: ProgressInfo) => void
   ): Promise<{
     tokenizer: PreTrainedTokenizer;
     model: PreTrainedModel;
@@ -43,13 +46,19 @@ class ModelInstance {
       };
     }
     const tokenizerPromise = AutoTokenizer.from_pretrained(this.modelId, {
-      progress_callback: log,
+      progress_callback: (p) => {
+        log(p);
+        progress(p);
+      },
     });
 
     const modelPromise = StyleTextToSpeech2Model.from_pretrained(this.modelId, {
       dtype: "fp32",
       device: "webgpu",
-      progress_callback: log,
+      progress_callback: (p) => {
+        log(p);
+        progress(p);
+      },
     });
 
     const [tokenizer, model] = await Promise.all([
@@ -71,8 +80,12 @@ onMessage(async (event) => {
   const log = (...e: Array<any>) =>
     event.data.log ? console.log("[WORKER]", ...e) : null;
 
-  postMessage({ status: "loading", id: event.data.id });
-  const { model, tokenizer } = await instance.loadModel(log);
+  const { model, tokenizer } = await instance.loadModel(
+    log,
+    (p: ProgressInfo) => {
+      postMessage({ status: "loading", id: event.data.id, progress: p });
+    }
+  );
   const voice = event.data?.input?.voice || "af";
   const speed = event.data?.input?.speed || 1;
   const text = event.data.input.text;

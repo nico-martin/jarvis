@@ -9,6 +9,7 @@ export interface DownloadedModels {
   llm: boolean;
   tts: boolean;
   stt: boolean;
+  vlm: boolean;
 }
 
 export interface DownloadModelProgress {
@@ -16,6 +17,7 @@ export interface DownloadModelProgress {
   llm: number;
   tts: number;
   stt: number;
+  vlm: number;
 }
 
 export interface AgentContextValues {

@@ -1,3 +1,5 @@
+import ImageToText from "@ai/imageToText/ImageToText";
+import Conversation from "@ai/llm/Conversation";
 import useStableValue from "@utils/useStableValue";
 import { ComponentChildren } from "preact";
 import {
@@ -9,7 +11,6 @@ import {
 } from "preact/hooks";
 import { v4 as uuidv4 } from "uuid";
 
-import ConversationTransformersJS from "../llm/tfjsLlm/ConversationTransformersJS";
 import useMcpServer from "../mcp/react/useMcpServer";
 import SpeechToText from "../speechToText/SpeechToText";
 import Kokoro from "../textToSpeech/kokoro/Kokoro";
@@ -59,6 +60,7 @@ export default function AgentContextProvider({
     llm: false,
     tts: false,
     stt: false,
+    vlm: false,
   });
   const { active } = useMcpServer();
   const stableActiveServers = useStableValue(active);
@@ -72,11 +74,7 @@ export default function AgentContextProvider({
 
   const speechToText = useMemo(() => new SpeechToText(), []);
 
-  const tts = useMemo(() => {
-    const k = new Kokoro();
-    //k.preload();
-    return k;
-  }, []);
+  const tts = useMemo(() => new Kokoro(), []);
 
   useEffect(() => {
     const unsubscribe = tts.player.onIsPlayingChange(() => {
@@ -89,7 +87,7 @@ export default function AgentContextProvider({
 
   const conversation = useMemo(
     () =>
-      new ConversationTransformersJS({
+      new Conversation({
         onConversationEnded: () => {
           endedListeners.current.forEach((callback) => callback());
         },
@@ -97,6 +95,8 @@ export default function AgentContextProvider({
       }),
     []
   );
+
+  const imageToText = useMemo(() => new ImageToText(), []);
 
   useEffect(() => {
     if (!stableActiveServers || !downloadedModels.llm) return;
@@ -172,7 +172,10 @@ export default function AgentContextProvider({
       onSpeechChunk: (buffer, timing) => {
         timing.duration > 200 &&
           speechToText.generate(buffer).then((text) => {
-            if (FILL_WORDS.indexOf(text.trim().toLowerCase()) === -1) {
+            const isFillWord = FILL_WORDS.includes(text.trim().toLowerCase());
+            const possibleFillWord =
+              text.trim().startsWith("(") && text.trim().startsWith(")");
+            if (!isFillWord && !possibleFillWord) {
               vadListeners.current.forEach((callback) => callback(text));
             }
           });
@@ -201,6 +204,7 @@ export default function AgentContextProvider({
           llm: 0,
           tts: 0,
           stt: 0,
+          vlm: 0,
         };
 
         const listener = (model: string, progress: number) => {
@@ -214,21 +218,33 @@ export default function AgentContextProvider({
         };
         vad.preload((progress) => listener("vad", progress));
         speechToText.preload((progress) => listener("stt", progress));
+        tts.preload((progress) => listener("tts", progress));
+        conversation.createConversation("", [], (progress) =>
+          listener("llm", Math.round(progress * 100))
+        );
+        imageToText.preload((progress) => listener("vlm", progress));
       }),
     []
   );
 
   useEffect(() => {
     if (!vad) return;
-    Promise.all([vad.isCached(), speechToText.isCached(), false, false]).then(
-      ([vad, tts, stt, llm]) => {
+    Promise.all([
+      vad.isCached(),
+      speechToText.isCached(),
+      tts.isCached(),
+      conversation.isCached(),
+      imageToText.isCached(),
+    ]).then(([vad, stt, tts, llm, vlm]) => {
+      if (vad && tts && stt && llm && vlm) {
+        preloadModels(() => {}).then(() => {
+          setDownloadCheckDone(true);
+          setDownloadedModels({ vad, llm, tts, stt, vlm });
+        });
+      } else {
         setDownloadCheckDone(true);
-        if (vad && tts && stt && llm) {
-          preloadModels(() => {});
-        }
-        setDownloadedModels({ vad, llm, tts, stt });
       }
-    );
+    });
   }, [vad]);
 
   const contextValue: AgentContextValues = useMemo(

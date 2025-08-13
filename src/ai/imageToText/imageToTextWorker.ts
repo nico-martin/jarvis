@@ -2,29 +2,14 @@ import {
   AutoModelForVision2Seq,
   AutoProcessor,
   InterruptableStoppingCriteria,
+  ProgressInfo,
   TextStreamer,
   load_image,
 } from "@huggingface/transformers";
 
+import { ImageToTextWorkerMessage, ImageToTextWorkerResponse } from "./types";
+
 const MAX_NEW_TOKENS = 512;
-
-interface ImageToTextWorkerMessage {
-  type: "check" | "load" | "generate" | "interrupt" | "reset";
-  data?: {
-    id: string;
-    image: string; // base64 data URL
-    prompt?: string;
-  };
-}
-
-interface ImageToTextWorkerResponse {
-  id?: string;
-  status: "loading" | "ready" | "start" | "update" | "complete" | "error";
-  output?: string;
-  error?: string;
-  tps?: number;
-  numTokens?: number;
-}
 
 /**
  * Helper function to perform feature detection for WebGPU
@@ -35,20 +20,21 @@ async function check() {
     if (!("gpu" in navigator)) {
       throw new Error("WebGPU is not supported");
     }
-    const adapter = await (navigator as any).gpu.requestAdapter();
+    // @ts-ignore
+    const adapter = await navigator.gpu.requestAdapter();
     if (!adapter) {
       throw new Error("WebGPU is not supported (no adapter found)");
     }
     fp16_supported = adapter.features.has("shader-f16");
 
-    self.postMessage({
+    postMessage({
       status: "ready",
-    } as ImageToTextWorkerResponse);
+    });
   } catch (e: any) {
-    self.postMessage({
+    postMessage({
       status: "error",
       error: e.toString(),
-    } as ImageToTextWorkerResponse);
+    });
   }
 }
 
@@ -60,7 +46,9 @@ class SmolVLM {
   static processor: Promise<any> | null = null;
   static model: Promise<any> | null = null;
 
-  static async getInstance(progress_callback: any = null) {
+  static async getInstance(
+    progress_callback: (progress: ProgressInfo) => void = null
+  ) {
     this.processor ??= AutoProcessor.from_pretrained(this.model_id, {
       progress_callback,
     });
@@ -119,13 +107,13 @@ async function generate(data: { id: string; image: string; prompt?: string }) {
     };
 
     const callback_function = (output: string) => {
-      self.postMessage({
+      postMessage({
         id,
         status: "update",
         output,
         tps: tps!,
         numTokens,
-      } as ImageToTextWorkerResponse);
+      });
     };
 
     const streamer = new TextStreamer(processor.tokenizer, {
@@ -136,10 +124,10 @@ async function generate(data: { id: string; image: string; prompt?: string }) {
     });
 
     // Tell the main thread we are starting
-    self.postMessage({
+    postMessage({
       id,
       status: "start",
-    } as ImageToTextWorkerResponse);
+    });
 
     const { past_key_values, sequences } = await model.generate({
       ...inputs,
@@ -158,42 +146,42 @@ async function generate(data: { id: string; image: string; prompt?: string }) {
     });
 
     // Send the output back to the main thread
-    self.postMessage({
+    postMessage({
       id,
       status: "complete",
       output: decoded[0] || "",
-    } as ImageToTextWorkerResponse);
+    });
   } catch (error) {
     console.error("Image to text error:", error);
-    self.postMessage({
+    postMessage({
       id,
       status: "error",
       error: error instanceof Error ? error.message : "Unknown error occurred",
-    } as ImageToTextWorkerResponse);
+    });
   }
 }
 
 async function load() {
-  self.postMessage({
+  postMessage({
     status: "loading",
-  } as ImageToTextWorkerResponse);
+  });
 
   try {
-    // Load the pipeline and save it for future use.
-    await SmolVLM.getInstance((x: any) => {
-      // We also add a progress callback to the pipeline so that we can
-      // track model loading.
-      self.postMessage(x);
+    await SmolVLM.getInstance((progress) => {
+      postMessage({
+        status: "loading",
+        progress,
+      });
     });
 
-    self.postMessage({
+    postMessage({
       status: "ready",
-    } as ImageToTextWorkerResponse);
+    });
   } catch (error) {
-    self.postMessage({
+    postMessage({
       status: "error",
       error: error instanceof Error ? error.message : "Failed to load model",
-    } as ImageToTextWorkerResponse);
+    });
   }
 }
 
@@ -201,7 +189,7 @@ async function load() {
 self.addEventListener(
   "message",
   async (e: MessageEvent<ImageToTextWorkerMessage>) => {
-    const { type, data } = e.data;
+    const { type } = e.data;
 
     switch (type) {
       case "check":
@@ -213,9 +201,9 @@ self.addEventListener(
         break;
 
       case "generate":
-        if (data) {
+        if (e.data.data) {
           stopping_criteria.reset();
-          await generate(data);
+          await generate(e.data.data);
         }
         break;
 
@@ -230,3 +218,6 @@ self.addEventListener(
     }
   }
 );
+
+const postMessage = (message: ImageToTextWorkerResponse) =>
+  self.postMessage(message);

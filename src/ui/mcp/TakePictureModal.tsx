@@ -1,15 +1,15 @@
 import ImageToText from "@ai/imageToText/ImageToText";
 import { Crosshair, Modal } from "@theme";
 import { eventEmitter } from "@utils/eventEmitter";
-import { useState, useRef, useEffect } from "preact/hooks";
 import { FunctionComponent } from "preact";
+import { useEffect, useRef, useState } from "preact/hooks";
 
 const TIMEOUT = 5;
 
 const TakePictureModal: FunctionComponent = () => {
   const [isOpen, setIsOpen] = useState(false);
   const [query, setQuery] = useState<string>("");
-  const [countdown, setCountdown] = useState<number | null>(5);
+  const [countdown, setCountdown] = useState<number | null>(3);
   const [isProcessing, setIsProcessing] = useState(false);
   const [capturedImageUrl, setCapturedImageUrl] = useState<string>("");
   const videoRef = useRef<HTMLVideoElement>(null);

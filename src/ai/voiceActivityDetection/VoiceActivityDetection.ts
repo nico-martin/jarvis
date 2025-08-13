@@ -46,7 +46,6 @@ class VoiceActivityDetection {
 
   constructor(callbacks: VadCallbacks = {}) {
     this.callbacks = callbacks;
-    // Use dynamic import for Vite compatibility
     this.worker = new Worker(new URL("./worker.ts", import.meta.url), {
       type: "module",
     });
@@ -56,32 +55,35 @@ class VoiceActivityDetection {
 
   public preload(
     progressCallback: (progress: number) => void = () => {}
-  ): void {
-    const id = (this.requestId++).toString();
+  ): Promise<void> {
+    return new Promise((resolve) => {
+      const id = (this.requestId++).toString();
 
-    const listener = (message: MessageEvent<VadWorkerResponse>) => {
-      if (message.data.id !== id) return;
-      if (message.data.type === "ready") {
-        this.worker.removeEventListener("message", listener);
-      }
+      const listener = (message: MessageEvent<VadWorkerResponse>) => {
+        if (message.data.id !== id) return;
+        if (message.data.type === "ready") {
+          this.worker.removeEventListener("message", listener);
+          resolve();
+        }
 
-      if (
-        message.data.type === "progress" &&
-        message.data.progress.status === "progress" &&
-        message.data.progress.file === "onnx/model.onnx"
-      ) {
-        progressCallback(Math.round(message.data.progress.progress));
-      }
-      if (
-        message.data.type === "progress" &&
-        message.data.progress.status === "done" &&
-        message.data.progress.file === "onnx/model.onnx"
-      ) {
-        progressCallback(100);
-      }
-    };
-    this.worker.addEventListener("message", listener);
-    this.postMessage({ type: "init", id });
+        if (
+          message.data.type === "progress" &&
+          message.data.progress.status === "progress" &&
+          message.data.progress.file === "onnx/model.onnx"
+        ) {
+          progressCallback(Math.round(message.data.progress.progress));
+        }
+        if (
+          message.data.type === "progress" &&
+          message.data.progress.status === "done" &&
+          message.data.progress.file === "onnx/model.onnx"
+        ) {
+          progressCallback(100);
+        }
+      };
+      this.worker.addEventListener("message", listener);
+      this.postMessage({ type: "init", id });
+    });
   }
 
   public isCached = async (): Promise<boolean> =>
@@ -218,11 +220,12 @@ class VoiceActivityDetection {
       return;
     }
 
-    this.worker.postMessage(
+    this.postMessage(
       {
         type: "audio",
         buffer: audioBuffer,
-      } as VadWorkerMessage,
+        id: (this.requestId++).toString(),
+      },
       [audioBuffer.buffer]
     );
   }
@@ -245,8 +248,11 @@ class VoiceActivityDetection {
     return this.isReady;
   }
 
-  private postMessage = (message: VadWorkerMessage, ...args: Array<any>) => {
-    this.worker.postMessage(message, args);
+  private postMessage = (
+    message: VadWorkerMessage,
+    transfer?: Transferable[]
+  ) => {
+    this.worker.postMessage(message, transfer);
   };
 }
 

@@ -117,7 +117,6 @@ function dispatchSpeechChunk(request_id: string, overflow?: Float32Array) {
       duration,
       id: request_id,
     },
-    // @ts-ignore
     [paddedBuffer.buffer]
   );
 
@@ -224,8 +223,7 @@ async function processAudioBuffer(buffer: Float32Array, request_id: string) {
   dispatchSpeechChunk(request_id);
 }
 
-const postMessage = (message: VadWorkerResponse, ...args: Array<any>) =>
-  // @ts-ignore
-  self.postMessage(message, args);
+const postMessage = (message: VadWorkerResponse, transfer?: Transferable[]) =>
+  self.postMessage(message, null, transfer);
 
 export {};

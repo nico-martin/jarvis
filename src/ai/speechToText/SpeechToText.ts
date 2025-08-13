@@ -16,11 +16,17 @@ class SpeechToText {
     });
   }
 
-  public preload(callback: (progress: number) => void = () => {}): void {
-    // Send a small dummy audio buffer to initialize the model
-    const dummyAudio = new Float32Array(16000); // 1 second of silence at 16kHz
-    this.generate(dummyAudio, 16000, callback).catch(() => {
-      // Ignore errors during preload - this is just to initialize the model
+  public preload(
+    callback: (progress: number) => void = () => {}
+  ): Promise<void> {
+    return new Promise((resolve) => {
+      // Send a small dummy audio buffer to initialize the model
+      const dummyAudio = new Float32Array(16000); // 1 second of silence at 16kHz
+      this.generate(dummyAudio, 16000, callback)
+        .then(() => resolve())
+        .catch(() => {
+          // Ignore errors during preload - this is just to initialize the model
+        });
     });
   }
 
@@ -66,13 +72,11 @@ class SpeechToText {
 
         if (e.data.status === "complete") {
           this.worker.removeEventListener("message", listener);
-          console.log("FILES resolve", files);
           resolve(e.data.text || "");
         }
 
         if (e.data.status === "error") {
           this.worker.removeEventListener("message", listener);
-          console.log("FILES reject", files);
           reject(new Error(e.data.error || "Speech to text failed"));
         }
       };
@@ -113,14 +117,14 @@ class SpeechToText {
     };
   }
 
-  public isCached = async (): Promise<boolean> =>
-    (
-      await Promise.all(
-        Object.keys(EXPECTED_FILES).map((file) =>
-          isFileInCache("transformers-cache", MODEL_ONNX_URL_BASE + file)
-        )
+  public isCached = async (): Promise<boolean> => {
+    const cached = await Promise.all(
+      Object.keys(EXPECTED_FILES).map((file) =>
+        isFileInCache("transformers-cache", MODEL_ONNX_URL_BASE + file)
       )
-    ).every((c) => c);
+    );
+    return cached.every((c) => c);
+  };
 
   private resampleAudio(
     audioData: Float32Array,

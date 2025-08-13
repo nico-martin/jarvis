@@ -1,10 +1,31 @@
 import { DownloadModelProgress } from "@ai/agentContext/AgentContext";
 import useModelDownload from "@ai/agentContext/useModelDownload";
+import { EXPECTED_FILES as EXPECTED_FILES_VLM } from "@ai/imageToText/constants";
+import Conversation from "@ai/llm/Conversation";
 import { EXPECTED_FILES as EXPECTED_FILES_STT } from "@ai/speechToText/constants";
+import { EXPECTED_FILES as EXPECTED_FILES_TTS } from "@ai/textToSpeech/kokoro/constants";
 import { ArrowDownTrayIcon } from "@heroicons/react/16/solid";
 import { Button, ContentBox, Progress } from "@theme";
 import formatBytes from "@utils/formatBytes";
+import { LanguageModel } from "language-model-polyfill";
 import { useState } from "preact/hooks";
+
+LanguageModel.model_id = "Qwen3-4B";
+
+const VAD_SIZE = 2243022;
+const LLM_SIZE = Conversation.downloadSize;
+const TTS_SIZE = Object.values(EXPECTED_FILES_TTS).reduce(
+  (acc, size) => acc + size,
+  0
+);
+const STT_SIZE = Object.values(EXPECTED_FILES_STT).reduce(
+  (acc, size) => acc + size,
+  0
+);
+const VLM_SIZE = Object.values(EXPECTED_FILES_VLM).reduce(
+  (acc, size) => acc + size,
+  0
+);
 
 const getModel = (
   key: string
@@ -19,32 +40,36 @@ const getModel = (
       return {
         taskName: "VOICE_ACTIVITY_DETECTION",
         name: "Silero VAD",
-        size: 2243022,
+        size: VAD_SIZE,
         url: "https://github.com/snakers4/silero-vad",
       };
     case "llm":
       return {
         taskName: "LARGE_LANGUAGE_MODEL",
         name: "Qwen3 4B",
-        size: 9,
+        size: LLM_SIZE,
         url: "https://github.com/snakers4/silero-vad",
       };
     case "tts":
       return {
-        taskName: "TEXT_TO_SPEECH",
-        name: "Qwen3 4B",
-        size: 9,
-        url: "https://github.com/snakers4/silero-vad",
+        taskName: "SPEECH_SYNTHESIS",
+        name: "Kokoro",
+        size: TTS_SIZE,
+        url: "https://huggingface.co/hexgrad/Kokoro-82M",
       };
     case "stt":
       return {
         taskName: "SPEECH_RECOGNITION",
         name: "Whisper Base",
-        size: Object.values(EXPECTED_FILES_STT).reduce(
-          (acc, size) => acc + size,
-          0
-        ),
+        size: STT_SIZE,
         url: "https://huggingface.co/openai/whisper-base",
+      };
+    case "vlm":
+      return {
+        taskName: "VISION_LANGUAGE_MODEL",
+        name: "SmolVLM 256M",
+        size: VLM_SIZE,
+        url: "https://huggingface.co/HuggingFaceTB/SmolVLM-256M-Instruct",
       };
     default:
       return null;
@@ -59,6 +84,7 @@ export default function DownLoadDisclaimer({}: {}) {
     llm: 0,
     tts: 0,
     stt: 0,
+    vlm: 0,
   });
 
   const download = async () => {
@@ -123,7 +149,11 @@ export default function DownLoadDisclaimer({}: {}) {
               iconLeft={<ArrowDownTrayIcon width="1.25em" />}
               onClick={download}
             >
-              Download required models (≈ 3GB)
+              Download required models (≈{" "}
+              {formatBytes(
+                VAD_SIZE + LLM_SIZE + TTS_SIZE + STT_SIZE + VLM_SIZE
+              )}
+              )
             </Button>
           )}
         </div>

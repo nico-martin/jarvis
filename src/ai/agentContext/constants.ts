@@ -13,6 +13,7 @@ export const FILL_WORDS = [
   "(applause)",
   "(music)",
   "(silence)",
+  "(wooshing)",
 
   // Whisper-specific artifacts
   "[BLANK_AUDIO]",

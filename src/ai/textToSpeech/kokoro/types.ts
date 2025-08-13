@@ -1,3 +1,5 @@
+import { ProgressInfo } from "@huggingface/transformers";
+
 export type KokoroOutput = Blob;
 export type KokoroInput = {
   text: string;
@@ -16,6 +18,7 @@ export interface WorkerRequest<Input> {
 export type InitPipelineProgressEvent = {
   status: "loading";
   id: string;
+  progress: ProgressInfo;
 };
 
 export type PipelineReadyEvent = {
