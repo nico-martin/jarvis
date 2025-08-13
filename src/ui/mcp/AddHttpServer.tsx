@@ -54,7 +54,7 @@ function AddHttpServer({ className = "" }: AddHttpServerProps) {
           label="SERVER_DESIGNATION"
           value={newServer.name}
           onChange={(e) =>
-            setNewServer((prev) => ({ ...prev, name: e.target.value }))
+            setNewServer((prev) => ({ ...prev, name: (e.target as HTMLInputElement).value }))
           }
           onKeyDown={handleKeyDown}
           className="w-full"
@@ -67,7 +67,7 @@ function AddHttpServer({ className = "" }: AddHttpServerProps) {
           placeholder="https://api.server.com/mcp"
           value={newServer.url}
           onChange={(e) =>
-            setNewServer((prev) => ({ ...prev, url: e.target.value }))
+            setNewServer((prev) => ({ ...prev, url: (e.target as HTMLInputElement).value }))
           }
           onKeyDown={handleKeyDown}
           className="w-full"

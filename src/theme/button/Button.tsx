@@ -1,5 +1,4 @@
 import cn from "@utils/classnames";
-import { type } from "node:os";
 import { ComponentChildren } from "preact";
 import { Link } from "preact-router";
 
@@ -105,7 +104,7 @@ export default function Button({
 
   if ("to" in props) {
     return (
-      <Link href={props.to} className={combinedClassName} title={title}>
+      <Link {...({ href: props.to, className: combinedClassName, title } as any)}>
         {content}
       </Link>
     );

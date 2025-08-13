@@ -9,8 +9,8 @@ import {
   Textarea,
 } from "@theme";
 import type { SelectOption } from "@theme";
-import { useState } from "preact/hooks";
 import { JSX } from "preact";
+import { useState } from "preact/hooks";
 
 interface Tool {
   name: string;
@@ -101,9 +101,8 @@ export function CallTool({ isOpen, onClose, server, tool }: CallToolProps) {
           value={value?.toString() || ""}
           placeholder={`Enter ${key}...`}
           onChange={(e) => {
-            const numValue = e.target.value
-              ? Number(e.target.value)
-              : undefined;
+            const target = e.target as HTMLInputElement;
+            const numValue = target.value ? Number(target.value) : undefined;
             onChange(numValue);
           }}
         />
@@ -127,7 +126,9 @@ export function CallTool({ isOpen, onClose, server, tool }: CallToolProps) {
           value={value || ""}
           options={options}
           placeholder={`Select ${key}...`}
-          onChange={(e) => onChange(e.target.value || undefined)}
+          onChange={(e) =>
+            onChange((e.target as HTMLInputElement).value || undefined)
+          }
         />
       );
     }
@@ -150,13 +151,14 @@ export function CallTool({ isOpen, onClose, server, tool }: CallToolProps) {
           placeholder={`Enter ${key} as JSON...`}
           onChange={(e) => {
             try {
-              const parsed = e.target.value
-                ? JSON.parse(e.target.value)
+              const target = e.target as HTMLTextAreaElement;
+              const parsed = target.value
+                ? JSON.parse(target.value)
                 : undefined;
               onChange(parsed);
             } catch {
               // Invalid JSON, keep the string value for now
-              onChange(e.target.value);
+              onChange((e.target as HTMLTextAreaElement).value);
             }
           }}
         />
@@ -174,7 +176,9 @@ export function CallTool({ isOpen, onClose, server, tool }: CallToolProps) {
         required={isRequired}
         value={value || ""}
         placeholder={`Enter ${key}...`}
-        onChange={(e) => onChange(e.target.value || undefined)}
+        onChange={(e) =>
+          onChange((e.target as HTMLInputElement).value || undefined)
+        }
       />
     );
   };

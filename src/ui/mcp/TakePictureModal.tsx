@@ -123,6 +123,7 @@ const TakePictureModal: FunctionComponent = () => {
     }
   };
 
+  // @ts-ignore
   return (
     <Modal size="xl" open={isOpen} setOpen={setIsOpen} title="">
       <div className="border-primary-400/30 relative overflow-hidden border bg-black">
@@ -206,7 +207,10 @@ const TakePictureModal: FunctionComponent = () => {
         </div>
       </div>
 
-      <style jsx="true">{`
+      <style
+        // @ts-ignore
+        jsx="true"
+      >{`
         @keyframes scan {
           0% {
             top: 0;
