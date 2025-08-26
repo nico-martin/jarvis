@@ -28,4 +28,5 @@ export const saveHttpServers = (servers: Array<McpServerStoreHttp> = []) =>
   localStorage.setItem(MCP_SERVERS_STORAGE_KEY, servers);
 
 export const getHttpServers = () =>
-  localStorage.getItem<Array<McpServerStoreHttp>>(MCP_SERVERS_STORAGE_KEY);
+  localStorage.getItem<Array<McpServerStoreHttp>>(MCP_SERVERS_STORAGE_KEY) ||
+  [];
