@@ -7,6 +7,10 @@ import ToolCallPopup from "@ui/jarvis/ToolCallPopup";
 import { useEffect, useRef, useState } from "preact/hooks";
 import toast from "react-hot-toast";
 
+const JARVIS_KEYWORDS = ["charmus", "jarvis", "JARIFAS", "Charmis"].map((s) =>
+  s.toLowerCase()
+);
+
 export default function Jarvis({}: {}) {
   const { vad } = useVad();
   const { isSpeaking } = useSpeaker();
@@ -48,7 +52,9 @@ export default function Jarvis({}: {}) {
     const unsubscribe = onVadDetected((text: string) => {
       if (conversationActive) {
         submit(text);
-      } else if (text.toLowerCase().indexOf("jarvis") !== -1) {
+      } else if (
+        JARVIS_KEYWORDS.some((word) => text.toLowerCase().includes(word))
+      ) {
         setConversationActive(true);
         submit(text);
       } else {
