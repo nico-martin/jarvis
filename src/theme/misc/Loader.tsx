@@ -1,7 +1,9 @@
 import cn from "@utils/classnames";
 import { FunctionComponent } from "preact";
 
-const Loader: FunctionComponent<{ size?: 4 | 5 | 6 | 8 | 10 }> = ({ size = 5 }) => {
+const Loader: FunctionComponent<{ size?: 4 | 5 | 6 | 8 | 10 }> = ({
+  size = 5,
+}) => {
   const sizeClass =
     {
       4: "h-4 w-4",
@@ -15,7 +17,7 @@ const Loader: FunctionComponent<{ size?: 4 | 5 | 6 | 8 | 10 }> = ({ size = 5 }) 
     <svg
       className={cn(
         sizeClass,
-        "animate-spin shadow-[0_0_10px_rgba(0,162,255,0.5)]"
+        "animate-spin rounded-full shadow-[0_0_10px_rgba(0,162,255,0.5)]"
       )}
       xmlns="http://www.w3.org/2000/svg"
       fill="none"

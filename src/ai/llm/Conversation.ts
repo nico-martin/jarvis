@@ -340,6 +340,8 @@ Response: ${resp.response}`
       }
     }
 
+    console.log("latestUsage", this.session.latestUsage);
+
     return {
       text: reply,
       toolsToCall,

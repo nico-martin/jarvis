@@ -7,12 +7,6 @@ import ToolCallPopup from "@ui/jarvis/ToolCallPopup";
 import { useEffect, useRef, useState } from "preact/hooks";
 import toast from "react-hot-toast";
 
-interface ToolCallPopupData {
-  id: string;
-  toolCall: MessagePartTool;
-  index: number;
-}
-
 export default function Jarvis({}: {}) {
   const { vad } = useVad();
   const { isSpeaking } = useSpeaker();
@@ -79,7 +73,7 @@ export default function Jarvis({}: {}) {
     toolCalls
       .filter((tc) => !processedToolCalls.current.has(tc.id))
       .forEach((tc) => {
-        toast.custom(<ToolCallPopup id={tc.id} />, { duration: 10000 });
+        toast.custom(<ToolCallPopup id={tc.id} />, { duration: 20000 });
         processedToolCalls.current.add(tc.id);
       });
   }, [messages]);

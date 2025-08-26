@@ -17,7 +17,7 @@ export function ChatPage() {
   const [ui, setUi] = useState<"chat" | "jarvis">("jarvis");
   const { downloadCheckDone, downloadedModels } = useModelDownload();
   const { conversationStatus, submit } = useConversation();
-  const { vadStatus } = useVad();
+  const { vadStatus, vad } = useVad();
   const { mute, setMute, abortSpeaker } = useSpeaker();
 
   const statusText =
@@ -61,12 +61,21 @@ export function ChatPage() {
       <div className="fixed bottom-8 left-8 space-y-2">
         <div className="text-secondary-300 flex items-center space-x-2 text-xs">
           <Dot />
-          <span>
+          <button
+            onClick={() => {
+              if (vadStatus === VoiceActivityDetectionStatus.IDLE) {
+                vad.startMicrophone()
+              } else {
+                vad.stopMicrophone()
+              }
+            }}
+            className="cursor-pointer"
+          >
             VOICE_DETECTION:{" "}
             {vadStatus !== VoiceActivityDetectionStatus.IDLE
               ? "ACTIVE"
               : "STANDBY"}
-          </span>
+          </button>
         </div>
         <div className="text-primary-300 flex items-center space-x-2 font-mono text-xs">
           <Dot />

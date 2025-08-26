@@ -1,6 +1,6 @@
 {
   "name": "jarvis",
-  "version": "0.0.3",
+  "version": "0.0.4",
   "description": "",
   "type": "module",
   "scripts": {
@@ -17,10 +17,10 @@
   "dependencies": {
     "@headlessui/react": "^2.2.5",
     "@heroicons/react": "^2.2.0",
-    "@huggingface/transformers": "^3.7.1",
+    "@huggingface/transformers": "^3.7.2",
     "@modelcontextprotocol/sdk": "^1.17.0",
     "@tailwindcss/vite": "^4.1.11",
-    "language-model-polyfill": "^0.0.16",
+    "language-model-polyfill": "^0.0.21",
     "phonemizer": "^1.2.1",
     "preact": "^10.25.4",
     "preact-router": "^4.1.2",

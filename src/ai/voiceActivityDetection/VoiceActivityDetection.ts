@@ -11,7 +11,6 @@ import {
 } from "./types";
 import workletUrl from "./vad-processor.ts?worker&url";
 
-//const STATUS_CHANGE_EVENT_KEY = "STATUS_CHANGE_EVENT_KEY";
 
 class VoiceActivityDetection {
   private worker: Worker;

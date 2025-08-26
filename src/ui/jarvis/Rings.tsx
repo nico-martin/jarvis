@@ -304,7 +304,7 @@ export default function Rings({
           <div
             className="absolute animate-ping rounded-full bg-cyan-400 opacity-80"
             style={{
-              width: "0.25em",
+              width: "0.25e m",
               height: "0.25em",
               top: "30%",
               left: "20%",
