@@ -1,5 +1,2 @@
-#\!/usr/bin/env sh
-. "$(dirname -- "$0")/_/husky.sh"
-
 node scripts/updateVersion.mjs patch
 git add package.json
