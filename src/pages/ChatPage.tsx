@@ -64,9 +64,9 @@ export function ChatPage() {
           <button
             onClick={() => {
               if (vadStatus === VoiceActivityDetectionStatus.IDLE) {
-                vad.startMicrophone()
+                vad.startMicrophone();
               } else {
-                vad.stopMicrophone()
+                vad.stopMicrophone();
               }
             }}
             className="cursor-pointer"

@@ -213,16 +213,33 @@ export default function AgentContextProvider({
           const allLoaded =
             Object.values(loaded).filter((p) => p !== 100).length === 0;
           if (allLoaded) {
+            setDownloadedModels({
+              vad: true,
+              llm: true,
+              tts: true,
+              stt: true,
+              vlm: true,
+            });
             resolve();
           }
         };
-        vad.preload((progress) => listener("vad", progress));
-        speechToText.preload((progress) => listener("stt", progress));
-        tts.preload((progress) => listener("tts", progress));
-        conversation.createConversation("", [], (progress) =>
-          listener("llm", Math.round(progress * 100))
-        );
-        imageToText.preload((progress) => listener("vlm", progress));
+        vad.isCached()
+          ? vad.preload((progress) => listener("vad", progress))
+          : listener("vad", 100);
+        speechToText.isCached()
+          ? speechToText.preload((progress) => listener("stt", progress))
+          : listener("stt", 100);
+        tts.isCached()
+          ? tts.preload((progress) => listener("tts", progress))
+          : listener("tts", 100);
+        conversation.isCached()
+          ? conversation.createConversation("", [], (progress) =>
+              listener("llm", Math.round(progress * 100))
+            )
+          : listener("llm", 100);
+        imageToText.isCached()
+          ? imageToText.preload((progress) => listener("vlm", progress))
+          : listener("vlm", 100);
       }),
     []
   );
