@@ -76,6 +76,8 @@ const getModel = (
   }
 };
 
+console.log(VAD_SIZE + LLM_SIZE + TTS_SIZE + STT_SIZE + VLM_SIZE);
+
 export default function DownLoadDisclaimer({}: {}) {
   const [isDownloading, setIsDownloading] = useState<boolean>(false);
   const { preloadModels } = useModelDownload();

@@ -1,7 +1,13 @@
 import useConversation from "@ai/agentContext/useConversation";
 import useSpeaker from "@ai/agentContext/useSpeaker";
 import useVad from "@ai/agentContext/useVad";
-import { MessagePartTool, MessagePartType, MessageRole } from "@ai/types";
+import {
+  MessagePartTool,
+  MessagePartType,
+  MessageRole,
+  ModelStatus,
+} from "@ai/types";
+import { LoadingDots } from "@theme";
 import Rings from "@ui/jarvis/Rings";
 import ToolCallPopup from "@ui/jarvis/ToolCallPopup";
 import { useEffect, useRef, useState } from "preact/hooks";
@@ -14,7 +20,8 @@ const JARVIS_KEYWORDS = ["charmus", "jarvis", "JARIFAS", "Charmis"].map((s) =>
 export default function Jarvis({}: {}) {
   const { vad } = useVad();
   const { isSpeaking } = useSpeaker();
-  const { onEnded, onVadDetected, submit, messages } = useConversation();
+  const { onEnded, onVadDetected, submit, messages, conversationStatus } =
+    useConversation();
   const [audioLevels, setAudioLevels] = useState<number[]>([0, 0, 0, 0, 0, 0]);
   const [conversationActive, setConversationActive] = useState<boolean>(false);
   const processedToolCalls = useRef<Set<string>>(new Set());
@@ -84,6 +91,23 @@ export default function Jarvis({}: {}) {
       });
   }, [messages]);
 
+  const text =
+    conversationStatus === ModelStatus.CONVERSATION_LOADING ? (
+      <span>
+        Please wait a moment while
+        <br />
+        everything is being prepared
+        <LoadingDots />
+      </span>
+    ) : isSpeaking ? (
+      <span>
+        SPEAKING
+        <LoadingDots />
+      </span>
+    ) : (
+      <span>READY! Start the conversation with "Jarvis"</span>
+    );
+
   return (
     <div className="relative flex w-full flex-col items-center justify-center gap-12 pt-44">
       {/* Rings container with tool call popups */}
@@ -106,7 +130,8 @@ export default function Jarvis({}: {}) {
               : "text-slate-500"
           }`}
         >
-          {conversationActive ? (isSpeaking ? "SPEAKING" : "ACTIVE") : "IDLE"}
+          {text}
+          {/*conversationActive ? (isSpeaking ? "SPEAKING" : "ACTIVE") : "IDLEee"*/}
         </div>
         {isSpeaking && (
           <div className="mt-1 font-mono text-xs text-orange-300">

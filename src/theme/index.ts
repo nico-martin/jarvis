@@ -6,6 +6,7 @@ export { default as McpIcon } from "./misc/McpIcon";
 export { default as Dot } from "./misc/Dot";
 export { default as Message, type MessageType } from "./misc/Message";
 export { default as Progress } from "./misc/Progress";
+export { default as LoadingDots } from "./misc/LoadingDots";
 export { default as FormField } from "./form/FormField";
 export { default as Checkbox } from "./form/Checkbox";
 export { default as RadioGroup } from "./form/RadioGroup";

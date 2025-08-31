@@ -199,6 +199,7 @@ export default function AgentContextProvider({
   const preloadModels = useCallback(
     (callback: (progress: DownloadModelProgress) => void) =>
       new Promise<void>((resolve) => {
+        console.log("START PRELOAD");
         const loaded: DownloadModelProgress = {
           vad: 0,
           llm: 0,
@@ -237,6 +238,7 @@ export default function AgentContextProvider({
               listener("llm", Math.round(progress * 100))
             )
           : listener("llm", 100);
+        console.log("imageToText.isCached()", imageToText.isCached());
         imageToText.isCached()
           ? imageToText.preload((progress) => listener("vlm", progress))
           : listener("vlm", 100);
@@ -246,6 +248,7 @@ export default function AgentContextProvider({
 
   useEffect(() => {
     if (!vad) return;
+
     Promise.all([
       vad.isCached(),
       speechToText.isCached(),

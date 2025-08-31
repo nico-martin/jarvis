@@ -44,6 +44,7 @@ class ImageToText {
       const listener = (e: MessageEvent<ImageToTextWorkerResponse>) => {
         if (e.data.status === "ready") {
           this.isReady = true;
+          loadingCallback(100);
           this.worker.removeEventListener("message", listener);
           resolve();
         }
