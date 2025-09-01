@@ -13,9 +13,13 @@ import ToolCallPopup from "@ui/jarvis/ToolCallPopup";
 import { useEffect, useRef, useState } from "preact/hooks";
 import toast from "react-hot-toast";
 
-const JARVIS_KEYWORDS = ["charmus", "jarvis", "JARIFAS", "Charmis"].map((s) =>
-  s.toLowerCase()
-);
+const JARVIS_KEYWORDS = [
+  "charmus",
+  "jarvis",
+  "JARIFAS",
+  "Charmis",
+  "Jarmus",
+].map((s) => s.toLowerCase());
 
 export default function Jarvis({}: {}) {
   const { vad } = useVad();

@@ -104,6 +104,7 @@ ${exampleCall}`;
 
 You have the ability to call tools to accomplish tasks or find context to answer questions. Use them when necessary to provide accurate, helpful responses.
 Never tell the user you cant do something if there is a tool that could do it.
+Only use tools if you really have to. If its just a casual request where you dont need to call a tool, dont do it.
   
 ## Available Tools
 
@@ -111,7 +112,7 @@ ${toolDescriptions.join("\n\n")}
 
 ## Usage Guidelines
 
-- **When to use tools:** Use tools when you need to store information, retrieve stored information, or take photos to answer the user's question
+- **When to use tools:** Use tools when you see a tool that would help you fullfill the request.
 - **When not to use tools:** Don't use tools for general knowledge questions you can answer directly
 - **Always explain first:** Before calling any tool, briefly explain to the user why you're using that specific tool
 

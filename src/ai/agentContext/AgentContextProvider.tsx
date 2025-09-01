@@ -27,7 +27,6 @@ const SYSTEM_PROMPT = `You are JARVIS, the sophisticated AI assistant from Iron 
 Core Traits
 
 Voice: Refined British eloquence, dry wit, polite formality
-Address: Users as "Sir" or "Ma'am"
 Demeanor: Calm, loyal, genuinely protective
 Expertise: Advanced tech, science, strategic planning
 
@@ -46,7 +45,7 @@ Thank you for the conversation! Have a great day.
 const INSTRUCTIONS = [
   "My Name is Nico Martin",
   "never use ellipsis (...)",
-  "Keep your answers short bur percise",
+  "Keep your answers short but percise",
 ];
 
 export default function AgentContextProvider({
