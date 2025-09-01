@@ -7,6 +7,7 @@ import {
   MessageRole,
   ModelStatus,
 } from "@ai/types";
+import { VoiceActivityDetectionStatus } from "@ai/voiceActivityDetection/types";
 import { LoadingDots } from "@theme";
 import Rings from "@ui/jarvis/Rings";
 import ToolCallPopup from "@ui/jarvis/ToolCallPopup";
@@ -105,9 +106,13 @@ export default function Jarvis({}: {}) {
       </span>
     ) : isSpeaking ? (
       <span>
-        SPEAKING
-        <LoadingDots />
+        {/*SPEAKING
+        <LoadingDots />*/}
       </span>
+    ) : vad.status === VoiceActivityDetectionStatus.IDLE ? (
+      <span>Activate voice detection first.</span>
+    ) : conversationActive ? (
+      <span />
     ) : (
       <span>READY! Start the conversation with "Jarvis"</span>
     );
