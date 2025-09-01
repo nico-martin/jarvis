@@ -65,7 +65,7 @@ export class TakePictureServer {
               {
                 name: "take_picture",
                 description:
-                  'This tool captures a photo using the device camera and provides an AI-generated description of the image content. Use this tool when the user requests to take a photo, asks you to analyze or describe something in their current environment, wants to identify objects/text/scenes they can see, or asks questions like "What do you see?" or "Can you look at this?".',
+                  'This tool captures a photo using the device camera and provides an AI-generated description of the image content. Use this tool when the user requests to take a photo, asks you to analyze or describe something in their current environment, wants to identify objects/text/scenes they can see, or asks questions like "What do you see?" or "Can you look at this?". The tool will return the content of the image. Then its your job to answer the users question based on the image content',
                 inputSchema: {
                   type: "object",
                   properties: {
