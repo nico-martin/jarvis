@@ -1,17 +1,7 @@
-import useConversation from "@ai/agentContext/useConversation";
-import useSpeaker from "@ai/agentContext/useSpeaker";
-import useVad from "@ai/agentContext/useVad";
+import useAgent from "@ai/agentContext/useAgent";
 import { ModelStatus } from "@ai/types";
-import { VoiceActivityDetectionStatus } from "@ai/voiceActivityDetection/types";
-import {
-  EllipsisHorizontalIcon,
-  MicrophoneIcon,
-  PaperAirplaneIcon,
-  SpeakerWaveIcon,
-  SpeakerXMarkIcon,
-} from "@heroicons/react/24/outline";
-import { MicrophoneIcon as MicrophoneIconSolid } from "@heroicons/react/24/solid";
-import { Button, ContentBox, InputText, McpIcon } from "@theme";
+import { PaperAirplaneIcon } from "@heroicons/react/24/outline";
+import { Button, ContentBox, InputText } from "@theme";
 import cn from "@utils/classnames";
 import { JSX } from "preact";
 import { useEffect, useMemo, useRef, useState } from "preact/hooks";
@@ -19,30 +9,16 @@ import { useEffect, useMemo, useRef, useState } from "preact/hooks";
 import { Message } from "./Message";
 
 export default function Chat({
-  onSubmitPrompt,
-  statusText,
+  conversationStatusText,
   className = "",
 }: {
-  onSubmitPrompt: (prompt: string) => void;
-  statusText: string;
+  conversationStatusText: string;
   className?: string;
 }) {
   const listRef = useRef<HTMLUListElement>(null);
   const messagesLengthRef = useRef<number>(0);
   const [prompt, setPrompt] = useState<string>("");
-  const { messages, conversationStatus, submit, onVadDetected } =
-    useConversation();
-  const { vad, vadStatus } = useVad();
-  const { mute, setMute, abortSpeaker } = useSpeaker();
-
-  useEffect(() => {
-    const unsubscribe = onVadDetected((text: string) => {
-      submit(text);
-    });
-    return () => {
-      unsubscribe();
-    };
-  }, [onVadDetected, submit]);
+  const { conversationStatus, messages, submit } = useAgent();
 
   const messagesLength = useMemo(
     () => JSON.stringify(messages).length,
@@ -59,8 +35,7 @@ export default function Chat({
 
   const onSubmit = async (e: JSX.TargetedEvent<HTMLFormElement, Event>) => {
     e.preventDefault();
-    if (prompt && conversationStatus === ModelStatus.READY)
-      onSubmitPrompt(prompt);
+    if (prompt && conversationStatus === ModelStatus.READY) submit(prompt);
     setPrompt("");
   };
 
@@ -97,60 +72,9 @@ export default function Chat({
           </Button>
         </form>
         <div className="flex items-center justify-between">
-          <p className="text-text-bright text-xs">AI_CORE: {statusText}</p>
-          <div className="flex gap-2">
-            <Button variant="outline" size="sm" title="MCP_INTERFACE" to="/mcp">
-              <McpIcon />
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => {
-                if (mute) {
-                  setMute(false);
-                } else {
-                  setMute(true);
-                  abortSpeaker();
-                }
-              }}
-              title={mute ? "AUDIO_ENABLE" : "AUDIO_DISABLE"}
-            >
-              {mute ? (
-                <SpeakerXMarkIcon width="1.25em" />
-              ) : (
-                <SpeakerWaveIcon width="1.25em" />
-              )}
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() =>
-                vadStatus === VoiceActivityDetectionStatus.IDLE
-                  ? vad.startMicrophone()
-                  : vad.stopMicrophone()
-              }
-              className={cn(
-                vadStatus === VoiceActivityDetectionStatus.RECORDING
-                  ? "animate-pulse [animation-duration:0.75s]"
-                  : ""
-              )}
-              title={
-                vadStatus === VoiceActivityDetectionStatus.IDLE
-                  ? "VOICE_ACTIVATION"
-                  : vadStatus === VoiceActivityDetectionStatus.WAITING
-                    ? "VOICE_STANDBY..."
-                    : "VOICE_RECORDING"
-              }
-            >
-              {vadStatus === VoiceActivityDetectionStatus.IDLE ? (
-                <MicrophoneIcon width="1.25em" />
-              ) : vadStatus === VoiceActivityDetectionStatus.WAITING ? (
-                <MicrophoneIconSolid width="1.25em" />
-              ) : (
-                <EllipsisHorizontalIcon width="1.25em" />
-              )}
-            </Button>
-          </div>
+          <p className="text-text-bright text-xs">
+            AI_CORE: {conversationStatusText}
+          </p>
         </div>
       </ContentBox>
     </div>

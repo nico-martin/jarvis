@@ -1,6 +1,5 @@
-import ImageToText from "@ai/imageToText/ImageToText";
-import Conversation from "@ai/llm/Conversation";
-import useStableValue from "@utils/useStableValue";
+import { INSTRUCTIONS, SYSTEM_PROMPT } from "@ai/agent";
+import useExternalState from "@utils/useExternalState";
 import { ComponentChildren } from "preact";
 import {
   useCallback,
@@ -11,60 +10,28 @@ import {
 } from "preact/hooks";
 import { v4 as uuidv4 } from "uuid";
 
+import ImageToText from "../imageToText/ImageToText";
+import Conversation from "../llm/Conversation";
 import useMcpServer from "../mcp/react/useMcpServer";
 import SpeechToText from "../speechToText/SpeechToText";
 import Kokoro from "../textToSpeech/kokoro/Kokoro";
-import { MessagePartType, MessageRole, MessageUser } from "../types";
+import { Message, MessagePartType, MessageRole, MessageUser } from "../types";
 import VoiceActivityDetection from "../voiceActivityDetection/VoiceActivityDetection";
-import AgentContext, {
-  AgentContextValues,
-  DownloadModelProgress,
-  DownloadedModels,
-} from "./AgentContext";
+import { VoiceActivityDetectionStatus } from "../voiceActivityDetection/types";
+import AgentContext, { DownloadModelProgress } from "./AgentContext";
 import { FILL_WORDS } from "./constants";
-
-const SYSTEM_PROMPT = `You are JARVIS, the sophisticated AI assistant from Iron Man.
-Core Traits
-
-Voice: Refined British eloquence, dry wit, polite formality
-Demeanor: Calm, loyal, genuinely protective
-Expertise: Advanced tech, science, strategic planning
-
-Communication Style
-
-Provide precise, proactive solutions
-End: Offer additional assistance
-
-When the user indicates they want to end the conversation (through phrases like "goodbye," "bye," "talk to you later," "that's all," "thanks, I'm done," or similar farewell expressions), respond with a polite farewell message and then include the exact keyword [END] on a new line at the very end of your response.
-But only use that if you are 100% sure the user explicitly told you to end the conversation!
-
-Example format:
-Thank you for the conversation! Have a great day.
-<END>`;
-
-const INSTRUCTIONS = [
-  "My Name is Nico Martin",
-  "never use ellipsis (...)",
-  "Keep your answers short but percise",
-];
 
 export default function AgentContextProvider({
   children,
 }: {
   children: ComponentChildren;
 }) {
-  const [downloadCheckDone, setDownloadCheckDone] = useState<boolean>(false);
-  const [downloadedModels, setDownloadedModels] = useState<DownloadedModels>({
-    vad: false,
-    llm: false,
-    tts: false,
-    stt: false,
-    vlm: false,
-  });
-  const { active } = useMcpServer();
-  const stableActiveServers = useStableValue(active);
-  const [mute, setMute] = useState<boolean>(false);
-  const [isSpeaking, setIsSpeaking] = useState<boolean>(false);
+  const [cacheCheckDone, setCacheCheckDone] = useState<boolean>(false);
+  const [allModelsLoaded, setAllModelsLoaded] = useState<boolean>(false);
+  const { active: activeMcpServers } = useMcpServer();
+  const [mute, setMute] = useState<boolean>(true);
+  const [jarvisActive, setJarvisActive] = useState<boolean>(false);
+
   const endedListeners = useRef<Set<() => void>>(new Set());
 
   const [speakerAbortController, setSpeakerAbortController] = useState(
@@ -72,57 +39,51 @@ export default function AgentContextProvider({
   );
 
   const speechToText = useMemo(() => new SpeechToText(), []);
-
   const tts = useMemo(() => new Kokoro(), []);
+  const imageToText = useMemo(() => new ImageToText(), []);
 
-  useEffect(() => {
-    const unsubscribe = tts.player.onIsPlayingChange(() => {
-      setIsSpeaking(tts.player.isPlaying);
-    });
-    return () => {
-      unsubscribe();
-    };
-  }, [tts]);
+  const isSpeaking = useExternalState<boolean>(
+    tts.player.onIsPlayingChange,
+    () => tts.player.isPlaying
+  );
 
   const conversation = useMemo(
     () =>
-      new Conversation({
+      new Conversation(/*{
         onConversationEnded: () => {
           endedListeners.current.forEach((callback) => callback());
         },
         conversationEndKeyword: "<END>",
-      }),
+      }*/),
     []
   );
 
-  const imageToText = useMemo(() => new ImageToText(), []);
+  const conversationIdRef = useRef<string>();
+  const evaluateConversation = useCallback(() => {
+    if (!allModelsLoaded) return;
+    const conversationId = JSON.stringify([
+      SYSTEM_PROMPT,
+      INSTRUCTIONS,
+      activeMcpServers,
+    ]);
 
-  useEffect(() => {
-    if (!stableActiveServers || !downloadedModels.llm) return;
+    if (conversationIdRef.current === conversationId) return;
     conversation.createConversation(
       SYSTEM_PROMPT + "\n\n# Instructions:\n" + INSTRUCTIONS.join("\n"),
-      stableActiveServers
+      activeMcpServers
     );
-  }, [stableActiveServers, conversation, downloadedModels]);
+    conversationIdRef.current = conversationId;
+  }, [activeMcpServers, allModelsLoaded, conversation]);
 
-  const [messages, setMessages] = useState(() => conversation.messages);
-  const [conversationStatus, setConversationStatus] = useState(
-    () => conversation.status
+  const messages = useExternalState<Array<Message>>(
+    conversation.onMessagesChange,
+    () => conversation.messages
   );
 
-  useEffect(() => {
-    const unsubscribeMessages = conversation.onMessagesChange(() => {
-      setMessages(conversation.messages);
-    });
-    const unsubscribeStatus = conversation.onStatusChange(() => {
-      setConversationStatus(conversation.status);
-    });
-
-    return () => {
-      unsubscribeMessages();
-      unsubscribeStatus();
-    };
-  }, [conversation]);
+  const conversationStatus = useExternalState(
+    conversation.onStatusChange,
+    () => conversation.status
+  );
 
   const processPrompt = useCallback(
     async (
@@ -151,7 +112,7 @@ export default function AgentContextProvider({
         (feedback) =>
           !mute && tts.speak(feedback, speakerAbortController.signal)
       ),
-    [processPrompt, mute, tts, speakerAbortController.signal]
+    [processPrompt, tts, speakerAbortController.signal, mute]
   );
 
   const vadListeners = useRef<Set<(text: string) => void>>(new Set());
@@ -183,22 +144,14 @@ export default function AgentContextProvider({
     return vad;
   }, [speechToText, vadListeners.current]);
 
-  const [vadStatus, setVadStatus] = useState(() => vad.status);
+  const vadStatus = useExternalState<VoiceActivityDetectionStatus>(
+    vad.onStatusChange,
+    () => vad.status
+  );
 
-  useEffect(() => {
-    const unsubscribeVad = vad.onStatusChange(() => {
-      setVadStatus(vad.status);
-    });
-
-    return () => {
-      unsubscribeVad();
-    };
-  }, [vad]);
-
-  const preloadModels = useCallback(
-    (callback: (progress: DownloadModelProgress) => void) =>
-      new Promise<void>((resolve) => {
-        console.log("START PRELOAD");
+  const loadModels = useCallback(
+    (callback: (progress: DownloadModelProgress) => void = () => {}) =>
+      new Promise<void>(async (resolve) => {
         const loaded: DownloadModelProgress = {
           vad: 0,
           llm: 0,
@@ -210,97 +163,72 @@ export default function AgentContextProvider({
         const listener = (model: string, progress: number) => {
           loaded[model as keyof DownloadModelProgress] = progress;
           callback({ ...loaded });
-          const allLoaded =
-            Object.values(loaded).filter((p) => p !== 100).length === 0;
-          if (allLoaded) {
-            setDownloadedModels({
-              vad: true,
-              llm: true,
-              tts: true,
-              stt: true,
-              vlm: true,
-            });
-            resolve();
-          }
         };
-        vad.isCached()
-          ? vad.preload((progress) => listener("vad", progress))
-          : listener("vad", 100);
-        speechToText.isCached()
-          ? speechToText.preload((progress) => listener("stt", progress))
-          : listener("stt", 100);
-        tts.isCached()
-          ? tts.preload((progress) => listener("tts", progress))
-          : listener("tts", 100);
-        conversation.isCached()
-          ? conversation.createConversation("", [], (progress) =>
-              listener("llm", Math.round(progress * 100))
-            )
-          : listener("llm", 100);
-        console.log("imageToText.isCached()", imageToText.isCached());
-        imageToText.isCached()
-          ? imageToText.preload((progress) => listener("vlm", progress))
-          : listener("vlm", 100);
+
+        await Promise.all([
+          vad.preload((progress) => listener("vad", progress)),
+          speechToText.preload((progress) => listener("stt", progress)),
+          tts.preload((progress) => listener("tts", progress)),
+          conversation.createConversation(
+            "",
+            [],
+            (progress) => listener("llm", Math.round(progress * 100)),
+            false,
+            false
+          ),
+          imageToText.preload((progress) => listener("vlm", progress)),
+        ]);
+        setAllModelsLoaded(true);
+        resolve();
       }),
-    []
+    [vad, speechToText, tts, conversation, imageToText]
   );
 
   useEffect(() => {
-    if (!vad) return;
-
-    Promise.all([
-      vad.isCached(),
-      speechToText.isCached(),
-      tts.isCached(),
-      conversation.isCached(),
-      imageToText.isCached(),
-    ]).then(([vad, stt, tts, llm, vlm]) => {
-      if (vad && tts && stt && llm && vlm) {
-        preloadModels(() => {}).then(() => {
-          setDownloadCheckDone(true);
-          setDownloadedModels({ vad, llm, tts, stt, vlm });
-        });
-      } else {
-        setDownloadCheckDone(true);
+    (async () => {
+      const [vadCached, sttCached, ttsCached, llmCached, vlmCached] =
+        await Promise.all([
+          vad.isCached(),
+          speechToText.isCached(),
+          tts.isCached(),
+          conversation.isCached(),
+          imageToText.isCached(),
+        ]);
+      if (vadCached && sttCached && ttsCached && llmCached && vlmCached) {
+        await loadModels();
       }
-    });
-  }, [vad]);
+      setCacheCheckDone(true);
+    })();
+  }, []);
 
-  const contextValue: AgentContextValues = useMemo(
-    () => ({
-      messages,
-      conversationStatus,
-      vad,
-      vadStatus,
-      submit,
-      mute,
-      setMute,
-      isSpeaking,
-      abortSpeaker: () => {
-        speakerAbortController.abort();
-        setSpeakerAbortController(new AbortController());
-      },
-      onVadDetected,
-      onEnded,
-      downloadCheckDone,
-      downloadedModels,
-      preloadModels,
-    }),
-    [
-      messages,
-      conversationStatus,
-      vad,
-      vadStatus,
-      submit,
-      mute,
-      isSpeaking,
-      onVadDetected,
-      onEnded,
-      downloadCheckDone,
-      downloadedModels,
-      preloadModels,
-    ]
+  return (
+    <AgentContext
+      value={{
+        messages,
+        conversationStatus,
+        submit,
+        isMute: mute,
+        setMute: (mute) => {
+          setMute(mute);
+          if (mute) {
+            speakerAbortController.abort();
+            setSpeakerAbortController(new AbortController());
+          }
+        },
+        isDeaf: vadStatus === VoiceActivityDetectionStatus.IDLE,
+        setDeaf: async (deaf) =>
+          deaf ? vad.stopMicrophone() : await vad.startMicrophone(),
+        isSpeaking,
+        loadModels,
+        cacheCheckDone,
+        allModelsLoaded,
+        onVadDetected,
+        evaluateConversation,
+        jarvisActive,
+        setJarvisActive,
+      }}
+    >
+      {children}
+    </AgentContext>
   );
-
-  return <AgentContext value={contextValue}>{children}</AgentContext>;
 }

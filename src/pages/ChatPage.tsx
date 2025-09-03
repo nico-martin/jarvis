@@ -1,26 +1,32 @@
-import useConversation from "@ai/agentContext/useConversation";
-import useModelDownload from "@ai/agentContext/useModelDownload";
-import useSpeaker from "@ai/agentContext/useSpeaker";
-import useVad from "@ai/agentContext/useVad";
+import useAgent from "@ai/agentContext/useAgent";
 import { ModelStatus } from "@ai/types";
-import { VoiceActivityDetectionStatus } from "@ai/voiceActivityDetection/types";
 import { Dot, Loader, McpIcon, PageContent } from "@theme";
 import DownLoadDisclaimer from "@ui/DownLoadDisclaimer";
 import Chat from "@ui/chat/Chat";
 import Jarvis from "@ui/jarvis/Jarvis";
 import { Fragment } from "preact";
-import { useState } from "preact/hooks";
+import { useEffect, useState } from "preact/hooks";
 
 import { version } from "../../package.json";
 
 export function ChatPage() {
   const [ui, setUi] = useState<"chat" | "jarvis">("jarvis");
-  const { downloadCheckDone, downloadedModels } = useModelDownload();
-  const { conversationStatus, submit } = useConversation();
-  const { vadStatus, vad } = useVad();
-  const { mute, setMute, abortSpeaker } = useSpeaker();
+  const {
+    isMute,
+    setMute,
+    isDeaf,
+    setDeaf,
+    cacheCheckDone,
+    allModelsLoaded,
+    conversationStatus,
+    evaluateConversation,
+  } = useAgent();
 
-  const statusText =
+  useEffect(() => {
+    evaluateConversation();
+  }, [cacheCheckDone, allModelsLoaded]);
+
+  const conversationStatusText =
     conversationStatus === ModelStatus.IDLE
       ? "OFFLINE"
       : conversationStatus === ModelStatus.MODEL_LOADING
@@ -37,7 +43,7 @@ export function ChatPage() {
         title={`JARVIS`}
         statusBar={{
           [`VERSION_${version}`]: false,
-          [`STATUS: ${statusText}`]: true,
+          [`STATUS: ${conversationStatusText}`]: true,
         }}
         button={{
           to: "/mcp",
@@ -45,52 +51,29 @@ export function ChatPage() {
           children: "MCP_SETTINGS",
         }}
       >
-        {!downloadCheckDone ? (
+        {!cacheCheckDone ? (
           <div className="mt-24 flex items-center justify-center">
             <Loader size={10} />
           </div>
-        ) : Object.values(downloadedModels).filter((dowloaded) => !dowloaded)
-            .length > 0 ? (
+        ) : !allModelsLoaded ? (
           <DownLoadDisclaimer />
         ) : ui === "jarvis" ? (
           <Jarvis />
         ) : (
-          <Chat onSubmitPrompt={submit} statusText={statusText} className="" />
+          <Chat conversationStatusText={conversationStatusText} />
         )}
       </PageContent>
       <div className="fixed bottom-8 left-8 space-y-2">
         <div className="text-secondary-300 flex items-center space-x-2 text-xs">
           <Dot />
-          <button
-            onClick={() => {
-              if (vadStatus === VoiceActivityDetectionStatus.IDLE) {
-                vad.startMicrophone();
-              } else {
-                vad.stopMicrophone();
-              }
-            }}
-            className="cursor-pointer"
-          >
-            VOICE_DETECTION:{" "}
-            {vadStatus !== VoiceActivityDetectionStatus.IDLE
-              ? "ACTIVE"
-              : "STANDBY"}
+          <button onClick={() => setDeaf(!isDeaf)} className="cursor-pointer">
+            VOICE_DETECTION: {isDeaf ? "STANDBY" : "ACTIVE"}
           </button>
         </div>
         <div className="text-primary-300 flex items-center space-x-2 font-mono text-xs">
           <Dot />
-          <button
-            onClick={() => {
-              if (mute) {
-                setMute(false);
-              } else {
-                setMute(true);
-                abortSpeaker();
-              }
-            }}
-            className="cursor-pointer"
-          >
-            AUDIO_OUTPUT: {mute ? "MUTED" : "ENABLED"}
+          <button onClick={() => setMute(!isMute)} className="cursor-pointer">
+            AUDIO_OUTPUT: {isMute ? "MUTED" : "ENABLED"}
           </button>
         </div>
       </div>

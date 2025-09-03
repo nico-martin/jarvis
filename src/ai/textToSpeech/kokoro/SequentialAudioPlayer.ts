@@ -14,12 +14,12 @@ class SequentialAudioPlayer {
     this.isPlayingEventListeners.forEach((listener) => listener(playing));
   }
 
-  public onIsPlayingChange(listener: (playing: boolean) => void) {
+  public onIsPlayingChange = (listener: (playing: boolean) => void) => {
     this.isPlayingEventListeners.add(listener);
     return () => this.isPlayingEventListeners.delete(listener);
-  }
+  };
 
-  public play(audioBlob: Blob, signal?: AbortSignal): void {
+  public play = (audioBlob: Blob, signal?: AbortSignal): void => {
     if (signal?.aborted) return;
 
     this.queue.push({
@@ -30,9 +30,9 @@ class SequentialAudioPlayer {
     if (!this.isPlaying) {
       this.playNext();
     }
-  }
+  };
 
-  private async playNext(): Promise<void> {
+  private playNext = async (): Promise<void> => {
     // Filter out aborted items
     this.queue = this.queue.filter((item) => !item.signal.aborted);
 
@@ -51,9 +51,9 @@ class SequentialAudioPlayer {
     }
 
     this.playNext();
-  }
+  };
 
-  private playBlob(blob: Blob, signal: AbortSignal): Promise<void> {
+  private playBlob = (blob: Blob, signal: AbortSignal): Promise<void> => {
     return new Promise((resolve, reject) => {
       if (signal.aborted) {
         reject(new DOMException("Operation aborted", "AbortError"));
@@ -92,7 +92,7 @@ class SequentialAudioPlayer {
 
       audio.play().catch(reject);
     });
-  }
+  };
 }
 
 export default SequentialAudioPlayer;

@@ -1,18 +1,16 @@
-import useConversation from "@ai/agentContext/useConversation";
-import useSpeaker from "@ai/agentContext/useSpeaker";
-import useVad from "@ai/agentContext/useVad";
+import useAgent from "@ai/agentContext/useAgent";
 import {
   MessagePartTool,
   MessagePartType,
   MessageRole,
   ModelStatus,
 } from "@ai/types";
-import { VoiceActivityDetectionStatus } from "@ai/voiceActivityDetection/types";
 import { LoadingDots } from "@theme";
-import Rings from "@ui/jarvis/Rings";
-import ToolCallPopup from "@ui/jarvis/ToolCallPopup";
 import { useEffect, useRef, useState } from "preact/hooks";
 import toast from "react-hot-toast";
+
+import Rings from "./Rings";
+import ToolCallPopup from "./ToolCallPopup";
 
 const JARVIS_KEYWORDS = [
   "charmus",
@@ -23,16 +21,32 @@ const JARVIS_KEYWORDS = [
 ].map((s) => s.toLowerCase());
 
 export default function Jarvis({}: {}) {
-  const { vad } = useVad();
-  const { isSpeaking } = useSpeaker();
-  const { onEnded, onVadDetected, submit, messages, conversationStatus } =
-    useConversation();
+  const {
+    isSpeaking,
+    submit,
+    onVadDetected,
+    messages,
+    conversationStatus,
+    isDeaf,
+    setDeaf,
+    setMute,
+    jarvisActive,
+    setJarvisActive,
+  } = useAgent();
   const [audioLevels, setAudioLevels] = useState<number[]>([0, 0, 0, 0, 0, 0]);
-  const [conversationActive, setConversationActive] = useState<boolean>(false);
   const processedToolCalls = useRef<Set<string>>(new Set());
 
   useEffect(() => {
-    if (!conversationActive || !isSpeaking) {
+    setDeaf(false);
+    setMute(false);
+    return () => {
+      setDeaf(true);
+      setMute(true);
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!jarvisActive || !isSpeaking) {
       setAudioLevels([0, 0, 0, 0, 0, 0]);
       return;
     }
@@ -46,28 +60,16 @@ export default function Jarvis({}: {}) {
     }, 100);
 
     return () => clearInterval(interval);
-  }, [conversationActive, isSpeaking]);
-
-  useEffect(() => {
-    vad.startMicrophone();
-    const unsubscribe = onEnded(() => {
-      setConversationActive(false);
-    });
-
-    return () => {
-      unsubscribe();
-      vad.stopMicrophone();
-    };
-  }, []);
+  }, [jarvisActive, isSpeaking]);
 
   useEffect(() => {
     const unsubscribe = onVadDetected((text: string) => {
-      if (conversationActive) {
+      if (jarvisActive) {
         submit(text);
       } else if (
         JARVIS_KEYWORDS.some((word) => text.toLowerCase().includes(word))
       ) {
-        setConversationActive(true);
+        setJarvisActive(true);
         submit(text);
       } else {
         console.log(text);
@@ -76,7 +78,7 @@ export default function Jarvis({}: {}) {
     return () => {
       unsubscribe();
     };
-  }, [onVadDetected, submit, conversationActive]);
+  }, [onVadDetected, submit, jarvisActive]);
 
   useEffect(() => {
     const toolCalls = messages
@@ -97,7 +99,8 @@ export default function Jarvis({}: {}) {
   }, [messages]);
 
   const text =
-    conversationStatus === ModelStatus.CONVERSATION_LOADING ? (
+    conversationStatus === ModelStatus.CONVERSATION_LOADING ||
+    conversationStatus === ModelStatus.MODEL_LOADING ? (
       <span>
         Please wait a moment while
         <br />
@@ -105,13 +108,10 @@ export default function Jarvis({}: {}) {
         <LoadingDots />
       </span>
     ) : isSpeaking ? (
-      <span>
-        {/*SPEAKING
-        <LoadingDots />*/}
-      </span>
-    ) : vad.status === VoiceActivityDetectionStatus.IDLE ? (
+      <span>VOICE OUTPUT</span>
+    ) : isDeaf ? (
       <span>Activate voice detection first.</span>
-    ) : conversationActive ? (
+    ) : jarvisActive ? (
       <span />
     ) : (
       <span>READY! Start the conversation with "Jarvis"</span>
@@ -119,10 +119,9 @@ export default function Jarvis({}: {}) {
 
   return (
     <div className="relative flex w-full flex-col items-center justify-center gap-12 pt-44">
-      {/* Rings container with tool call popups */}
       <div className="relative">
         <Rings
-          isActive={conversationActive || isSpeaking}
+          isActive={jarvisActive || isSpeaking}
           isSpeaking={isSpeaking}
           audioLevels={audioLevels}
           size="1.5vmin"
@@ -132,7 +131,7 @@ export default function Jarvis({}: {}) {
       <div className="text-center">
         <div
           className={`font-mono text-sm transition-all duration-500 ${
-            conversationActive
+            jarvisActive
               ? isSpeaking
                 ? "animate-pulse text-orange-400"
                 : "text-cyan-400"
@@ -140,13 +139,7 @@ export default function Jarvis({}: {}) {
           }`}
         >
           {text}
-          {/*conversationActive ? (isSpeaking ? "SPEAKING" : "ACTIVE") : "IDLEee"*/}
         </div>
-        {isSpeaking && (
-          <div className="mt-1 font-mono text-xs text-orange-300">
-            VOICE OUTPUT
-          </div>
-        )}
       </div>
     </div>
   );

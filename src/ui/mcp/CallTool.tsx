@@ -9,7 +9,6 @@ import {
   Textarea,
 } from "@theme";
 import type { SelectOption } from "@theme";
-import { JSX } from "preact";
 import { useState } from "preact/hooks";
 
 interface Tool {

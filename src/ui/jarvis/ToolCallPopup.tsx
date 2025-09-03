@@ -1,14 +1,14 @@
-import useConversation from "@ai/agentContext/useConversation";
+import useAgent from "@ai/agentContext/useAgent";
 import { MessagePartTool, MessagePartType, MessageRole } from "@ai/types";
 import cn from "@utils/classnames";
-import { useEffect, useMemo } from "preact/hooks";
+import { useMemo } from "preact/hooks";
 
 interface ToolCallPopupProps {
   id: string;
 }
 
 export default function ToolCallPopup({ id }: ToolCallPopupProps) {
-  const { messages } = useConversation();
+  const { messages } = useAgent();
   const toolCall = useMemo(
     () =>
       messages

@@ -1,16 +1,6 @@
 import { Message, ModelStatus } from "@ai/types";
 import { createContext } from "preact";
-
-import VoiceActivityDetection from "../voiceActivityDetection/VoiceActivityDetection";
-import { VoiceActivityDetectionStatus } from "../voiceActivityDetection/types";
-
-export interface DownloadedModels {
-  vad: boolean;
-  llm: boolean;
-  tts: boolean;
-  stt: boolean;
-  vlm: boolean;
-}
+import { Dispatch, StateUpdater } from "preact/hooks";
 
 export interface DownloadModelProgress {
   vad: number;
@@ -24,19 +14,20 @@ export interface AgentContextValues {
   messages: Array<Message>;
   conversationStatus: ModelStatus;
   submit: (query: string) => Promise<void>;
-  vad: VoiceActivityDetection;
-  vadStatus: VoiceActivityDetectionStatus;
-  mute: boolean;
+  isMute: boolean;
   setMute: (mute: boolean) => void;
-  abortSpeaker: () => void;
+  isDeaf: boolean;
+  setDeaf: (deaf: boolean) => Promise<void>;
   isSpeaking: boolean;
-  onVadDetected: (callback: (text: string) => void) => () => void;
-  onEnded: (callback: () => void) => () => void;
-  downloadCheckDone: boolean;
-  downloadedModels: DownloadedModels;
-  preloadModels: (
+  loadModels: (
     callback: (progress: DownloadModelProgress) => void
   ) => Promise<void>;
+  cacheCheckDone: boolean;
+  allModelsLoaded: boolean;
+  onVadDetected: (callback: (text: string) => void) => () => void;
+  evaluateConversation: () => void;
+  jarvisActive: boolean;
+  setJarvisActive: Dispatch<StateUpdater<boolean>>;
 }
 
 const AgentContext = createContext<AgentContextValues>(null);

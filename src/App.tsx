@@ -4,7 +4,6 @@ import { Background } from "@theme";
 import Router, { Route } from "preact-router";
 import { Toaster } from "react-hot-toast";
 
-import ImageToText from "./ImageToText";
 import ChatPage from "./pages/ChatPage";
 import McpPage from "./pages/McpPage";
 import OAuthCallbackPage from "./pages/OAuthCallbackPage";
@@ -19,7 +18,6 @@ function App() {
           <Route path="/" component={ChatPage} />
           <Route path="/mcp" component={McpPage} />
           <Route path="/oauth/callback" component={OAuthCallbackPage} />
-          <Route path="/imgtotext" component={ImageToText} />
         </Router>
         <Toaster
           position="bottom-right"

@@ -55,7 +55,8 @@ class Conversation {
       (McpServerStoreHttp | McpServerStoreBuiltIn) & McpServerWithState
     >,
     downloadProgress: (progress: number) => void = () => {},
-    forceRebuild: boolean = false
+    forceRebuild: boolean = false,
+    buildKVCache: boolean = true
   ) {
     this.mcpServers = mcpServers;
     const tools = mcpServers.reduce(
@@ -86,6 +87,7 @@ ${toolsToSystemPrompt(tools)}`;
     const systemMessageId = uuidv4();
     this.status = ModelStatus.MODEL_LOADING;
     this.session = await LanguageModel.create({
+      buildKVCache,
       initialPrompts: [{ role: "system", content: systemPrompt }],
       temperature: 0,
       monitor: (m) => {
@@ -339,8 +341,6 @@ Response: ${resp.response}`
         }));
       }
     }
-
-    console.log("latestUsage", this.session.latestUsage);
 
     return {
       text: reply,

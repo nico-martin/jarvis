@@ -1,5 +1,5 @@
 import { DownloadModelProgress } from "@ai/agentContext/AgentContext";
-import useModelDownload from "@ai/agentContext/useModelDownload";
+import useAgent from "@ai/agentContext/useAgent";
 import { EXPECTED_FILES as EXPECTED_FILES_VLM } from "@ai/imageToText/constants";
 import Conversation from "@ai/llm/Conversation";
 import { EXPECTED_FILES as EXPECTED_FILES_STT } from "@ai/speechToText/constants";
@@ -76,11 +76,9 @@ const getModel = (
   }
 };
 
-console.log(VAD_SIZE + LLM_SIZE + TTS_SIZE + STT_SIZE + VLM_SIZE);
-
 export default function DownLoadDisclaimer({}: {}) {
   const [isDownloading, setIsDownloading] = useState<boolean>(false);
-  const { preloadModels } = useModelDownload();
+  const { loadModels } = useAgent();
   const [progress, setProgress] = useState<DownloadModelProgress>({
     vad: 0,
     llm: 0,
@@ -91,7 +89,7 @@ export default function DownLoadDisclaimer({}: {}) {
 
   const download = async () => {
     setIsDownloading(true);
-    await preloadModels((progress) => {
+    await loadModels((progress) => {
       setProgress(progress);
     });
     setIsDownloading(false);
