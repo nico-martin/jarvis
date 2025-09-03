@@ -14,7 +14,7 @@ class Kokoro implements TextToSpeech {
   private isProcessing = false;
   public player = new SequentialAudioPlayer();
   private voice: string = "bm_fable";
-  private speed: number = 1.1;
+  private speed: number = 1.2;
 
   constructor(options: { voice?: string; speed?: number } = {}) {
     this.worker = new Worker(new URL("./worker.ts", import.meta.url), {
