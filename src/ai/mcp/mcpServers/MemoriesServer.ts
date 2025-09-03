@@ -64,14 +64,14 @@ export class MemoriesServer {
               {
                 name: "add_memory",
                 description:
-                  "Store important information about the user or conversation context in memory. Use this when the user shares personal information, preferences, or context that should be remembered for future interactions.",
+                  "Store important information about the user or conversation context in memory. Use this when the user shares personal information, preferences, or context that should be remembered for future interactions. Dont forget to add context to the memory. If the user tells you that they are 20 years old, store 'The users ager is 20 years' and not only '20' since it will be hard to make sense of the value later without this context",
                 inputSchema: {
                   type: "object",
                   properties: {
                     memory: {
                       type: "string",
                       description:
-                        "The memory to store, describing what should be remembered about the user or context.",
+                        "The memory to store, describing what should be remembered about the user or context and also the context of what this memory is about.",
                     },
                   },
                   required: ["memory"],
