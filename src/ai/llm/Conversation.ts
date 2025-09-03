@@ -281,14 +281,6 @@ Response: ${resp.response}`
       if (this.onConversationEnded) {
         this.onConversationEnded();
       }
-      window.setTimeout(() => {
-        this.createConversation(
-          this.systemMessage,
-          this.mcpServers,
-          () => {},
-          true
-        );
-      }, 2000);
     }
   };
 
