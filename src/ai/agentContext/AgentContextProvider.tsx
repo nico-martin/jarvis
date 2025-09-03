@@ -65,7 +65,7 @@ export default function AgentContextProvider({
 
     if (conversationIdRef.current === conversationId) return;
     conversation.createConversation(
-      SYSTEM_PROMPT + "\n\n# Instructions:\n" + INSTRUCTIONS.join("\n"),
+      SYSTEM_PROMPT + "\n\n# Instructions:\n\n" + INSTRUCTIONS.join("\n"),
       activeMcpServers
     );
     conversationIdRef.current = conversationId;
