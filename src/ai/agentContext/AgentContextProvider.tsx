@@ -32,8 +32,6 @@ export default function AgentContextProvider({
   const [mute, setMute] = useState<boolean>(true);
   const [jarvisActive, setJarvisActive] = useState<boolean>(false);
 
-  const endedListeners = useRef<Set<() => void>>(new Set());
-
   const [speakerAbortController, setSpeakerAbortController] = useState(
     () => new AbortController()
   );
@@ -49,12 +47,10 @@ export default function AgentContextProvider({
 
   const conversation = useMemo(
     () =>
-      new Conversation(/*{
-        onConversationEnded: () => {
-          endedListeners.current.forEach((callback) => callback());
-        },
+      new Conversation({
+        onConversationEnded: () => setJarvisActive(false),
         conversationEndKeyword: "<END>",
-      }*/),
+      }),
     []
   );
 
@@ -119,11 +115,6 @@ export default function AgentContextProvider({
   const onVadDetected = useCallback((callback: (text: string) => void) => {
     vadListeners.current.add(callback);
     return () => vadListeners.current.delete(callback);
-  }, []);
-
-  const onEnded = useCallback((callback: () => void) => {
-    endedListeners.current.add(callback);
-    return () => endedListeners.current.delete(callback);
   }, []);
 
   const vad = useMemo(() => {
