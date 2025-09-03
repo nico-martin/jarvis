@@ -100,7 +100,7 @@ ${parameterText}
 ${exampleCall}`;
   });
 
-  return `#Tool Calling
+  return `# Tool Calling
 
 You have the ability to call tools to accomplish tasks or find context to answer questions. Use them when necessary to provide accurate, helpful responses.
 Never tell the user you cant do something if there is a tool that could do it.

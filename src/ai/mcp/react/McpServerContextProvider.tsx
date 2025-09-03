@@ -5,8 +5,8 @@ import {
   McpServerStoreBuiltIn,
   McpServerStoreHttp,
 } from "@ai/types";
-import { useState, useEffect, useMemo } from "preact/hooks";
 import { ComponentChildren } from "preact";
+import { useEffect, useMemo, useState } from "preact/hooks";
 
 import { getBuiltInServerTransport } from "../mcpServers/builtinMcp";
 import {
@@ -98,6 +98,7 @@ export function McpServerContextProvider({
       url: url.trim(),
       active: false,
       activeTools: [],
+      activePrompts: [],
     };
 
     try {
@@ -155,6 +156,7 @@ export function McpServerContextProvider({
           url: server.url,
           active: server.active,
           activeTools: server.activeTools,
+          activePrompts: server.activePrompts,
         }))
       );
 
@@ -278,6 +280,7 @@ export function McpServerContextProvider({
             url: server.url,
             active: server.active,
             activeTools: server.activeTools,
+            activePrompts: server.activePrompts,
           }))
         );
 
@@ -299,6 +302,7 @@ export function McpServerContextProvider({
             serverType: server.serverType,
             active: server.active,
             activeTools: server.activeTools,
+            activePrompts: server.activePrompts,
           }))
         );
 

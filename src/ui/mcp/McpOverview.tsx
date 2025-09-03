@@ -44,6 +44,27 @@ function McpOverview({ className = "" }: { className?: string }) {
     });
   };
 
+  const handleTogglePrompt = (
+    serverInfo: any,
+    promptName: string,
+    checked?: boolean
+  ) => {
+    const isActive = checked ?? !serverInfo.activePrompts.includes(promptName);
+    const newActivePrompts = isActive
+      ? [
+          ...serverInfo.activePrompts.filter(
+            (name: string) => name !== promptName
+          ),
+          promptName,
+        ]
+      : serverInfo.activePrompts.filter((name: string) => name !== promptName);
+
+    updateServerConfig({
+      ...serverInfo,
+      activePrompts: newActivePrompts,
+    });
+  };
+
   if (error) {
     return (
       <div className={cn(className, "relative")}>
@@ -108,7 +129,14 @@ function McpOverview({ className = "" }: { className?: string }) {
                   )}
 
                   {serverInfo.server.prompts.length > 0 && (
-                    <McpPrompts prompts={serverInfo.server.prompts} />
+                    <McpPrompts
+                      prompts={serverInfo.server.prompts}
+                      activePrompts={serverInfo.activePrompts}
+                      serverId={serverInfo.name}
+                      handleTogglePrompt={(promptName, checked) =>
+                        handleTogglePrompt(serverInfo, promptName, checked)
+                      }
+                    />
                   )}
                 </>
               )}

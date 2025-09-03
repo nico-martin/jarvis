@@ -1,3 +1,4 @@
+import { getEndInstructions } from "@ai/agent";
 import toolsToSystemPrompt from "@ai/llm/utils/toolsToSystemPrompt";
 import { McpServerWithState } from "@ai/mcp/react/types";
 import {
@@ -50,7 +51,7 @@ class Conversation {
   }
 
   public async createConversation(
-    systemPrompt: string,
+    initSystemPrompt: string,
     mcpServers: Array<
       (McpServerStoreHttp | McpServerStoreBuiltIn) & McpServerWithState
     >,
@@ -59,6 +60,20 @@ class Conversation {
     buildKVCache: boolean = true
   ) {
     this.mcpServers = mcpServers;
+
+    const systemPromptParts: Array<string> = [initSystemPrompt];
+
+    const activePrompts = await this.getActivePromptsContent(mcpServers);
+    if (activePrompts.length > 0) {
+      systemPromptParts.push(
+        "# additional Context\n\n" + activePrompts.join("\n\n")
+      );
+    }
+
+    if (this.conversationEndKeyword) {
+      systemPromptParts.push(getEndInstructions(this.conversationEndKeyword));
+    }
+
     const tools = mcpServers.reduce(
       (acc, server) => [
         ...acc,
@@ -70,10 +85,10 @@ class Conversation {
     );
 
     if (tools.length) {
-      systemPrompt += `
-
-${toolsToSystemPrompt(tools)}`;
+      systemPromptParts.push(toolsToSystemPrompt(tools));
     }
+
+    const systemPrompt = systemPromptParts.join("\n\n");
 
     if (this.systemMessage === systemPrompt && !forceRebuild) {
       return;
@@ -350,6 +365,55 @@ Response: ${resp.response}`
         reply.endsWith(this.conversationEndKeyword),
     };
   };
+
+  private async getActivePromptsContent(
+    mcpServers: Array<
+      (McpServerStoreHttp | McpServerStoreBuiltIn) & McpServerWithState
+    >
+  ): Promise<string[]> {
+    const promptContents: string[] = [];
+
+    for (const serverConfig of mcpServers) {
+      if (
+        !serverConfig.active ||
+        (serverConfig.activePrompts || []).length === 0
+      ) {
+        continue;
+      }
+
+      const activePrompts = serverConfig.server.prompts.filter((prompt) =>
+        serverConfig.activePrompts.includes(prompt.name)
+      );
+
+      for (const prompt of activePrompts) {
+        try {
+          const promptResult = await serverConfig.server.getPrompt(prompt.name);
+
+          if (promptResult.messages && promptResult.messages.length > 0) {
+            const promptContent = promptResult.messages
+              .map((message) => {
+                if (message.content.type === "text") {
+                  return message.content.text;
+                }
+                return "";
+              })
+              .filter((content) => content.length > 0)
+              .join("\n");
+
+            if (promptContent) {
+              promptContents.push(`## ${prompt.name}\n${promptContent}`);
+            }
+          }
+        } catch (error) {
+          this.log(
+            `Failed to retrieve prompt "${prompt.name}": ${error instanceof Error ? error.message : String(error)}`
+          );
+        }
+      }
+    }
+
+    return promptContents;
+  }
 }
 
 export default Conversation;

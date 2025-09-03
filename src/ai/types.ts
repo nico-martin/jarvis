@@ -82,6 +82,7 @@ export interface McpServerStoreBase {
   name: string;
   active: boolean;
   activeTools: Array<string>;
+  activePrompts: Array<string>;
 }
 
 export interface McpServerStoreHttp extends McpServerStoreBase {
@@ -89,7 +90,7 @@ export interface McpServerStoreHttp extends McpServerStoreBase {
 }
 
 export interface McpServerStoreBuiltIn extends McpServerStoreBase {
-  serverType: "take_picture" | string;
+  serverType: "take_picture" | "memories" | string;
 }
 
 export type McpServerStore = McpServerStoreHttp | McpServerStoreBuiltIn;
