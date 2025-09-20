@@ -33,6 +33,7 @@ export default function Jarvis({}: {}) {
     jarvisActive,
     setJarvisActive,
   } = useAgent();
+  const [activeRequest, setActiveRequest] = useState<string>("");
   const [audioLevels, setAudioLevels] = useState<number[]>([0, 0, 0, 0, 0, 0]);
   const processedToolCalls = useRef<Set<string>>(new Set());
 
@@ -64,21 +65,27 @@ export default function Jarvis({}: {}) {
 
   useEffect(() => {
     const unsubscribe = onVadDetected((text: string) => {
-      if (jarvisActive) {
-        submit(text);
+      if (isSpeaking) {
+        return;
+      } else if (jarvisActive) {
+        console.log("[ACTIVE_REQUEST]", text);
+        setActiveRequest(text);
+        submit(text).finally(() => setActiveRequest(""));
       } else if (
         JARVIS_KEYWORDS.some((word) => text.toLowerCase().includes(word))
       ) {
         setJarvisActive(true);
-        submit(text);
+        console.log("[ACTIVE_REQUEST]", text);
+        setActiveRequest(text);
+        submit(text).finally(() => setActiveRequest(""));
       } else {
-        console.log(text);
+        console.log("[INACTIVE]", text);
       }
     });
     return () => {
       unsubscribe();
     };
-  }, [onVadDetected, submit, jarvisActive]);
+  }, [onVadDetected, submit, jarvisActive, isSpeaking]);
 
   useEffect(() => {
     const toolCalls = messages
@@ -112,7 +119,7 @@ export default function Jarvis({}: {}) {
     ) : isDeaf ? (
       <span>Activate voice detection first.</span>
     ) : jarvisActive ? (
-      <span />
+      <span>{activeRequest}</span>
     ) : (
       <span>READY! Start the conversation with "Jarvis"</span>
     );
