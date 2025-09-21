@@ -1,6 +1,6 @@
 {
   "name": "jarvis",
-  "version": "0.0.22",
+  "version": "0.0.23",
   "description": "",
   "type": "module",
   "scripts": {
@@ -15,6 +15,7 @@
   "author": "Nico Martin <mail@nico.dev>",
   "license": "MIT",
   "dependencies": {
+    "@google/generative-ai": "^0.24.1",
     "@headlessui/react": "^2.2.5",
     "@heroicons/react": "^2.2.0",
     "@huggingface/transformers": "^3.7.2",

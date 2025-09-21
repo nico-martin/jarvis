@@ -1,4 +1,5 @@
 import { INSTRUCTIONS, SYSTEM_PROMPT } from "@ai/agent";
+import ConversationGemini from "@ai/llm/ConversationGemini";
 import useExternalState from "@utils/useExternalState";
 import { ComponentChildren } from "preact";
 import {
@@ -47,7 +48,7 @@ export default function AgentContextProvider({
 
   const conversation = useMemo(
     () =>
-      new Conversation({
+      new ConversationGemini({
         onConversationEnded: () => setJarvisActive(false),
         conversationEndKeyword: "<END>",
       }),
