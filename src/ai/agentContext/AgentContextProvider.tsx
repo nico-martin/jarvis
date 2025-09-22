@@ -48,7 +48,9 @@ export default function AgentContextProvider({
 
   const conversation = useMemo(
     () =>
-      new ConversationGemini({
+      new (import.meta.env.VITE_GEMINI_API_KEY
+        ? ConversationGemini
+        : Conversation)({
         onConversationEnded: () => setJarvisActive(false),
         conversationEndKeyword: "<END>",
       }),
