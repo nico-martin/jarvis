@@ -47,7 +47,7 @@ class ConversationGemini {
     }
 
     this.genAI = new GoogleGenerativeAI(apiKey);
-    this.modelName = options?.model || "gemini-1.5-pro";
+    this.modelName = options?.model || "gemini-2.5-flash-preview-09-2025";
 
     if (options?.log) {
       this.log = options.log;
@@ -306,7 +306,7 @@ Response: ${resp.response}`
     let processedReply: string = "";
     const toolsToCall: Array<XMLToolSignature> = [];
 
-    await new Promise((resolve) => window.setTimeout(resolve, 1500));
+    await new Promise((resolve) => window.setTimeout(resolve, 1000));
 
     // Use Gemini streaming
     const result = await this.chat.sendMessageStream(prompt);

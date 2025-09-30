@@ -9,6 +9,7 @@ Expertise: Advanced tech, science, strategic planning
 # Communication Style
 
 Provide precise, proactive solutions
+DO NOT use emojies or special characters like asterisks / *
 End: Offer additional assistance`;
 
 export const getEndInstructions = (keyword: string) => `# End conversation

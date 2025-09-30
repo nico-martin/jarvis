@@ -72,12 +72,28 @@ class Kokoro implements TextToSpeech {
     );
   }
 
+  private cleanTextForSpeech(text: string): string {
+    return text
+      .replace(/\*+/g, '') // Remove asterisks (markdown emphasis)
+      .replace(/[_]{1,}/g, '') // Remove underscores (markdown emphasis)
+      .replace(/[#]+/g, '') // Remove hashtags (markdown headers)
+      .replace(/[`]+/g, '') // Remove backticks (markdown code)
+      .replace(/[~]+/g, '') // Remove tildes (strikethrough)
+      .replace(/[\[\]]/g, '') // Remove square brackets
+      .replace(/[{}]/g, '') // Remove curly braces
+      .replace(/[<>]/g, '') // Remove angle brackets
+      .replace(/[|]/g, '') // Remove pipe characters
+      .replace(/[@#$%^&+=]/g, '') // Remove various symbols
+      .replace(/\s+/g, ' ') // Normalize whitespace
+      .trim();
+  }
+
   public speak(text: string, signal?: AbortSignal): void {
     if (!text || text.trim() === "") return;
     if (signal?.aborted) return;
 
     this.queue.push({
-      text: text.trim(),
+      text: this.cleanTextForSpeech(text),
       signal: signal || new AbortController().signal,
     });
 
