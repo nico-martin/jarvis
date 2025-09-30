@@ -18,7 +18,7 @@ import { v4 as uuidv4 } from "uuid";
 
 import { TextGeneration } from "./textGeneration";
 
-const modelId = "SmolLM3-3B";
+const modelId = "Qwen3-4B";
 TextGeneration.model_id = modelId;
 
 class Conversation {
