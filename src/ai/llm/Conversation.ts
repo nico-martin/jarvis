@@ -14,11 +14,12 @@ import {
 } from "@ai/types";
 import isFullSentence from "@utils/isFullSentence";
 import isFullXMLToolCall from "@utils/isFullXMLToolCall";
-import { LanguageModel } from "language-model-polyfill";
 import { v4 as uuidv4 } from "uuid";
 
-const modelId = "Qwen3-4B";
-LanguageModel.model_id = modelId;
+import { TextGeneration } from "./textGeneration";
+
+const modelId = "SmolLM3-3B";
+TextGeneration.model_id = modelId;
 
 class Conversation {
   private log: (message?: any, ...optionalParams: any[]) => void = () => {};
@@ -27,7 +28,7 @@ class Conversation {
   private mcpServers: Array<
     (McpServerStoreHttp | McpServerStoreBuiltIn) & McpServerWithState
   > = [];
-  private session: LanguageModel;
+  private session: TextGeneration;
   private systemMessage: string;
   private _messages: Array<Message> = [];
   private messagesEventListeners: Set<(messages: Array<Message>) => void> =
@@ -36,9 +37,12 @@ class Conversation {
   private statusEventListeners: Set<(status: ModelStatus) => void> = new Set();
 
   public constructor(options?: ConversationConstructorOptions) {
-    LanguageModel.worker = new Worker(new URL("./worker.ts", import.meta.url), {
-      type: "module",
-    });
+    TextGeneration.worker = new Worker(
+      new URL("./worker.ts", import.meta.url),
+      {
+        type: "module",
+      }
+    );
     if (options?.log) {
       this.log = options.log;
     }
@@ -104,7 +108,7 @@ class Conversation {
 
     const systemMessageId = uuidv4();
     this.status = ModelStatus.MODEL_LOADING;
-    this.session = await LanguageModel.create({
+    this.session = await TextGeneration.create({
       buildKVCache,
       initialPrompts: [{ role: "system", content: systemPrompt }],
       temperature: 0,
@@ -148,10 +152,10 @@ class Conversation {
   };
 
   public isCached = async () => {
-    return (await LanguageModel.availability()) === "available";
+    return (await TextGeneration.availability()) === "available";
   };
 
-  public static downloadSize = LanguageModel.downloadSize(modelId);
+  public static downloadSize = TextGeneration.downloadSize(modelId);
 
   public get status() {
     return this._engineStatus;
@@ -299,6 +303,9 @@ Response: ${resp.response}`
     let processedReply: string = "";
     const toolsToCall: Array<XMLToolSignature> = [];
 
+    console.log("[PROMPT]", prompt);
+    console.log("[CONVERSATION]", this.session._conversationHistory);
+
     const stream = this.session.promptStreaming(prompt);
     const reader = stream.getReader();
     let reply = "";
@@ -312,6 +319,7 @@ Response: ${resp.response}`
       const fullXMLToolCall = isFullXMLToolCall(newReply);
 
       if (fullSentence) {
+        console.log("[fullSentence]", fullSentence);
         processedReply = reply;
         onTextFeedback && onTextFeedback(fullSentence);
         this.messages = this.messages.map((message) => ({

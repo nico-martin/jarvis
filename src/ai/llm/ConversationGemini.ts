@@ -306,7 +306,7 @@ Response: ${resp.response}`
     let processedReply: string = "";
     const toolsToCall: Array<XMLToolSignature> = [];
 
-    await new Promise((resolve) => window.setTimeout(resolve, 1000));
+    //await new Promise((resolve) => window.setTimeout(resolve, 1000));
 
     // Use Gemini streaming
     const result = await this.chat.sendMessageStream(prompt);

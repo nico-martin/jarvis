@@ -1,3 +1,3 @@
-import { webWorkerHandler } from "language-model-polyfill";
+import { webWorkerHandler } from "./textGeneration";
 
 self.onmessage = webWorkerHandler().onmessage;

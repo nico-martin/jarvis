@@ -105,6 +105,8 @@ ${exampleCall}`;
 You have the ability to call tools to accomplish tasks or find context to answer questions. Use them when necessary to provide accurate, helpful responses.
 Never tell the user you cant do something if there is a tool that could do it.
 Only use tools if you really have to. If its just a casual request where you dont need to call a tool, dont do it.
+If you need to call a tool wait until the call is done. Never just assume a response.
+"This is the response of the called tools.." is an instruction. Never generate this yourself!
   
 ## Available Tools
 

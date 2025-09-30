@@ -38,7 +38,7 @@ export default function Jarvis({}: {}) {
   const processedToolCalls = useRef<Set<string>>(new Set());
 
   useEffect(() => {
-    setDeaf(false);
+    if (import.meta.env.VITE_IS_PRESENTATION !== "true") setDeaf(false);
     setMute(false);
     return () => {
       setDeaf(true);

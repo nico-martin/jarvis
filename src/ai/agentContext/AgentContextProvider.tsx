@@ -51,8 +51,8 @@ export default function AgentContextProvider({
       new (import.meta.env.VITE_GEMINI_API_KEY
         ? ConversationGemini
         : Conversation)({
-        onConversationEnded: () => setJarvisActive(false),
-        conversationEndKeyword: "<END>",
+        //onConversationEnded: () => setJarvisActive(false),
+        //conversationEndKeyword: "<END>",
       }),
     []
   );

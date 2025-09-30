@@ -2,15 +2,15 @@ import { DownloadModelProgress } from "@ai/agentContext/AgentContext";
 import useAgent from "@ai/agentContext/useAgent";
 import { EXPECTED_FILES as EXPECTED_FILES_VLM } from "@ai/imageToText/constants";
 import Conversation from "@ai/llm/Conversation";
+import { TextGeneration } from "@ai/llm/textGeneration";
 import { EXPECTED_FILES as EXPECTED_FILES_STT } from "@ai/speechToText/constants";
 import { EXPECTED_FILES as EXPECTED_FILES_TTS } from "@ai/textToSpeech/kokoro/constants";
 import { ArrowDownTrayIcon } from "@heroicons/react/16/solid";
 import { Button, ContentBox, Progress } from "@theme";
 import formatBytes from "@utils/formatBytes";
-import { LanguageModel } from "language-model-polyfill";
 import { useState } from "preact/hooks";
 
-LanguageModel.model_id = "Qwen3-4B";
+TextGeneration.model_id = "Qwen3-4B";
 
 const VAD_SIZE = 2243022;
 const LLM_SIZE = Conversation.downloadSize;
