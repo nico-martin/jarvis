@@ -37,12 +37,6 @@ class Conversation {
   private statusEventListeners: Set<(status: ModelStatus) => void> = new Set();
 
   public constructor(options?: ConversationConstructorOptions) {
-    TextGeneration.worker = new Worker(
-      new URL("./worker.ts", import.meta.url),
-      {
-        type: "module",
-      }
-    );
     if (options?.log) {
       this.log = options.log;
     }

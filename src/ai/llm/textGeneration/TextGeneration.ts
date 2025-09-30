@@ -28,11 +28,7 @@ class TextGeneration extends EventTarget implements DestroyableModel {
     null;
 
   private static getWorker(): Worker {
-    if (TextGeneration.worker) {
-      return TextGeneration.worker;
-    }
-
-    return new Worker(new URL("./worker.compiled.js", import.meta.url), {
+    return new Worker(new URL("./languageModel/worker.ts", import.meta.url), {
       type: "module",
     });
   }
