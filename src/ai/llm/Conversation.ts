@@ -60,6 +60,9 @@ class Conversation {
     buildKVCache: boolean = true
   ) {
     this.mcpServers = mcpServers;
+    if (this.mcpServers.length === 0) {
+      return;
+    }
 
     const systemPromptParts: Array<string> = [initSystemPrompt];
 
