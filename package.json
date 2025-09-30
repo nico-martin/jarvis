@@ -1,6 +1,6 @@
 {
   "name": "jarvis",
-  "version": "0.1.9",
+  "version": "0.1.10",
   "description": "",
   "type": "module",
   "scripts": {
@@ -19,7 +19,7 @@
     "@google/generative-ai": "^0.24.1",
     "@headlessui/react": "^2.2.5",
     "@heroicons/react": "^2.2.0",
-    "@huggingface/transformers": "3.7.1",
+    "@huggingface/transformers": "3.7.3",
     "@modelcontextprotocol/sdk": "^1.17.0",
     "@tailwindcss/vite": "^4.1.11",
     "phonemizer": "^1.2.1",
