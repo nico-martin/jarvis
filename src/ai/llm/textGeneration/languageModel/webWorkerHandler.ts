@@ -90,6 +90,7 @@ const webWorkerHandler = () => {
                 if (abortController.signal.aborted) {
                   throw new DOMException("Request cancelled", "AbortError");
                 }
+                console.log("token_generated", token_generated);
                 postMessage({
                   id: request.id,
                   type: ResponseType.PROMPT_PROGRESS,
