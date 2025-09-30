@@ -44,7 +44,6 @@ const prompt = async (params: {
     session_id,
     abortSignal,
   } = params;
-  console.log("prompt", messages);
 
   if (!stopping_criteria) {
     stopping_criteria = new InterruptableStoppingCriteria();
@@ -97,8 +96,6 @@ const prompt = async (params: {
 
   const token_callback_function = (tokens: number[] | bigint[] | Tensor) => {
     first_token_time ??= performance.now();
-    console.log("token_callback_function", tokens);
-
     if (num_tokens++ > 0) {
       tps = (num_tokens / (performance.now() - first_token_time)) * 1000;
     }
@@ -109,7 +106,6 @@ const prompt = async (params: {
       stopping_criteria.interrupt();
       throw new DOMException("Request cancelled", "AbortError");
     }
-    console.log("callback_function", output);
     answer = answer + output;
     on_response_update(output);
   };
