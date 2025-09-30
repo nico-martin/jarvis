@@ -4,11 +4,11 @@ import {
   WorkerRequest,
   WorkerResponse,
 } from "./worker/types";
-import getLanguageModelAvailability from "./worker/utils/getLanguageModelAvailability";
 import CausalLMPipeline from "./worker/utils/CausalLMPipeline";
-import prompt from "./worker/utils/prompt";
-import { WorkerError, WorkerErrorCode } from "./worker/utils/WorkerError";
 import KVCache from "./worker/utils/KVCache";
+import { WorkerError, WorkerErrorCode } from "./worker/utils/WorkerError";
+import getLanguageModelAvailability from "./worker/utils/getLanguageModelAvailability";
+import prompt from "./worker/utils/prompt";
 
 const cache = new KVCache();
 const activePromptRequests = new Map<string, AbortController>();
@@ -19,6 +19,7 @@ const webWorkerHandler = () => {
 
   return {
     onmessage: async (event: MessageEvent<WorkerRequest>) => {
+      console.log(event);
       const request = event.data;
 
       try {
@@ -28,7 +29,7 @@ const webWorkerHandler = () => {
               id: request.id,
               type: ResponseType.AVAILABILITY,
               availability: await getLanguageModelAvailability(
-                request.model_id,
+                request.model_id
               ),
             });
             return;
@@ -49,7 +50,7 @@ const webWorkerHandler = () => {
                   progress: progressInfo,
                 });
               },
-              abortController.signal,
+              abortController.signal
             );
 
             activeModelLoadRequests.delete(request.id);
@@ -76,7 +77,7 @@ const webWorkerHandler = () => {
                   progress: progressInfo,
                 });
               },
-              abortController.signal,
+              abortController.signal
             );
 
             const resp = await prompt({
@@ -130,7 +131,7 @@ const webWorkerHandler = () => {
 
             // Check for active model load request
             const modelAbortController = activeModelLoadRequests.get(
-              request.id,
+              request.id
             );
             if (modelAbortController) {
               modelAbortController.abort();
@@ -146,7 +147,7 @@ const webWorkerHandler = () => {
             // No active request found
             const cancelError = new WorkerError(
               WorkerErrorCode.NO_HANDLER,
-              `No active request found with id: ${request.id}`,
+              `No active request found with id: ${request.id}`
             );
             postMessage(cancelError.toErrorResponse(request.id));
             return;
@@ -158,7 +159,7 @@ const webWorkerHandler = () => {
             const noHandlerError = new WorkerError(
               WorkerErrorCode.NO_HANDLER,
               // @ts-expect-error
-              `No handler found for request type: ${request.type}`,
+              `No handler found for request type: ${request.type}`
             );
             // @ts-expect-error
             postMessage(noHandlerError.toErrorResponse(request.id));
@@ -166,7 +167,7 @@ const webWorkerHandler = () => {
       } catch (error) {
         const workerError = WorkerError.fromError(
           error,
-          WorkerErrorCode.HANDLER_ERROR,
+          WorkerErrorCode.HANDLER_ERROR
         );
         postMessage(workerError.toErrorResponse(request.id));
       }
