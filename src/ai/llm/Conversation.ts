@@ -60,7 +60,7 @@ class Conversation {
   ) {
     this.mcpServers = mcpServers;
     if (this.mcpServers.length === 0 && !onlyDownload) {
-      return;
+      //return;
     }
 
     const systemPromptParts: Array<string> = [initSystemPrompt];

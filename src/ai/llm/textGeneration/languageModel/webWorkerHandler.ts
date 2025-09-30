@@ -19,7 +19,6 @@ const webWorkerHandler = () => {
 
   return {
     onmessage: async (event: MessageEvent<WorkerRequest>) => {
-      console.log(event);
       const request = event.data;
 
       try {
@@ -90,7 +89,6 @@ const webWorkerHandler = () => {
                 if (abortController.signal.aborted) {
                   throw new DOMException("Request cancelled", "AbortError");
                 }
-                console.log("token_generated", token_generated);
                 postMessage({
                   id: request.id,
                   type: ResponseType.PROMPT_PROGRESS,

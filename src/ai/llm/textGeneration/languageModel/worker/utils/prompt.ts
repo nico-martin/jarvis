@@ -1,14 +1,15 @@
-import KVCache from "./KVCache";
 import {
+  InterruptableStoppingCriteria,
   Message,
   PreTrainedModel,
   PreTrainedTokenizer,
   Tensor,
-  InterruptableStoppingCriteria,
   TextStreamer,
 } from "@huggingface/transformers";
+
+import { MODELS, ModelIds } from "../../../constants";
 import { ModelUsage } from "../types";
-import { ModelIds, MODELS } from "../../../constants";
+import KVCache from "./KVCache";
 import { WorkerError, WorkerErrorCode } from "./WorkerError";
 
 let stopping_criteria: any = null;
@@ -43,6 +44,7 @@ const prompt = async (params: {
     session_id,
     abortSignal,
   } = params;
+  console.log("prompt", messages);
 
   if (!stopping_criteria) {
     stopping_criteria = new InterruptableStoppingCriteria();
@@ -69,7 +71,7 @@ const prompt = async (params: {
     throw new WorkerError(
       WorkerErrorCode.MAX_TOTAL_TOKENS_EXCEEDED,
       `Input size ${input_size} exceeds maximum allowed tokens ${MODELS[model_id].maxToken}`,
-      { input_size, max_tokens: MODELS[model_id].maxToken },
+      { input_size, max_tokens: MODELS[model_id].maxToken }
     );
   }
 
@@ -95,6 +97,8 @@ const prompt = async (params: {
 
   const token_callback_function = (tokens: number[] | bigint[] | Tensor) => {
     first_token_time ??= performance.now();
+    console.log("token_callback_function", tokens);
+
     if (num_tokens++ > 0) {
       tps = (num_tokens / (performance.now() - first_token_time)) * 1000;
     }
@@ -105,6 +109,7 @@ const prompt = async (params: {
       stopping_criteria.interrupt();
       throw new DOMException("Request cancelled", "AbortError");
     }
+    console.log("callback_function", output);
     answer = answer + output;
     on_response_update(output);
   };
