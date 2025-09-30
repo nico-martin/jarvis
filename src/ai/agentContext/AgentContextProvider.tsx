@@ -168,7 +168,8 @@ export default function AgentContextProvider({
             [],
             (progress) => listener("llm", Math.round(progress * 100)),
             false,
-            false
+            false,
+            true
           ),
           imageToText.preload((progress) => listener("vlm", progress)),
         ]);

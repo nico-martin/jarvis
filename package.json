@@ -1,6 +1,6 @@
 {
   "name": "jarvis",
-  "version": "0.1.5",
+  "version": "0.1.6",
   "description": "",
   "type": "module",
   "scripts": {
@@ -9,7 +9,8 @@
     "lint": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
     "preview": "vite preview",
     "format": "prettier --write .",
-    "prepare": "husky"
+    "prepare": "husky",
+    "prod": "node scripts/serverProd.mjs"
   },
   "keywords": [],
   "author": "Nico Martin <mail@nico.dev>",

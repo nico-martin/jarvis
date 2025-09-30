@@ -55,10 +55,11 @@ class Conversation {
     >,
     downloadProgress: (progress: number) => void = () => {},
     forceRebuild: boolean = false,
-    buildKVCache: boolean = true
+    buildKVCache: boolean = true,
+    onlyDownload: boolean = false
   ) {
     this.mcpServers = mcpServers;
-    if (this.mcpServers.length === 0) {
+    if (this.mcpServers.length === 0 && !onlyDownload) {
       return;
     }
 
@@ -297,9 +298,6 @@ Response: ${resp.response}`
     let processedReply: string = "";
     const toolsToCall: Array<XMLToolSignature> = [];
 
-    console.log("[PROMPT]", prompt);
-    console.log("[CONVERSATION]", this.session._conversationHistory);
-
     const stream = this.session.promptStreaming(prompt);
     const reader = stream.getReader();
     let reply = "";
@@ -313,7 +311,6 @@ Response: ${resp.response}`
       const fullXMLToolCall = isFullXMLToolCall(newReply);
 
       if (fullSentence) {
-        console.log("[fullSentence]", fullSentence);
         processedReply = reply;
         onTextFeedback && onTextFeedback(fullSentence);
         this.messages = this.messages.map((message) => ({
