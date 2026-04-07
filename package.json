@@ -1,6 +1,6 @@
 {
   "name": "jarvis",
-  "version": "0.1.12",
+  "version": "0.1.13",
   "description": "",
   "type": "module",
   "scripts": {
@@ -28,6 +28,7 @@
     "react-hot-toast": "^2.5.2",
     "strict-url-sanitise": "^0.0.1",
     "uuid": "^11.1.0",
+    "vad-recorder": "^0.1.1",
     "vite-tsconfig-paths": "^5.1.4"
   },
   "devDependencies": {

@@ -10,6 +10,7 @@ import {
   useState,
 } from "preact/hooks";
 import { v4 as uuidv4 } from "uuid";
+import { VadRecorder } from "vad-recorder";
 
 import ImageToText from "../imageToText/ImageToText";
 import Conversation from "../llm/Conversation";
@@ -17,10 +18,10 @@ import useMcpServer from "../mcp/react/useMcpServer";
 import SpeechToText from "../speechToText/SpeechToText";
 import Kokoro from "../textToSpeech/kokoro/Kokoro";
 import { Message, MessagePartType, MessageRole, MessageUser } from "../types";
-import VoiceActivityDetection from "../voiceActivityDetection/VoiceActivityDetection";
-import { VoiceActivityDetectionStatus } from "../voiceActivityDetection/types";
 import AgentContext, { DownloadModelProgress } from "./AgentContext";
 import { FILL_WORDS } from "./constants";
+
+type VadStatus = "idle" | "waiting" | "recording";
 
 export default function AgentContextProvider({
   children,
@@ -131,28 +132,31 @@ export default function AgentContextProvider({
     return () => vadListeners.current.delete(callback);
   }, []);
 
-  const vad = useMemo(() => {
-    const vad = new VoiceActivityDetection();
-    vad.setCallbacks({
-      onSpeechChunk: (buffer, timing) => {
-        timing.duration > 200 &&
-          speechToText.generate(buffer).then((text) => {
-            const isFillWord = FILL_WORDS.includes(text.trim().toLowerCase());
-            const possibleFillWord =
-              text.trim().startsWith("(") && text.trim().startsWith(")");
-            if (!isFillWord && !possibleFillWord) {
-              vadListeners.current.forEach((callback) => callback(text));
-            }
-          });
-      },
-    });
-    return vad;
-  }, [speechToText, vadListeners.current]);
+  const vad = useMemo(() => new VadRecorder(), []);
+  const [vadStatus, setVadStatus] = useState<VadStatus>("idle");
 
-  const vadStatus = useExternalState<VoiceActivityDetectionStatus>(
-    vad.onStatusChange,
-    () => vad.status
-  );
+  useEffect(() => {
+    vad.onReady(() => setVadStatus("waiting"));
+    vad.onSpeechStart(() => setVadStatus("recording"));
+    vad.onSpeechEnd(() => setVadStatus("waiting"));
+    vad.onRecord((blob) => {
+      console.log(blob);
+      void speechToText.generateFromBlob(blob).then((text) => {
+        const isFillWord = FILL_WORDS.includes(text.trim().toLowerCase());
+        const possibleFillWord =
+          text.trim().startsWith("(") && text.trim().startsWith(")");
+        if (!isFillWord && !possibleFillWord) {
+          vadListeners.current.forEach((callback) => callback(text));
+        }
+      });
+    });
+    vad.onError(() => setVadStatus("idle"));
+
+    return () => {
+      setVadStatus("idle");
+      void vad.destroy();
+    };
+  }, [speechToText, vad]);
 
   const loadModels = useCallback(
     (callback: (progress: DownloadModelProgress) => void = () => {}) =>
@@ -171,7 +175,14 @@ export default function AgentContextProvider({
         };
 
         await Promise.all([
-          vad.preload((progress) => listener("vad", progress)),
+          vad.initialize((event) => {
+            if (event.status === "ready") {
+              listener("vad", 100);
+              return;
+            }
+
+            listener("vad", Math.round(event.progress));
+          }),
           speechToText.preload((progress) => listener("stt", progress)),
           tts.preload((progress) => listener("tts", progress)),
           conversation.createConversation(
@@ -194,7 +205,7 @@ export default function AgentContextProvider({
     (async () => {
       const [vadCached, sttCached, ttsCached, llmCached, vlmCached] =
         await Promise.all([
-          vad.isCached(),
+          VadRecorder.info().then((info) => info.isCached),
           speechToText.isCached(),
           tts.isCached(),
           conversation.isCached(),
@@ -221,9 +232,17 @@ export default function AgentContextProvider({
             setSpeakerAbortController(new AbortController());
           }
         },
-        isDeaf: vadStatus === VoiceActivityDetectionStatus.IDLE,
-        setDeaf: async (deaf) =>
-          deaf ? vad.stopMicrophone() : await vad.startMicrophone(),
+        isDeaf: vadStatus === "idle",
+        setDeaf: async (deaf) => {
+          if (deaf) {
+            vad.stop();
+            setVadStatus("idle");
+            return;
+          }
+
+          await vad.start();
+          setVadStatus("waiting");
+        },
         isSpeaking,
         loadModels,
         cacheCheckDone,
