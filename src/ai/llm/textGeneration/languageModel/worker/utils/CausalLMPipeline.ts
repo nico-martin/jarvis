@@ -30,14 +30,14 @@ class CausalLMPipeline {
       !this.model[model_id]
     ) {
       const tokenizer = AutoTokenizer.from_pretrained(MODEL.id, {
-        progress_callback,
+        ...(progress_callback && { progress_callback }),
         ...(abortSignal && { signal: abortSignal }),
       });
 
       const model = AutoModelForCausalLM.from_pretrained(MODEL.id, {
         dtype: MODEL.dtype,
         device: "webgpu",
-        progress_callback,
+        ...(progress_callback && { progress_callback }),
         ...(abortSignal && { signal: abortSignal }),
       });
 

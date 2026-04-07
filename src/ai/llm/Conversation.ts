@@ -1,4 +1,5 @@
 import { getEndInstructions } from "@ai/agent";
+import { MODEL_ID } from "@ai/llm/textGeneration/constants";
 import toolsToSystemPrompt from "@ai/llm/utils/toolsToSystemPrompt";
 import { McpServerWithState } from "@ai/mcp/react/types";
 import {
@@ -18,8 +19,7 @@ import { v4 as uuidv4 } from "uuid";
 
 import { TextGeneration } from "./textGeneration";
 
-const modelId = "Qwen3-4B";
-TextGeneration.model_id = modelId;
+TextGeneration.model_id = MODEL_ID;
 
 class Conversation {
   private log: (message?: any, ...optionalParams: any[]) => void = () => {};
@@ -76,15 +76,15 @@ class Conversation {
       systemPromptParts.push(getEndInstructions(this.conversationEndKeyword));
     }
 
-    const tools = mcpServers.reduce(
-      (acc, server) => [
+    const tools = mcpServers.reduce((acc, server) => {
+      if (!server.server?.tools) return acc;
+      return [
         ...acc,
         ...server.server.tools.filter((tool) =>
           server.activeTools.includes(tool.name)
         ),
-      ],
-      []
-    );
+      ];
+    }, []);
 
     if (tools.length) {
       systemPromptParts.push(toolsToSystemPrompt(tools));
@@ -103,6 +103,7 @@ class Conversation {
 
     const systemMessageId = uuidv4();
     this.status = ModelStatus.MODEL_LOADING;
+
     this.session = await TextGeneration.create({
       buildKVCache,
       initialPrompts: [{ role: "system", content: systemPrompt }],
@@ -150,7 +151,7 @@ class Conversation {
     return (await TextGeneration.availability()) === "available";
   };
 
-  public static downloadSize = TextGeneration.downloadSize(modelId);
+  public static downloadSize = TextGeneration.downloadSize(MODEL_ID);
 
   public get status() {
     return this._engineStatus;
@@ -188,12 +189,19 @@ class Conversation {
       );
 
       const textResponse = response.content
-        .filter(({ type }) => type === "text")
-        .map(({ text }) => text)
+        .map((contentPart) =>
+          contentPart.type === "text" && "text" in contentPart
+            ? contentPart.text
+            : ""
+        )
+        .filter(Boolean)
         .join("\n");
 
       const mediaResponse = response.content.find(
-        ({ type }) => type === "image" || type === "audio"
+        (contentPart) =>
+          (contentPart.type === "image" || contentPart.type === "audio") &&
+          "data" in contentPart &&
+          "mimeType" in contentPart
       );
 
       this.messages = this.messages.map((message) => {
@@ -210,8 +218,14 @@ class Conversation {
                       ? {
                           type:
                             mediaResponse.type === "audio" ? "audio" : "image",
-                          data: (mediaResponse.data as string) || "",
-                          mimeType: (mediaResponse.mimeType as string) || "",
+                          data:
+                            typeof mediaResponse.data === "string"
+                              ? mediaResponse.data
+                              : "",
+                          mimeType:
+                            typeof mediaResponse.mimeType === "string"
+                              ? mediaResponse.mimeType
+                              : "",
                         }
                       : null,
                   }
@@ -370,7 +384,8 @@ Response: ${resp.response}`
     for (const serverConfig of mcpServers) {
       if (
         !serverConfig.active ||
-        (serverConfig.activePrompts || []).length === 0
+        (serverConfig.activePrompts || []).length === 0 ||
+        !serverConfig.server?.prompts
       ) {
         continue;
       }

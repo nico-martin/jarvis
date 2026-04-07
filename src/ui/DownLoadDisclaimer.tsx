@@ -3,6 +3,7 @@ import useAgent from "@ai/agentContext/useAgent";
 import { EXPECTED_FILES as EXPECTED_FILES_VLM } from "@ai/imageToText/constants";
 import Conversation from "@ai/llm/Conversation";
 import { TextGeneration } from "@ai/llm/textGeneration";
+import { MODEL_ID } from "@ai/llm/textGeneration/constants";
 import { EXPECTED_FILES as EXPECTED_FILES_STT } from "@ai/speechToText/constants";
 import { EXPECTED_FILES as EXPECTED_FILES_TTS } from "@ai/textToSpeech/kokoro/constants";
 import { ArrowDownTrayIcon } from "@heroicons/react/16/solid";
@@ -10,7 +11,7 @@ import { Button, ContentBox, Progress } from "@theme";
 import formatBytes from "@utils/formatBytes";
 import { useState } from "preact/hooks";
 
-TextGeneration.model_id = "Qwen3-4B";
+TextGeneration.model_id = MODEL_ID;
 
 const VAD_SIZE = 2243022;
 const LLM_SIZE = Conversation.downloadSize;
@@ -46,7 +47,7 @@ const getModel = (
     case "llm":
       return {
         taskName: "LARGE_LANGUAGE_MODEL",
-        name: "Qwen3 4B",
+        name: MODEL_ID,
         size: LLM_SIZE,
         url: "https://github.com/snakers4/silero-vad",
       };

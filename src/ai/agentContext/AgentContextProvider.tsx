@@ -60,10 +60,21 @@ export default function AgentContextProvider({
   const conversationIdRef = useRef<string>();
   const evaluateConversation = useCallback(() => {
     if (!allModelsLoaded) return;
+
+    // Extract only serializable properties to avoid circular references
+    const serializableServers = activeMcpServers.map((server) => ({
+      name: server.name,
+      activeTools: server.activeTools,
+      activePrompts: server.activePrompts,
+      ...("url" in server
+        ? { url: server.url }
+        : { serverType: server.serverType }),
+    }));
+
     const conversationId = JSON.stringify([
       SYSTEM_PROMPT,
       INSTRUCTIONS,
-      activeMcpServers,
+      serializableServers,
     ]);
 
     if (conversationIdRef.current === conversationId) return;

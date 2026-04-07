@@ -17,8 +17,7 @@ import isFullSentence from "@utils/isFullSentence";
 import isFullXMLToolCall from "@utils/isFullXMLToolCall";
 import { v4 as uuidv4 } from "uuid";
 
-export interface ConversationGeminiOptions
-  extends ConversationConstructorOptions {
+export interface ConversationGeminiOptions extends ConversationConstructorOptions {
   model?: string;
 }
 
@@ -47,7 +46,7 @@ class ConversationGemini {
     }
 
     this.genAI = new GoogleGenerativeAI(apiKey);
-    this.modelName = options?.model || "gemini-2.5-flash-preview-09-2025";
+    this.modelName = options?.model || "gemini-flash-latest";
 
     if (options?.log) {
       this.log = options.log;
@@ -84,15 +83,15 @@ class ConversationGemini {
       systemPromptParts.push(getEndInstructions(this.conversationEndKeyword));
     }
 
-    const tools = mcpServers.reduce(
-      (acc, server) => [
+    const tools = mcpServers.reduce((acc, server) => {
+      if (!server.server?.tools) return acc;
+      return [
         ...acc,
         ...server.server.tools.filter((tool) =>
           server.activeTools.includes(tool.name)
         ),
-      ],
-      []
-    );
+      ];
+    }, []);
 
     if (tools.length) {
       systemPromptParts.push(toolsToSystemPrompt(tools));
@@ -196,12 +195,19 @@ class ConversationGemini {
       );
 
       const textResponse = response.content
-        .filter(({ type }) => type === "text")
-        .map(({ text }) => text)
+        .map((contentPart) =>
+          contentPart.type === "text" && "text" in contentPart
+            ? contentPart.text
+            : ""
+        )
+        .filter(Boolean)
         .join("\n");
 
       const mediaResponse = response.content.find(
-        ({ type }) => type === "image" || type === "audio"
+        (contentPart) =>
+          (contentPart.type === "image" || contentPart.type === "audio") &&
+          "data" in contentPart &&
+          "mimeType" in contentPart
       );
 
       this.messages = this.messages.map((message) => {
@@ -218,8 +224,14 @@ class ConversationGemini {
                       ? {
                           type:
                             mediaResponse.type === "audio" ? "audio" : "image",
-                          data: (mediaResponse.data as string) || "",
-                          mimeType: (mediaResponse.mimeType as string) || "",
+                          data:
+                            typeof mediaResponse.data === "string"
+                              ? mediaResponse.data
+                              : "",
+                          mimeType:
+                            typeof mediaResponse.mimeType === "string"
+                              ? mediaResponse.mimeType
+                              : "",
                         }
                       : null,
                   }
@@ -380,7 +392,8 @@ Response: ${resp.response}`
     for (const serverConfig of mcpServers) {
       if (
         !serverConfig.active ||
-        (serverConfig.activePrompts || []).length === 0
+        (serverConfig.activePrompts || []).length === 0 ||
+        !serverConfig.server?.prompts
       ) {
         continue;
       }

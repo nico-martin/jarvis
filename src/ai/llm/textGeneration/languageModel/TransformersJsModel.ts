@@ -1,3 +1,6 @@
+import { Message, ModelRegistry } from "@huggingface/transformers";
+
+import { MODELS, MODEL_ID, ModelIds } from "../constants";
 import {
   ModelUsage,
   RequestType,
@@ -5,8 +8,6 @@ import {
   WorkerRequest,
   WorkerResponse,
 } from "./worker/types";
-import { ModelIds, MODELS } from "../constants";
-import { Message } from "@huggingface/transformers";
 
 let workerRequestId = 0;
 
@@ -18,7 +19,7 @@ class TransformersJsModel {
   public constructor(
     worker: Worker,
     session_id: string,
-    model_id: ModelIds = "SmolLM3-3B",
+    model_id: ModelIds = "SmolLM3-3B"
   ) {
     this.model_id = model_id;
     if (worker) {
@@ -41,16 +42,13 @@ class TransformersJsModel {
     return MODELS[this.model_id].maxToken;
   }
 
-  public get modelSize(): number {
-    return Object.values(MODELS[this.model_id].expectedFiles).reduce(
-      (acc, val) => acc + val,
-      0,
-    );
+  public get downloadSize(): number {
+    return MODELS[this.model_id].size;
   }
 
   public async loadModel(
     monitor?: CreateMonitor,
-    signal?: AbortSignal,
+    signal?: AbortSignal
   ): Promise<void> {
     if (signal?.aborted) {
       throw new DOMException("Operation aborted", "AbortError");
@@ -77,24 +75,9 @@ class TransformersJsModel {
 
     return new Promise<void>((resolve, reject) => {
       const requestId = (workerRequestId++).toString();
+      const filesMap: Record<string, number> = {};
 
-      const filesMap: Record<
-        string,
-        {
-          loaded: number;
-          total: number;
-        }
-      > = Object.entries(MODELS[this.model_id].expectedFiles).reduce(
-        (acc, [file, total]) => ({
-          ...acc,
-          [file]: {
-            loaded: 0,
-            total,
-          },
-        }),
-        {},
-      );
-
+      const total = MODELS[this.model_id].size;
       let refProgressPercentages = 0;
 
       const listener = (e: MessageEvent<WorkerResponse>) => {
@@ -106,13 +89,12 @@ class TransformersJsModel {
         ) {
           this.worker.removeEventListener("message", listener);
           reject(
-            e.data.type === ResponseType.ERROR ? e.data.error : e.data.message,
+            e.data.type === ResponseType.ERROR ? e.data.error : e.data.message
           );
         }
 
         if (e.data.type === ResponseType.MODEL_LOADED) {
           this.worker.removeEventListener("message", listener);
-          //console.log(JSON.stringify(filesMap));
           resolve();
         }
 
@@ -121,16 +103,10 @@ class TransformersJsModel {
           e.data.progress.status === "progress"
         ) {
           const progress = e.data.progress;
-          filesMap[progress.file] = {
-            loaded: progress.loaded,
-            total: progress.total,
-          };
-          const { total, loaded } = Object.entries(filesMap).reduce(
-            (acc, [, progress]) => ({
-              total: acc.total + progress.total,
-              loaded: acc.loaded + progress.loaded,
-            }),
-            { total: 0, loaded: 0 },
+          filesMap[progress.file] = progress.loaded;
+          const loaded = Object.values(filesMap).reduce(
+            (acc, loaded) => acc + loaded,
+            0
           );
           const newProgressPercentages =
             Math.round((loaded / total) * 10000) / 10000;
@@ -177,7 +153,7 @@ class TransformersJsModel {
     top_k: number,
     is_init_cache: boolean,
     onResponseUpdate: (response: string) => void = () => {},
-    options?: LanguageModelPromptOptions,
+    options?: LanguageModelPromptOptions
   ): Promise<{
     response: string;
     messages: Array<Message>;
@@ -194,7 +170,7 @@ class TransformersJsModel {
         ) {
           this.worker.removeEventListener("message", listener);
           reject(
-            e.data.type === ResponseType.ERROR ? e.data.error : e.data.message,
+            e.data.type === ResponseType.ERROR ? e.data.error : e.data.message
           );
         }
 
@@ -274,17 +250,14 @@ class TransformersJsModel {
       this.postMessage({
         id: requestId,
         type: RequestType.CHECK_AVAILABILITY,
-        model_id: "Qwen3-4B",
+        model_id: MODEL_ID,
         session_id: this.session_id,
       });
     });
   }
 
   static downloadSize = (model_id: ModelIds) => {
-    return Object.values(MODELS[model_id].expectedFiles).reduce(
-      (acc, val) => acc + val,
-      0,
-    );
+    return MODELS[model_id].size;
   };
 }
 

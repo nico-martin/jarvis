@@ -18,9 +18,13 @@ class KVCache {
       for (let j = 0; j < roleLen; j++) {
         hash = (hash * 33) ^ msg.role.charCodeAt(j);
       }
-      const contentLen = msg.content.length;
+      const content =
+        typeof msg.content === "string"
+          ? msg.content
+          : JSON.stringify(msg.content);
+      const contentLen = content.length;
       for (let j = 0; j < contentLen; j++) {
-        hash = (hash * 33) ^ msg.content.charCodeAt(j);
+        hash = (hash * 33) ^ content.charCodeAt(j);
       }
       hash = hash ^ (i << 16);
     }
@@ -71,7 +75,7 @@ class KVCache {
 
   public set(
     messages: Array<Message>,
-    data: { kv: Record<string, Tensor>; session_id: string },
+    data: { kv: Record<string, Tensor>; session_id: string }
   ) {
     const hash = this.generateHash(messages);
     this.cache.set(hash, data);
