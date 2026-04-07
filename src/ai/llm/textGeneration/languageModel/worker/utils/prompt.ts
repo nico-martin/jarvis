@@ -108,8 +108,7 @@ const prompt = async (params: {
     past_key_values: kv_cache,
 
     // Sampling
-    do_sample: true,
-    // repetition_penalty: 1.1,
+    do_sample: temperature !== 0,
     top_k,
     temperature,
 

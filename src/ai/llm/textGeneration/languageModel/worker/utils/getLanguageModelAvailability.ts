@@ -2,7 +2,6 @@
 import { ModelRegistry } from "@huggingface/transformers";
 
 import { MODELS, ModelIds } from "../../../constants";
-import isFileInCache from "./isFileInCache";
 
 const getLanguageModelAvailability = async (
   model_id: ModelIds
@@ -19,8 +18,6 @@ const getLanguageModelAvailability = async (
       dtype: MODELS[model_id].dtype,
     }
   );
-
-  console.log("getLanguageModelAvailability", filesInCache, MODELS[model_id]);
 
   return filesInCache ? "available" : "downloadable";
 };
