@@ -7,10 +7,10 @@ import {
   TextStreamer,
 } from "@huggingface/transformers";
 
-import { MODELS, ModelIds } from "../../../constants";
+import { ModelIds } from "../../../constants";
 import { ModelUsage } from "../types";
 import KVCache from "./KVCache";
-import { WorkerError, WorkerErrorCode } from "./WorkerError";
+import { WorkerError } from "./WorkerError";
 
 let stopping_criteria: any = null;
 
@@ -66,28 +66,12 @@ const prompt = async (params: {
 
   const { value: kv_cache, new_messages } = cache.get(messages);
 
-  if (input_size >= MODELS[model_id].maxToken) {
-    throw new WorkerError(
-      WorkerErrorCode.MAX_TOTAL_TOKENS_EXCEEDED,
-      `Input size ${input_size} exceeds maximum allowed tokens ${MODELS[model_id].maxToken}`,
-      { input_size, max_tokens: MODELS[model_id].maxToken }
-    );
-  }
-
   const new_messages_size = (
     tokenizer.apply_chat_template(new_messages, {
       tokenize: true,
       return_tensor: false,
     }) as Array<number>
   ).length;
-
-  /*if (new_messages_size >= MODELS[model_id].maxNewTokens) {
-    throw new WorkerError(
-      WorkerErrorCode.MAX_NEW_TOKENS_EXCEEDED,
-      `Input size of new tokens ${new_messages_size} exceeds maximum allowed tokens per prompt ${MODELS[model_id].maxNewTokens}`,
-      { new_messages_size, max_new_tokens: MODELS[model_id].maxNewTokens },
-    );
-  }*/
 
   let first_token_time: DOMHighResTimeStamp = null;
   let num_tokens = 0;

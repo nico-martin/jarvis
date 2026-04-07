@@ -67,7 +67,7 @@ class TextGeneration extends EventTarget implements DestroyableModel {
       instance.session_id,
       this.model_id
     );
-    instance._inputQuota = instance.model.maxToken;
+    instance._inputQuota = Number.POSITIVE_INFINITY;
 
     // @ts-expect-error
     if (options?.tools || options?.expectedInputs || options?.expectedOutputs) {
@@ -166,6 +166,8 @@ class TextGeneration extends EventTarget implements DestroyableModel {
             options
           );
 
+          console.log("Model:", response.usage.model_id);
+          console.log("TPS:", response.usage.output_tps);
           this.updateUsage(response.usage);
           this._conversationHistory =
             response.messages as LanguageModelMessage[];
@@ -268,6 +270,12 @@ class TextGeneration extends EventTarget implements DestroyableModel {
 
   static downloadSize(model_id: ModelIds = default_model_id): number {
     return TransformersJsModel.downloadSize(model_id);
+  }
+
+  static async resolveDownloadSize(
+    model_id: ModelIds = default_model_id
+  ): Promise<number> {
+    return TransformersJsModel.resolveDownloadSize(model_id);
   }
 }
 

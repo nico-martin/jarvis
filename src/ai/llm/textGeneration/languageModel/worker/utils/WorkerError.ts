@@ -1,4 +1,4 @@
-import { ResponseType, ErrorResponse } from "../types";
+import { ErrorResponse, ResponseType } from "../types";
 
 export enum WorkerErrorCode {
   // Model loading errors
@@ -11,9 +11,7 @@ export enum WorkerErrorCode {
   PROMPT_INVALID = "PROMPT_INVALID",
   GENERATION_FAILED = "GENERATION_FAILED",
 
-  // Token/Cache errors
-  MAX_TOTAL_TOKENS_EXCEEDED = "MAX_TOTAL_TOKENS_EXCEEDED",
-  MAX_NEW_TOKENS_EXCEEDED = "MAX_NEW_TOKENS_EXCEEDED",
+  // Cache errors
   CACHE_ERROR = "CACHE_ERROR",
 
   // General errors
@@ -39,21 +37,13 @@ export class WorkerError extends Error {
 
   static fromError(
     error: unknown,
-    fallbackCode: WorkerErrorCode = WorkerErrorCode.UNKNOWN_ERROR,
+    fallbackCode: WorkerErrorCode = WorkerErrorCode.UNKNOWN_ERROR
   ): WorkerError {
     if (error instanceof WorkerError) {
       return error;
     }
 
     if (error instanceof Error) {
-      // Try to map common error types to specific codes
-      if (error.message.includes("Max token exceeded")) {
-        return new WorkerError(
-          WorkerErrorCode.MAX_TOTAL_TOKENS_EXCEEDED,
-          error.message,
-          error,
-        );
-      }
       if (
         error.message.includes("out of memory") ||
         error.message.includes("OOM")
@@ -61,7 +51,7 @@ export class WorkerError extends Error {
         return new WorkerError(
           WorkerErrorCode.OUT_OF_MEMORY,
           error.message,
-          error,
+          error
         );
       }
       if (
@@ -71,7 +61,7 @@ export class WorkerError extends Error {
         return new WorkerError(
           WorkerErrorCode.NETWORK_ERROR,
           error.message,
-          error,
+          error
         );
       }
 

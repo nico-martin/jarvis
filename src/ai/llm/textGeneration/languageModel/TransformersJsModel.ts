@@ -10,6 +10,7 @@ import {
 } from "./worker/types";
 
 let workerRequestId = 0;
+const modelSizeCache: Partial<Record<ModelIds, number>> = {};
 
 class TransformersJsModel {
   private model_id: ModelIds;
@@ -38,12 +39,44 @@ class TransformersJsModel {
     }
   };
 
-  public get maxToken() {
-    return MODELS[this.model_id].maxToken;
+  public get downloadSize(): number {
+    return TransformersJsModel.downloadSize(this.model_id);
   }
 
-  public get downloadSize(): number {
-    return MODELS[this.model_id].size;
+  static async resolveDownloadSize(model_id: ModelIds): Promise<number> {
+    if (modelSizeCache[model_id] !== undefined) {
+      return modelSizeCache[model_id];
+    }
+
+    const model = MODELS[model_id];
+    const files = await ModelRegistry.get_pipeline_files(
+      "text-generation",
+      model.id,
+      {
+        dtype: model.dtype,
+      }
+    );
+
+    const metadata = await Promise.all(
+      files.map(async (file) => {
+        try {
+          return await ModelRegistry.get_file_metadata(model.id, file);
+        } catch {
+          return {
+            exists: false,
+            size: 0,
+          };
+        }
+      })
+    );
+
+    const size = metadata.reduce(
+      (acc, item) => acc + (item.exists ? item.size : 0),
+      0
+    );
+
+    modelSizeCache[model_id] = size;
+    return size;
   }
 
   public async loadModel(
@@ -52,6 +85,12 @@ class TransformersJsModel {
   ): Promise<void> {
     if (signal?.aborted) {
       throw new DOMException("Operation aborted", "AbortError");
+    }
+
+    try {
+      await TransformersJsModel.resolveDownloadSize(this.model_id);
+    } catch {
+      // Fallback to progress event totals when metadata lookup fails.
     }
 
     const updateProgress = (progress: {
@@ -75,9 +114,8 @@ class TransformersJsModel {
 
     return new Promise<void>((resolve, reject) => {
       const requestId = (workerRequestId++).toString();
-      const filesMap: Record<string, number> = {};
-
-      const total = MODELS[this.model_id].size;
+      const loadedMap: Record<string, number> = {};
+      const totalMap: Record<string, number> = {};
       let refProgressPercentages = 0;
 
       const listener = (e: MessageEvent<WorkerResponse>) => {
@@ -103,11 +141,23 @@ class TransformersJsModel {
           e.data.progress.status === "progress"
         ) {
           const progress = e.data.progress;
-          filesMap[progress.file] = progress.loaded;
-          const loaded = Object.values(filesMap).reduce(
+          loadedMap[progress.file] = progress.loaded;
+          if (progress.total > 0) {
+            totalMap[progress.file] = progress.total;
+          }
+          const loaded = Object.values(loadedMap).reduce(
             (acc, loaded) => acc + loaded,
             0
           );
+
+          const inferredTotal = Object.values(totalMap).reduce(
+            (acc, total) => acc + total,
+            0
+          );
+
+          const total =
+            modelSizeCache[this.model_id] ?? inferredTotal ?? loaded ?? 1;
+
           const newProgressPercentages =
             Math.round((loaded / total) * 10000) / 10000;
           const newProgress = {
@@ -257,7 +307,7 @@ class TransformersJsModel {
   }
 
   static downloadSize = (model_id: ModelIds) => {
-    return MODELS[model_id].size;
+    return modelSizeCache[model_id] ?? 0;
   };
 }
 

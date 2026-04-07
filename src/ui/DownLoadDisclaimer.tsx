@@ -1,20 +1,18 @@
 import { DownloadModelProgress } from "@ai/agentContext/AgentContext";
 import useAgent from "@ai/agentContext/useAgent";
 import { EXPECTED_FILES as EXPECTED_FILES_VLM } from "@ai/imageToText/constants";
-import Conversation from "@ai/llm/Conversation";
 import { TextGeneration } from "@ai/llm/textGeneration";
-import { MODEL_ID } from "@ai/llm/textGeneration/constants";
+import { MODELS, MODEL_ID } from "@ai/llm/textGeneration/constants";
 import { EXPECTED_FILES as EXPECTED_FILES_STT } from "@ai/speechToText/constants";
 import { EXPECTED_FILES as EXPECTED_FILES_TTS } from "@ai/textToSpeech/kokoro/constants";
 import { ArrowDownTrayIcon } from "@heroicons/react/16/solid";
 import { Button, ContentBox, Progress } from "@theme";
 import formatBytes from "@utils/formatBytes";
-import { useState } from "preact/hooks";
+import { useEffect, useState } from "preact/hooks";
 
 TextGeneration.model_id = MODEL_ID;
 
 const VAD_SIZE = 2243022;
-const LLM_SIZE = Conversation.downloadSize;
 const TTS_SIZE = Object.values(EXPECTED_FILES_TTS).reduce(
   (acc, size) => acc + size,
   0
@@ -29,7 +27,8 @@ const VLM_SIZE = Object.values(EXPECTED_FILES_VLM).reduce(
 );
 
 const getModel = (
-  key: string
+  key: string,
+  llmSize: number
 ): {
   taskName: string;
   name: string;
@@ -48,8 +47,8 @@ const getModel = (
       return {
         taskName: "LARGE_LANGUAGE_MODEL",
         name: MODEL_ID,
-        size: LLM_SIZE,
-        url: "https://github.com/snakers4/silero-vad",
+        size: llmSize,
+        url: `https://huggingface.co/${MODELS[MODEL_ID].id}`,
       };
     case "tts":
       return {
@@ -78,6 +77,7 @@ const getModel = (
 };
 
 export default function DownLoadDisclaimer({}: {}) {
+  const [llmSize, setLlmSize] = useState<number>(TextGeneration.downloadSize());
   const [isDownloading, setIsDownloading] = useState<boolean>(false);
   const { loadModels } = useAgent();
   const [progress, setProgress] = useState<DownloadModelProgress>({
@@ -87,6 +87,10 @@ export default function DownLoadDisclaimer({}: {}) {
     stt: 0,
     vlm: 0,
   });
+
+  useEffect(() => {
+    void TextGeneration.resolveDownloadSize().then((size) => setLlmSize(size));
+  }, []);
 
   const download = async () => {
     setIsDownloading(true);
@@ -123,7 +127,7 @@ export default function DownLoadDisclaimer({}: {}) {
           {isDownloading ? (
             <ul className="w-full">
               {Object.entries(progress).map(([key, progress]) => {
-                const model = getModel(key);
+                const model = getModel(key, llmSize);
                 return !model ? null : (
                   <li className="mt-6 flex w-full flex-col gap-2">
                     <p>
@@ -151,9 +155,7 @@ export default function DownLoadDisclaimer({}: {}) {
               onClick={download}
             >
               Download required models (≈{" "}
-              {formatBytes(
-                VAD_SIZE + LLM_SIZE + TTS_SIZE + STT_SIZE + VLM_SIZE
-              )}
+              {formatBytes(VAD_SIZE + llmSize + TTS_SIZE + STT_SIZE + VLM_SIZE)}
               )
             </Button>
           )}
