@@ -1,6 +1,5 @@
 import { getEndInstructions } from "@ai/agent";
 import { MODEL_ID } from "@ai/llm/textGeneration/constants";
-import toolsToSystemPrompt from "@ai/llm/utils/toolsToSystemPrompt";
 import { McpServerWithState } from "@ai/mcp/react/types";
 import {
   ConversationConstructorOptions,
@@ -13,8 +12,8 @@ import {
   ModelStatus,
   XMLToolSignature,
 } from "@ai/types";
+import type { MessagePart } from "@ai/types";
 import isFullSentence from "@utils/isFullSentence";
-import isFullXMLToolCall from "@utils/isFullXMLToolCall";
 import { v4 as uuidv4 } from "uuid";
 
 import { TextGeneration } from "./textGeneration";
@@ -86,10 +85,6 @@ class Conversation {
       ];
     }, []);
 
-    if (tools.length) {
-      systemPromptParts.push(toolsToSystemPrompt(tools));
-    }
-
     const systemPrompt = systemPromptParts.join("\n\n");
 
     if (this.systemMessage === systemPrompt && !forceRebuild) {
@@ -107,6 +102,7 @@ class Conversation {
     this.session = await TextGeneration.create({
       buildKVCache,
       initialPrompts: [{ role: "system", content: systemPrompt }],
+      tools,
       temperature: 0,
       monitor: (m) => {
         m.addEventListener("downloadprogress", (e) => {
@@ -322,7 +318,6 @@ Response: ${resp.response}`
 
       const newReply = reply.replace(processedReply, "");
       const fullSentence = isFullSentence(newReply);
-      const fullXMLToolCall = isFullXMLToolCall(newReply);
 
       if (fullSentence) {
         processedReply = reply;
@@ -343,22 +338,24 @@ Response: ${resp.response}`
         }));
       }
 
-      if (fullXMLToolCall) {
+      const fullToolCalls = this.session.parseToolCalls(newReply);
+
+      if (fullToolCalls.length > 0) {
         processedReply = reply;
-        toolsToCall.push(fullXMLToolCall);
+        toolsToCall.push(...fullToolCalls);
         this.messages = this.messages.map((message) => ({
           ...message,
           messageParts:
             message.id === assistantId
               ? [
                   ...message.messageParts,
-                  {
+                  ...fullToolCalls.map<MessagePart>((toolCall) => ({
                     type: MessagePartType.TOOL_CALL,
                     id: uuidv4(),
-                    functionName: fullXMLToolCall.functionName,
-                    parameters: fullXMLToolCall.parameters,
+                    functionName: toolCall.functionName,
+                    parameters: toolCall.parameters,
                     response: "",
-                  },
+                  })),
                 ]
               : message.messageParts,
         }));

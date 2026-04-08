@@ -8,6 +8,8 @@ import {
 } from "@huggingface/transformers";
 
 import { ModelIds } from "../../../constants";
+import type { SerializableToolDefinition } from "../../toolCalling/chatTemplateToolMapping";
+import { getChatTemplateToolMapper } from "../../toolCalling/chatTemplateToolMapping";
 import { ModelUsage } from "../types";
 import KVCache from "./KVCache";
 import { WorkerError } from "./WorkerError";
@@ -18,6 +20,7 @@ const prompt = async (params: {
   tokenizer: PreTrainedTokenizer;
   model: PreTrainedModel;
   messages: Array<Message>;
+  tools?: Array<SerializableToolDefinition>;
   cache: KVCache;
   on_response_update: (token: string) => void;
   temperature: number;
@@ -35,6 +38,7 @@ const prompt = async (params: {
     tokenizer,
     model,
     messages,
+    tools,
     cache,
     on_response_update,
     temperature,
@@ -50,17 +54,28 @@ const prompt = async (params: {
   }
 
   const input_start_time: DOMHighResTimeStamp = performance.now();
+  const mapper = getChatTemplateToolMapper(model_id);
+  const mappedTools = mapper ? mapper.mapTools(tools ?? []) : [];
+
+  const chatTemplateOptions = {
+    ...(mappedTools.length > 0 ? { tools: mappedTools } : {}),
+  };
+
   const inputs = tokenizer.apply_chat_template(messages, {
     add_generation_prompt: true,
     return_dict: true,
     // @ts-ignore
     enable_thinking: false,
+    // @ts-ignore
+    ...chatTemplateOptions,
   });
 
   const input_size = (
     tokenizer.apply_chat_template(messages, {
       tokenize: true,
       return_tensor: false,
+      // @ts-ignore
+      ...chatTemplateOptions,
     }) as Array<number>
   ).length;
 
@@ -70,6 +85,8 @@ const prompt = async (params: {
     tokenizer.apply_chat_template(new_messages, {
       tokenize: true,
       return_tensor: false,
+      // @ts-ignore
+      ...chatTemplateOptions,
     }) as Array<number>
   ).length;
 

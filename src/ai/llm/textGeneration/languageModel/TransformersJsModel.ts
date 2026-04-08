@@ -1,6 +1,9 @@
+import type { XMLToolSignature } from "@ai/types";
 import { Message, ModelRegistry } from "@huggingface/transformers";
 
 import { MODELS, MODEL_ID, ModelIds } from "../constants";
+import type { SerializableToolDefinition } from "./toolCalling/chatTemplateToolMapping";
+import { getChatTemplateToolMapper } from "./toolCalling/chatTemplateToolMapping";
 import {
   ModelUsage,
   RequestType,
@@ -203,6 +206,7 @@ class TransformersJsModel {
     top_k: number,
     is_init_cache: boolean,
     onResponseUpdate: (response: string) => void = () => {},
+    tools?: Array<SerializableToolDefinition>,
     options?: LanguageModelPromptOptions
   ): Promise<{
     response: string;
@@ -247,6 +251,7 @@ class TransformersJsModel {
           role: message.role,
           content: message.content.toString(),
         })),
+        tools,
         temperature,
         top_k,
         is_init_cache,
@@ -309,6 +314,15 @@ class TransformersJsModel {
   static downloadSize = (model_id: ModelIds) => {
     return modelSizeCache[model_id] ?? 0;
   };
+
+  parseToolCalls(response: string): Array<XMLToolSignature> {
+    const mapper = getChatTemplateToolMapper(this.model_id);
+    if (!mapper) {
+      return [];
+    }
+
+    return mapper.parseToolCalls(response);
+  }
 }
 
 export default TransformersJsModel;

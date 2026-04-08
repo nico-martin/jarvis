@@ -83,6 +83,7 @@ const webWorkerHandler = () => {
               tokenizer,
               model,
               messages: request.messages,
+              tools: request.tools,
               cache,
               on_response_update: (token_generated: string) => {
                 // Check if request was cancelled

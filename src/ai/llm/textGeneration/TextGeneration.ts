@@ -1,5 +1,9 @@
 import { ModelIds } from "./constants";
 import TransformersJsModel from "./languageModel/TransformersJsModel";
+import type {
+  NativeToolDefinition,
+  SerializableToolDefinition,
+} from "./languageModel/toolCalling/chatTemplateToolMapping";
 import { ModelUsage } from "./languageModel/worker/types";
 
 const default_model_id = "SmolLM3-3B";
@@ -17,6 +21,7 @@ class TextGeneration extends EventTarget implements DestroyableModel {
   private _inputQuota = 0;
   private _topK = TextGeneration.defaultParams.defaultTopK;
   private _temperature = TextGeneration.defaultParams.defaultTemperature;
+  private _tools: Array<SerializableToolDefinition> = [];
   private _destroyed = false;
   private model: TransformersJsModel;
   public _conversationHistory: Array<
@@ -57,8 +62,8 @@ class TextGeneration extends EventTarget implements DestroyableModel {
   static async create(
     options?: Omit<
       LanguageModelCreateOptions,
-      "tools" | "expectedInputs" | "expectedOutputs"
-    > & { buildKVCache?: boolean }
+      "expectedInputs" | "expectedOutputs"
+    > & { buildKVCache?: boolean; tools?: Array<NativeToolDefinition> }
   ): Promise<TextGeneration> {
     const instance = new TextGeneration();
     instance.session_id = Math.random().toString(36).substring(2, 15);
@@ -70,11 +75,15 @@ class TextGeneration extends EventTarget implements DestroyableModel {
     instance._inputQuota = Number.POSITIVE_INFINITY;
 
     // @ts-expect-error
-    if (options?.tools || options?.expectedInputs || options?.expectedOutputs) {
+    if (options?.expectedInputs || options?.expectedOutputs) {
       throw new Error(
-        "tools, expectedInputs and expectedOutputs are not yet implemented"
+        "expectedInputs and expectedOutputs are not yet implemented"
       );
     }
+
+    instance._tools = (options?.tools ?? []).map(
+      ({ execute, ...tool }) => tool
+    );
 
     if (options?.topK !== undefined) {
       instance._topK = options.topK;
@@ -102,6 +111,7 @@ class TextGeneration extends EventTarget implements DestroyableModel {
         instance._topK,
         true,
         () => {},
+        instance._tools,
         {
           signal: options?.signal,
         }
@@ -134,6 +144,7 @@ class TextGeneration extends EventTarget implements DestroyableModel {
       this._topK,
       false,
       () => {},
+      this._tools,
       options
     );
 
@@ -163,6 +174,7 @@ class TextGeneration extends EventTarget implements DestroyableModel {
             (token_generated) => {
               controller.enqueue(token_generated);
             },
+            this._tools,
             options
           );
 
@@ -276,6 +288,10 @@ class TextGeneration extends EventTarget implements DestroyableModel {
     model_id: ModelIds = default_model_id
   ): Promise<number> {
     return TransformersJsModel.resolveDownloadSize(model_id);
+  }
+
+  parseToolCalls(response: string) {
+    return this.model.parseToolCalls(response);
   }
 }
 

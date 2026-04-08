@@ -1,5 +1,7 @@
 import { Message, ProgressInfo } from "@huggingface/transformers";
+
 import { ModelIds } from "../../constants";
+import type { SerializableToolDefinition } from "../toolCalling/types";
 
 interface BaseRequest {
   id: string;
@@ -46,6 +48,7 @@ interface LoadModelRequest extends BaseRequest {
 interface PromptRequest extends BaseRequest {
   type: RequestType.PROMPT;
   messages: Array<Message>;
+  tools?: Array<SerializableToolDefinition>;
   temperature: number;
   top_k: number;
   is_init_cache: boolean;
