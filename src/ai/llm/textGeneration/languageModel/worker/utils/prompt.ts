@@ -61,6 +61,14 @@ const prompt = async (params: {
     ...(mappedTools.length > 0 ? { tools: mappedTools } : {}),
   };
 
+  const renderedChatTemplate = tokenizer.apply_chat_template(messages, {
+    add_generation_prompt: true,
+    tokenize: false,
+    // @ts-ignore
+    ...chatTemplateOptions,
+  }) as string;
+  console.log("chat-template", renderedChatTemplate);
+
   const inputs = tokenizer.apply_chat_template(messages, {
     add_generation_prompt: true,
     return_dict: true,

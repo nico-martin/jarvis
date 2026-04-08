@@ -1,4 +1,5 @@
 import useAgent from "@ai/agentContext/useAgent";
+import useMcpServer from "@ai/mcp/react/useMcpServer";
 import { ModelStatus } from "@ai/types";
 import { PaperAirplaneIcon } from "@heroicons/react/24/outline";
 import { Button, ContentBox, InputText } from "@theme";
@@ -19,6 +20,18 @@ export default function Chat({
   const messagesLengthRef = useRef<number>(0);
   const [prompt, setPrompt] = useState<string>("");
   const { conversationStatus, messages, submit } = useAgent();
+  const { active: activeMcpServers } = useMcpServer();
+
+  const availableToolNames = useMemo(() => {
+    const names = activeMcpServers.flatMap((server) => {
+      if (!server.server?.tools) return [];
+      return server.server.tools
+        .filter((tool) => server.activeTools.includes(tool.name))
+        .map((tool) => tool.name);
+    });
+
+    return Array.from(new Set(names)).sort();
+  }, [activeMcpServers]);
 
   const messagesLength = useMemo(
     () => JSON.stringify(messages).length,
@@ -48,7 +61,10 @@ export default function Chat({
         >
           {messages.map((message) => (
             <li key={message.id}>
-              <Message message={message} />
+              <Message
+                message={message}
+                availableToolNames={availableToolNames}
+              />
             </li>
           ))}
         </ul>

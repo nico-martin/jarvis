@@ -65,16 +65,17 @@ export class TakePictureServer {
               {
                 name: "take_picture",
                 description:
-                  'This tool captures a photo using the device camera and provides an AI-generated description of the image content. Use this tool when the user requests to take a photo, asks you to analyze or describe something in their current environment, wants to identify objects/text/scenes they can see, or asks questions like "What do you see?" or "Can you look at this?". The tool will return the content of the image. Then its your job to answer the users question based on the image content',
+                  'This tool captures a photo using the device camera and provides an AI-generated description of the image content. Use this tool whenever the user asks about anything visual in their current environment (for example identifying objects, reading visible text, describing scenes, checking colors, or answering "what do you see" style questions). If asked about visual details like clothing color (for example "what color is my shirt"), call this tool first and then answer from the result. Do not ask the user to provide or upload a picture when this tool is available; this tool already captures one.',
                 inputSchema: {
                   type: "object",
                   properties: {
                     query: {
                       type: "string",
                       description:
-                        "Optional question or description of what to look for in the picture. If not provided, a general description will be generated.",
+                        "The exact user question or instruction describing what to inspect in the photo (for example: 'What color is my shirt?').",
                     },
                   },
+                  required: ["query"],
                   additionalProperties: false,
                 },
               },

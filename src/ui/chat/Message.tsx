@@ -139,9 +139,11 @@ function MessagePartRenderer({ part }: { part: MessagePart }) {
 
 export function Message({
   message,
+  availableToolNames = [],
   className = "",
 }: {
   message: MessageI;
+  availableToolNames?: Array<string>;
   className?: string;
 }) {
   return (
@@ -188,6 +190,19 @@ export function Message({
               PROCESSING_REQUEST...
             </div>
           )}
+          {message.role === MessageRole.SYSTEM &&
+            availableToolNames.length > 0 && (
+              <div className="border-primary-400/60 bg-primary-950/40 mt-3 border p-3">
+                <p className="text-text-bright mb-1 text-xs font-medium">
+                  AVAILABLE_TOOLS:
+                </p>
+                <ul className="text-text-superbright/90 text-xs">
+                  {availableToolNames.map((toolName) => (
+                    <li key={toolName}>{toolName}</li>
+                  ))}
+                </ul>
+              </div>
+            )}
         </div>
       </div>
     </div>

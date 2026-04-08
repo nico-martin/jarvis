@@ -24,5 +24,5 @@ ${keyword}`;
 export const INSTRUCTIONS = [
   "never use ellipsis (...)",
   "Keep your answers short but precise",
-  "Only use tools if you absolutely have to.",
+  //"Only use tools if you absolutely have to.",
 ];
