@@ -1,9 +1,9 @@
 import {
+  DynamicCache,
   InterruptableStoppingCriteria,
   Message,
-  PreTrainedModel,
-  PreTrainedTokenizer,
   Tensor,
+  TextGenerationPipeline,
   TextStreamer,
 } from "@huggingface/transformers";
 
@@ -11,23 +11,20 @@ import { ModelIds } from "../../../constants";
 import type { SerializableToolDefinition } from "../../toolCalling/chatTemplateToolMapping";
 import { getChatTemplateToolMapper } from "../../toolCalling/chatTemplateToolMapping";
 import { ModelUsage } from "../types";
-import KVCache from "./KVCache";
 import { WorkerError } from "./WorkerError";
 
 let stopping_criteria: any = null;
 
 const prompt = async (params: {
-  tokenizer: PreTrainedTokenizer;
-  model: PreTrainedModel;
+  model: TextGenerationPipeline;
   messages: Array<Message>;
   tools?: Array<SerializableToolDefinition>;
-  cache: KVCache;
+  past_key_values: DynamicCache;
   on_response_update: (token: string) => void;
   temperature: number;
   top_k: number;
   is_init_cache: boolean;
   model_id: ModelIds;
-  session_id: string;
   abortSignal?: AbortSignal;
 }): Promise<{
   answer: string;
@@ -35,19 +32,25 @@ const prompt = async (params: {
   newMessages: Array<Message>;
 }> => {
   const {
-    tokenizer,
     model,
     messages,
     tools,
-    cache,
+    past_key_values,
     on_response_update,
     temperature,
     top_k,
     is_init_cache,
     model_id,
-    session_id,
     abortSignal,
   } = params;
+  const tokenizer = model.tokenizer;
+  const had_cache = (() => {
+    try {
+      return past_key_values.get_seq_length() > 0;
+    } catch {
+      return false;
+    }
+  })();
 
   if (!stopping_criteria) {
     stopping_criteria = new InterruptableStoppingCriteria();
@@ -61,33 +64,16 @@ const prompt = async (params: {
     ...(mappedTools.length > 0 ? { tools: mappedTools } : {}),
   };
 
-  const renderedChatTemplate = tokenizer.apply_chat_template(messages, {
-    add_generation_prompt: true,
-    tokenize: false,
-    // @ts-ignore
-    ...chatTemplateOptions,
-  }) as string;
-  console.log("chat-template", renderedChatTemplate);
-
-  const inputs = tokenizer.apply_chat_template(messages, {
-    add_generation_prompt: true,
-    return_dict: true,
-    // @ts-ignore
-    enable_thinking: false,
-    // @ts-ignore
-    ...chatTemplateOptions,
-  });
-
   const input_size = (
     tokenizer.apply_chat_template(messages, {
       tokenize: true,
       return_tensor: false,
       // @ts-ignore
       ...chatTemplateOptions,
-    }) as Array<number>
+    }) as unknown as Array<number>
   ).length;
 
-  const { value: kv_cache, new_messages } = cache.get(messages);
+  const new_messages = had_cache ? messages.slice(-1) : messages;
 
   const new_messages_size = (
     tokenizer.apply_chat_template(new_messages, {
@@ -95,7 +81,7 @@ const prompt = async (params: {
       return_tensor: false,
       // @ts-ignore
       ...chatTemplateOptions,
-    }) as Array<number>
+    }) as unknown as Array<number>
   ).length;
 
   let first_token_time: DOMHighResTimeStamp = null;
@@ -126,13 +112,14 @@ const prompt = async (params: {
     token_callback_function,
   });
 
-  // @ts-ignore
-  const { past_key_values, ...s } = await model.generate({
-    // @ts-ignore
-    ...inputs,
-    past_key_values: kv_cache,
+  await model(messages, {
+    past_key_values,
+    tokenizer_encode_kwargs: {
+      // @ts-ignore
+      enable_thinking: false,
+      ...chatTemplateOptions,
+    },
 
-    // Sampling
     do_sample: temperature !== 0,
     top_k,
     temperature,
@@ -140,7 +127,6 @@ const prompt = async (params: {
     max_new_tokens: is_init_cache ? 1 : 16384,
     streamer,
     stopping_criteria,
-    return_dict_in_generate: true,
   });
 
   const newMessages: Array<Message> = [
@@ -153,13 +139,11 @@ const prompt = async (params: {
 
   const done_time: DOMHighResTimeStamp = performance.now();
 
-  cache.set(newMessages, { session_id, kv: past_key_values });
-
   const usage: ModelUsage = {
     new_input_tokens: new_messages_size,
     input_tokens: input_size,
     input_duration_ms: first_token_time - input_start_time,
-    input_cache_used: Boolean(kv_cache),
+    input_cache_used: had_cache,
     output_tokens: num_tokens,
     output_duration_ms: done_time - first_token_time,
     output_tps: tps,

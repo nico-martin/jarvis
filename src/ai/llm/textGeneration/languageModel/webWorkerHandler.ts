@@ -1,3 +1,5 @@
+import { DynamicCache, ProgressInfo } from "@huggingface/transformers";
+
 import {
   RequestType,
   ResponseType,
@@ -5,12 +7,11 @@ import {
   WorkerResponse,
 } from "./worker/types";
 import CausalLMPipeline from "./worker/utils/CausalLMPipeline";
-import KVCache from "./worker/utils/KVCache";
 import { WorkerError, WorkerErrorCode } from "./worker/utils/WorkerError";
 import getLanguageModelAvailability from "./worker/utils/getLanguageModelAvailability";
 import prompt from "./worker/utils/prompt";
 
-const cache = new KVCache();
+const cache = new Map<string, DynamicCache>();
 const activePromptRequests = new Map<string, AbortController>();
 const activeModelLoadRequests = new Map<string, AbortController>();
 
@@ -39,7 +40,7 @@ const webWorkerHandler = () => {
 
             await CausalLMPipeline.getInstance(
               request.model_id,
-              (progressInfo) => {
+              (progressInfo: ProgressInfo) => {
                 if (abortController.signal.aborted) {
                   throw new DOMException("Request cancelled", "AbortError");
                 }
@@ -63,9 +64,14 @@ const webWorkerHandler = () => {
           case RequestType.PROMPT: {
             const abortController = new AbortController();
             activePromptRequests.set(request.id, abortController);
-            const [tokenizer, model] = await CausalLMPipeline.getInstance(
+            let sessionCache = cache.get(request.session_id);
+            if (!sessionCache) {
+              sessionCache = new DynamicCache();
+              cache.set(request.session_id, sessionCache);
+            }
+            const model = await CausalLMPipeline.getInstance(
               request.model_id,
-              (progressInfo) => {
+              (progressInfo: ProgressInfo) => {
                 // Check if request was cancelled
                 if (abortController.signal.aborted) {
                   throw new DOMException("Request cancelled", "AbortError");
@@ -80,11 +86,10 @@ const webWorkerHandler = () => {
             );
 
             const resp = await prompt({
-              tokenizer,
               model,
               messages: request.messages,
               tools: request.tools,
-              cache,
+              past_key_values: sessionCache,
               on_response_update: (token_generated: string) => {
                 // Check if request was cancelled
                 if (abortController.signal.aborted) {
@@ -100,7 +105,6 @@ const webWorkerHandler = () => {
               top_k: request.top_k,
               is_init_cache: request.is_init_cache,
               model_id: request.model_id,
-              session_id: request.session_id,
               abortSignal: abortController.signal,
             });
 
@@ -152,9 +156,14 @@ const webWorkerHandler = () => {
             postMessage(cancelError.toErrorResponse(request.id));
             return;
           }
-          case RequestType.DESTROY:
-            cache.deleteSession(request.session_id);
+          case RequestType.DESTROY: {
+            const sessionCache = cache.get(request.session_id);
+            if (sessionCache) {
+              await sessionCache.dispose();
+              cache.delete(request.session_id);
+            }
             return;
+          }
           default:
             const noHandlerError = new WorkerError(
               WorkerErrorCode.NO_HANDLER,
