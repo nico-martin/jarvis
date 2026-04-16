@@ -2,13 +2,13 @@ name: Deploy to Production
 
 on:
   push:
-    branches: [ main ]
+    branches: [main]
   workflow_dispatch:
 
 jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
-    
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -16,15 +16,20 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: "20"
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9
 
       - name: Clean and install dependencies
         run: |
-          rm -rf package-lock.json node_modules
-          npm install
+          rm -rf node_modules
+          pnpm install --frozen-lockfile
 
       - name: Build production
-        run: npm run build
+        run: pnpm run build
 
       - name: Upload to FTP
         uses: SamKirkland/FTP-Deploy-Action@v4.3.5
