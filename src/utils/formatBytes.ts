@@ -1,4 +1,5 @@
 const formatBytes = (bytes: number, decimals: number = 2): string => {
+  if (!Number.isFinite(bytes) || bytes < 0) return "Unknown size";
   if (bytes === 0) return "0 Bytes";
 
   const k = 1024;

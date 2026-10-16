@@ -2,7 +2,7 @@ import { DownloadModelProgress } from "@ai/agentContext/AgentContext";
 import useAgent from "@ai/agentContext/useAgent";
 import { EXPECTED_FILES as EXPECTED_FILES_VLM } from "@ai/imageToText/constants";
 import { TextGeneration } from "@ai/llm/textGeneration";
-import { MODELS, MODEL_ID } from "@ai/llm/textGeneration/constants";
+import { MODEL, MODEL_ID } from "@ai/llm/textGeneration/constants";
 import { EXPECTED_FILES as EXPECTED_FILES_STT } from "@ai/speechToText/constants";
 import { EXPECTED_FILES as EXPECTED_FILES_TTS } from "@ai/textToSpeech/kokoro/constants";
 import { ArrowDownTrayIcon } from "@heroicons/react/16/solid";
@@ -48,7 +48,7 @@ const getModel = (
         taskName: "LARGE_LANGUAGE_MODEL",
         name: MODEL_ID,
         size: llmSize,
-        url: `https://huggingface.co/${MODELS[MODEL_ID].id}`,
+        url: `https://huggingface.co/${MODEL.modelId}`,
       };
     case "tts":
       return {
@@ -120,8 +120,8 @@ export default function DownLoadDisclaimer({}: {}) {
           >
             Transformers.js
           </a>{" "}
-          and ONNX Runtime Web, meaning no data is sent to a server. It can even
-          run offline!
+          and an experimental WebGPU runtime, meaning no data is sent to a
+          server. It can even run offline!
         </p>
         <div className="my-16 flex w-full items-center justify-center">
           {isDownloading ? (

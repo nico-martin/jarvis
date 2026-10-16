@@ -1,7 +1,7 @@
 import type { XMLToolSignature } from "@ai/types";
 import { Message, ModelRegistry } from "@huggingface/transformers";
 
-import { MODELS, MODEL_ID, ModelIds } from "../constants";
+import { MODEL, MODEL_ID, ModelIds } from "../constants";
 import type { SerializableToolDefinition } from "./toolCalling/chatTemplateToolMapping";
 import { getChatTemplateToolMapper } from "./toolCalling/chatTemplateToolMapping";
 import {
@@ -23,7 +23,7 @@ class TransformersJsModel {
   public constructor(
     worker: Worker,
     session_id: string,
-    model_id: ModelIds = "SmolLM3-3B"
+    model_id: ModelIds = MODEL_ID
   ) {
     this.model_id = model_id;
     if (worker) {
@@ -51,19 +51,28 @@ class TransformersJsModel {
       return modelSizeCache[model_id];
     }
 
-    const model = MODELS[model_id];
     const files = await ModelRegistry.get_pipeline_files(
       "text-generation",
-      model.id,
+      MODEL,
       {
-        dtype: model.dtype,
+        device: "webgpu",
+        dtype: "auto",
       }
     );
 
     const metadata = await Promise.all(
       files.map(async (file) => {
         try {
-          return await ModelRegistry.get_file_metadata(model.id, file);
+          const metadata = await ModelRegistry.get_file_metadata(MODEL, file);
+          if (metadata.exists && metadata.size === undefined) {
+            // The backend's cache metadata may omit the weight file size.
+            const remoteMetadata = await ModelRegistry.get_file_metadata(
+              MODEL.modelId,
+              file
+            );
+            return { ...metadata, size: remoteMetadata.size };
+          }
+          return metadata;
         } catch {
           return {
             exists: false,
@@ -74,7 +83,7 @@ class TransformersJsModel {
     );
 
     const size = metadata.reduce(
-      (acc, item) => acc + (item.exists ? item.size : 0),
+      (acc, item) => acc + (item.exists ? (item.size ?? 0) : 0),
       0
     );
 

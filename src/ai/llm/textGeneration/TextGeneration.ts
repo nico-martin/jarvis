@@ -1,4 +1,4 @@
-import { ModelIds } from "./constants";
+import { MODEL_ID, ModelIds } from "./constants";
 import TransformersJsModel from "./languageModel/TransformersJsModel";
 import type {
   NativeToolDefinition,
@@ -6,7 +6,7 @@ import type {
 } from "./languageModel/toolCalling/chatTemplateToolMapping";
 import { ModelUsage } from "./languageModel/worker/types";
 
-const default_model_id = "SmolLM3-3B";
+const default_model_id = MODEL_ID;
 
 class TextGeneration extends EventTarget implements DestroyableModel {
   private static defaultParams: LanguageModelParams = {

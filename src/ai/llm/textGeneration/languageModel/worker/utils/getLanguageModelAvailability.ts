@@ -1,21 +1,22 @@
 /// <reference types="@webgpu/types" />
 import { ModelRegistry } from "@huggingface/transformers";
 
-import { MODELS, ModelIds } from "../../../constants";
+import { MODEL, MODEL_ID, ModelIds } from "../../../constants";
 
 const getLanguageModelAvailability = async (
   model_id: ModelIds
 ): Promise<Availability> => {
   const adapter = await navigator.gpu.requestAdapter();
-  if (!adapter || !(model_id in MODELS)) {
+  if (!adapter || model_id !== MODEL_ID) {
     return "unavailable";
   }
 
   const filesInCache = await ModelRegistry.is_pipeline_cached(
     "text-generation",
-    MODELS[model_id].id,
+    MODEL,
     {
-      dtype: MODELS[model_id].dtype,
+      device: "webgpu",
+      dtype: "auto",
     }
   );
 

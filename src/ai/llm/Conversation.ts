@@ -58,9 +58,6 @@ class Conversation {
     onlyDownload: boolean = false
   ) {
     this.mcpServers = mcpServers;
-    if (this.mcpServers.length === 0 && !onlyDownload) {
-      return;
-    }
 
     const systemPromptParts: Array<string> = [initSystemPrompt];
 
