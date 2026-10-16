@@ -1,8 +1,6 @@
 name: Deploy to Production
 
 on:
-  push:
-    branches: [experimental-webgpu-runtime]
   workflow_dispatch:
 
 jobs:
