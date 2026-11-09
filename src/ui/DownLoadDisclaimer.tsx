@@ -3,7 +3,10 @@ import useAgent from "@ai/agentContext/useAgent";
 import { EXPECTED_FILES as EXPECTED_FILES_VLM } from "@ai/imageToText/constants";
 import { TextGeneration } from "@ai/llm/textGeneration";
 import { MODEL, MODEL_ID } from "@ai/llm/textGeneration/constants";
-import { EXPECTED_FILES as EXPECTED_FILES_STT } from "@ai/speechToText/constants";
+import {
+  EXPECTED_FILES as EXPECTED_FILES_STT,
+  MODEL as STT_MODEL,
+} from "@ai/speechToText/constants";
 import { EXPECTED_FILES as EXPECTED_FILES_TTS } from "@ai/textToSpeech/phonon/constants";
 import { ArrowDownTrayIcon } from "@heroicons/react/16/solid";
 import { Button, ContentBox, Progress } from "@theme";
@@ -60,9 +63,9 @@ const getModel = (
     case "stt":
       return {
         taskName: "SPEECH_RECOGNITION",
-        name: "Whisper Base",
+        name: STT_MODEL.name,
         size: STT_SIZE,
-        url: "https://huggingface.co/openai/whisper-base",
+        url: STT_MODEL.url,
       };
     case "vlm":
       return {

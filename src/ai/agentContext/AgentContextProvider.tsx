@@ -19,7 +19,11 @@ import SpeechToText from "../speechToText/SpeechToText";
 import Phonon from "../textToSpeech/phonon/Phonon";
 import { Message, MessagePartType, MessageRole, MessageUser } from "../types";
 import AgentContext, { DownloadModelProgress } from "./AgentContext";
-import { FILL_WORDS } from "./constants";
+import {
+  FILL_WORDS,
+  VAD_APPEND_SILENCE_MS,
+  VAD_MIN_SILENCE_MS,
+} from "./constants";
 
 type VadStatus = "idle" | "waiting" | "recording";
 
@@ -132,7 +136,16 @@ export default function AgentContextProvider({
     return () => vadListeners.current.delete(callback);
   }, []);
 
-  const vad = useMemo(() => new VadRecorder(), []);
+  // Defaults are 1000ms silence + 300ms appended audio before a recording is
+  // handed over. Shorter values reply faster but may cut off long pauses.
+  const vad = useMemo(
+    () =>
+      new VadRecorder({
+        minSilenceDuration: VAD_MIN_SILENCE_MS,
+        appendSilence: VAD_APPEND_SILENCE_MS,
+      }),
+    []
+  );
   const [vadStatus, setVadStatus] = useState<VadStatus>("idle");
 
   useEffect(() => {
@@ -140,12 +153,14 @@ export default function AgentContextProvider({
     vad.onSpeechStart(() => setVadStatus("recording"));
     vad.onSpeechEnd(() => setVadStatus("waiting"));
     vad.onRecord((blob) => {
-      console.log(blob);
       void speechToText.generateFromBlob(blob).then((text) => {
-        const isFillWord = FILL_WORDS.includes(text.trim().toLowerCase());
+        const trimmed = text.trim();
+        const isFillWord = FILL_WORDS.includes(trimmed.toLowerCase());
+        // Non-speech annotations like "(coughs)" or "[Music]".
         const possibleFillWord =
-          text.trim().startsWith("(") && text.trim().startsWith(")");
-        if (!isFillWord && !possibleFillWord) {
+          (trimmed.startsWith("(") && trimmed.endsWith(")")) ||
+          (trimmed.startsWith("[") && trimmed.endsWith("]"));
+        if (trimmed && !isFillWord && !possibleFillWord) {
           vadListeners.current.forEach((callback) => callback(text));
         }
       });

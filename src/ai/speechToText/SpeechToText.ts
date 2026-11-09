@@ -16,18 +16,16 @@ class SpeechToText {
     });
   }
 
-  public preload(
+  public async preload(
     callback: (progress: number) => void = () => {}
   ): Promise<void> {
-    return new Promise((resolve) => {
-      // Send a small dummy audio buffer to initialize the model
-      const dummyAudio = new Float32Array(16000); // 1 second of silence at 16kHz
-      this.generate(dummyAudio, 16000, callback)
-        .then(() => resolve())
-        .catch(() => {
-          // Ignore errors during preload - this is just to initialize the model
-        });
-    });
+    // Run 1 second of silence to download the model and compile the shaders.
+    try {
+      await this.generate(new Float32Array(16000), 16000, callback);
+    } catch (error) {
+      // Don't block loading the other models, the error surfaces on first use.
+      console.error("Speech to text preload failed:", error);
+    }
   }
 
   public async generate(
@@ -103,18 +101,71 @@ class SpeechToText {
     blob: Blob
   ): Promise<{ data: Float32Array; sampleRate: number }> {
     const arrayBuffer = await blob.arrayBuffer();
-    const audioContext = new (window.AudioContext ||
-      (window as any).webkitAudioContext)();
-    const audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
-    let audioData = audioBuffer.getChannelData(0);
-    if (audioBuffer.sampleRate !== 16000) {
-      audioData = this.resampleAudio(audioData, audioBuffer.sampleRate, 16000);
-    }
+    // The VAD records 16-bit mono PCM WAV, which we read directly instead of
+    // going through an AudioContext.
+    const decoded =
+      this.parsePcm16Wav(arrayBuffer) ??
+      (await this.decodeWithAudioContext(arrayBuffer));
+    const data =
+      decoded.sampleRate === 16000
+        ? decoded.data
+        : this.resampleAudio(decoded.data, decoded.sampleRate, 16000);
+    return { data, sampleRate: 16000 };
+  }
 
-    return {
-      data: audioData,
-      sampleRate: 16000,
-    };
+  private parsePcm16Wav(
+    buffer: ArrayBuffer
+  ): { data: Float32Array; sampleRate: number } | null {
+    const view = new DataView(buffer);
+    const tag = (offset: number) =>
+      String.fromCharCode(
+        ...new Uint8Array(
+          buffer,
+          offset,
+          Math.min(4, buffer.byteLength - offset)
+        )
+      );
+    if (buffer.byteLength < 44 || tag(0) !== "RIFF" || tag(8) !== "WAVE")
+      return null;
+
+    let sampleRate = 0;
+    let offset = 12;
+    while (offset + 8 <= buffer.byteLength) {
+      const id = tag(offset);
+      const size = view.getUint32(offset + 4, true);
+      const body = offset + 8;
+      if (id === "fmt ") {
+        const format = view.getUint16(body, true);
+        const channels = view.getUint16(body + 2, true);
+        const bitsPerSample = view.getUint16(body + 14, true);
+        if (format !== 1 || channels !== 1 || bitsPerSample !== 16) return null;
+        sampleRate = view.getUint32(body + 4, true);
+      } else if (id === "data" && sampleRate) {
+        const length = Math.min(size, buffer.byteLength - body) >> 1;
+        const data = new Float32Array(length);
+        for (let i = 0; i < length; i++) {
+          data[i] = view.getInt16(body + i * 2, true) / 32768;
+        }
+        return { data, sampleRate };
+      }
+      offset = body + size + (size & 1);
+    }
+    return null;
+  }
+
+  private async decodeWithAudioContext(
+    buffer: ArrayBuffer
+  ): Promise<{ data: Float32Array; sampleRate: number }> {
+    const audioContext = new AudioContext();
+    try {
+      const audioBuffer = await audioContext.decodeAudioData(buffer);
+      return {
+        data: audioBuffer.getChannelData(0),
+        sampleRate: audioBuffer.sampleRate,
+      };
+    } finally {
+      void audioContext.close();
+    }
   }
 
   public isCached = async (): Promise<boolean> => {
