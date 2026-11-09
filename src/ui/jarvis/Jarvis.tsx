@@ -12,12 +12,31 @@ import toast from "react-hot-toast";
 import Rings from "./Rings";
 import ToolCallPopup from "./ToolCallPopup";
 
+// "Jarvis" plus common mistranscriptions of it. Matched as case-insensitive
+// substrings, so avoid entries that are part of everyday words (e.g. "javas"
+// would match "javascript", "service" or "travis" would trigger too often).
 const JARVIS_KEYWORDS = [
-  "charmus",
   "jarvis",
+  // Heard in practice
+  "charmus",
   "JARIFAS",
   "Charmis",
   "Jarmus",
+  "darvis",
+  // Likely mishearings
+  "marvis",
+  "garvis",
+  "harvis",
+  "carvis",
+  "charvis",
+  "jervis",
+  "jarves",
+  "jarvas",
+  "jarvus",
+  "jarviz",
+  "jarbis",
+  "javis",
+  "jarvice",
 ].map((s) => s.toLowerCase());
 
 export default function Jarvis({}: {}) {
