@@ -1,13 +1,12 @@
 import { ProgressInfo } from "@huggingface/transformers";
 
-export type KokoroOutput = Blob;
-export type KokoroInput = {
+export type PhononOutput = Blob;
+export type PhononInput = {
   text: string;
   voice?: string;
-  speed?: number;
 };
-export type WorkerResponseKokoro = WorkerResponse<KokoroOutput>;
-export type WorkerRequestKokoro = WorkerRequest<KokoroInput>;
+export type WorkerResponsePhonon = WorkerResponse<PhononOutput>;
+export type WorkerRequestPhonon = WorkerRequest<PhononInput>;
 
 export interface WorkerRequest<Input> {
   input?: Input;
@@ -53,6 +52,6 @@ export enum QueueStatus {
 
 export interface QueueData {
   status: QueueStatus;
-  workerStatus?: WorkerResponseKokoro["status"];
+  workerStatus?: WorkerResponsePhonon["status"];
   statusText: string;
 }

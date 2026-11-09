@@ -4,7 +4,7 @@ import { EXPECTED_FILES as EXPECTED_FILES_VLM } from "@ai/imageToText/constants"
 import { TextGeneration } from "@ai/llm/textGeneration";
 import { MODELS, MODEL_ID } from "@ai/llm/textGeneration/constants";
 import { EXPECTED_FILES as EXPECTED_FILES_STT } from "@ai/speechToText/constants";
-import { EXPECTED_FILES as EXPECTED_FILES_TTS } from "@ai/textToSpeech/kokoro/constants";
+import { EXPECTED_FILES as EXPECTED_FILES_TTS } from "@ai/textToSpeech/phonon/constants";
 import { ArrowDownTrayIcon } from "@heroicons/react/16/solid";
 import { Button, ContentBox, Progress } from "@theme";
 import formatBytes from "@utils/formatBytes";
@@ -53,9 +53,9 @@ const getModel = (
     case "tts":
       return {
         taskName: "SPEECH_SYNTHESIS",
-        name: "Kokoro",
+        name: "Phonon 31M",
         size: TTS_SIZE,
-        url: "https://huggingface.co/hexgrad/Kokoro-82M",
+        url: "https://huggingface.co/onnx-community/phonon-31m-en-ONNX",
       };
     case "stt":
       return {
