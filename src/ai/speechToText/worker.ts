@@ -4,16 +4,17 @@ import {
   pipeline,
 } from "@huggingface/transformers";
 
-import { MODEL_ID } from "./constants";
+import { MODEL } from "./constants";
 import { SpeechToTextWorkerMessage, SpeechToTextWorkerResponse } from "./types";
 
-let whisperPipeline: AutomaticSpeechRecognitionPipeline | null = null;
+let asrPipeline: AutomaticSpeechRecognitionPipeline | null = null;
 
-async function initializeWhisper(request_id: string) {
-  if (!whisperPipeline) {
+async function initializeModel(request_id: string) {
+  if (!asrPipeline) {
     // @ts-ignore
-    whisperPipeline = await pipeline("automatic-speech-recognition", MODEL_ID, {
+    asrPipeline = await pipeline("automatic-speech-recognition", MODEL.id, {
       device: "webgpu",
+      ...(MODEL.dtype ? { dtype: MODEL.dtype } : {}),
       progress_callback: (p: ProgressInfo) =>
         postMessage({
           status: "progress",
@@ -22,7 +23,7 @@ async function initializeWhisper(request_id: string) {
         }),
     });
   }
-  return whisperPipeline;
+  return asrPipeline;
 }
 
 self.addEventListener(
@@ -36,16 +37,15 @@ self.addEventListener(
         status: "loading",
       });
 
-      const pipeline = await initializeWhisper(id);
+      const pipeline = await initializeModel(id);
       if (sampleRate !== 16000) {
         throw new Error(`Expected 16kHz audio, got ${sampleRate}Hz`);
       }
 
-      const result = await pipeline(audioData, {
-        return_timestamps: false,
-        chunk_length_s: 30,
-        stride_length_s: 5,
-      });
+      const result = await pipeline(
+        audioData,
+        MODEL.generateOptions(audioData, sampleRate)
+      );
 
       const text = Array.isArray(result)
         ? result[0]?.text || ""
