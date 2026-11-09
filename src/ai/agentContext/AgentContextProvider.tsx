@@ -16,7 +16,7 @@ import ImageToText from "../imageToText/ImageToText";
 import Conversation from "../llm/Conversation";
 import useMcpServer from "../mcp/react/useMcpServer";
 import SpeechToText from "../speechToText/SpeechToText";
-import Kokoro from "../textToSpeech/kokoro/Kokoro";
+import Phonon from "../textToSpeech/phonon/Phonon";
 import { Message, MessagePartType, MessageRole, MessageUser } from "../types";
 import AgentContext, { DownloadModelProgress } from "./AgentContext";
 import { FILL_WORDS } from "./constants";
@@ -39,7 +39,7 @@ export default function AgentContextProvider({
   );
 
   const speechToText = useMemo(() => new SpeechToText(), []);
-  const tts = useMemo(() => new Kokoro(), []);
+  const tts = useMemo(() => new Phonon(), []);
   const imageToText = useMemo(() => new ImageToText(), []);
 
   const isSpeaking = useExternalState<boolean>(

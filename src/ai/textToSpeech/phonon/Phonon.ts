@@ -3,26 +3,22 @@ import isFileInCache from "@utils/isFileInCache";
 
 import { TextToSpeech } from "../types";
 import SequentialAudioPlayer from "./SequentialAudioPlayer";
-import { EXPECTED_FILES, MODEL_ONNX_URL_BASE } from "./constants";
-import { KokoroInput, KokoroOutput, WorkerResponseKokoro } from "./types";
+import { DEFAULT_VOICE, EXPECTED_FILES, MODEL_URL_BASE } from "./constants";
+import { PhononInput, PhononOutput, WorkerResponsePhonon } from "./types";
 
 const WORKER_LOG = false;
 
-class Kokoro implements TextToSpeech {
+class Phonon implements TextToSpeech {
   private worker: Worker;
   private queue: Array<{ text: string; signal: AbortSignal }> = [];
   private isProcessing = false;
   public player = new SequentialAudioPlayer();
-  private voice: string = "bm_fable";
-  private speed: number = 1.2;
+  private voice: string = DEFAULT_VOICE;
 
-  constructor(options: { voice?: string; speed?: number } = {}) {
+  constructor(options: { voice?: string } = {}) {
     this.worker = new Worker(new URL("./worker.ts", import.meta.url), {
       type: "module",
     });
-    if (options?.speed) {
-      this.speed = options.speed;
-    }
     if (options?.voice) {
       this.voice = options.voice;
     }
@@ -51,7 +47,6 @@ class Kokoro implements TextToSpeech {
       {
         text: "",
         voice: this.voice,
-        speed: this.speed,
       },
       (progress) => {
         if (progress.status === "progress") {
@@ -140,7 +135,6 @@ class Kokoro implements TextToSpeech {
       {
         text,
         voice: this.voice,
-        speed: this.speed,
       },
       () => {},
       signal
@@ -153,10 +147,10 @@ class Kokoro implements TextToSpeech {
   }
 
   private workerMessage(
-    input: KokoroInput,
+    input: PhononInput,
     loadingCallback: (progress: ProgressInfo) => void = () => {},
     signal?: AbortSignal
-  ): Promise<KokoroOutput> {
+  ): Promise<PhononOutput> {
     return new Promise((resolve, reject) => {
       const id = Math.random().toString(36);
 
@@ -177,7 +171,7 @@ class Kokoro implements TextToSpeech {
 
       this.worker.postMessage({ input, id, log: WORKER_LOG });
 
-      const listener = (e: MessageEvent<WorkerResponseKokoro>) => {
+      const listener = (e: MessageEvent<WorkerResponsePhonon>) => {
         if (e.data.id !== id) return;
         if (e.data.status === "loading") {
           loadingCallback(e.data.progress);
@@ -205,10 +199,10 @@ class Kokoro implements TextToSpeech {
     (
       await Promise.all(
         Object.keys(EXPECTED_FILES).map((file) =>
-          isFileInCache("transformers-cache", MODEL_ONNX_URL_BASE + file)
+          isFileInCache("transformers-cache", MODEL_URL_BASE + file)
         )
       )
     ).every((c) => c);
 }
 
-export default Kokoro;
+export default Phonon;
