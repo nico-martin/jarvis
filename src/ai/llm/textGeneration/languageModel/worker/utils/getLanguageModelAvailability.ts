@@ -1,5 +1,5 @@
 /// <reference types="@webgpu/types" />
-import { ModelRegistry } from "@huggingface/transformers";
+import isPipelineCached from "../../../../../../utils/isPipelineCached";
 
 import { MODEL, MODEL_ID, ModelIds } from "../../../constants";
 
@@ -11,7 +11,7 @@ const getLanguageModelAvailability = async (
     return "unavailable";
   }
 
-  const filesInCache = await ModelRegistry.is_pipeline_cached(
+  const filesInCache = await isPipelineCached(
     "text-generation",
     MODEL,
     {

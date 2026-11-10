@@ -2,9 +2,9 @@ import {
   SpeechToTextWorkerMessage,
   SpeechToTextWorkerResponse,
 } from "@ai/speechToText/types";
-import isFileInCache from "@utils/isFileInCache";
+import isPipelineCached from "@utils/isPipelineCached";
 
-import { EXPECTED_FILES, MODEL_ONNX_URL_BASE } from "./constants";
+import { MODEL } from "./constants";
 
 class SpeechToText {
   private worker: Worker;
@@ -36,35 +36,12 @@ class SpeechToText {
     return new Promise((resolve, reject) => {
       const id = (this.id++).toString();
 
-      const files: Record<string, { total: number; loaded: number }> =
-        Object.entries(EXPECTED_FILES).reduce(
-          (acc, [file, total]) => ({
-            ...acc,
-            [file]: {
-              total,
-              loaded: 0,
-            },
-          }),
-          {}
-        );
-
       const listener = (e: MessageEvent<SpeechToTextWorkerResponse>) => {
         if (e.data.id !== id) return;
 
         if (e.data.status === "progress") {
-          if (e.data.progress.status === "progress") {
-            files[e.data.progress.file] = {
-              loaded: e.data.progress.loaded,
-              total: e.data.progress.total,
-            };
-            const { total, loaded } = Object.entries(files).reduce(
-              (acc, [file, progress]) => ({
-                total: acc.total + progress.total,
-                loaded: acc.loaded + progress.loaded,
-              }),
-              { total: 0, loaded: 0 }
-            );
-            progressCallback(Math.round((loaded / total) * 100));
+          if (e.data.progress.status === "progress_total") {
+            progressCallback(Math.round(e.data.progress.progress));
           }
         }
 
@@ -168,14 +145,11 @@ class SpeechToText {
     }
   }
 
-  public isCached = async (): Promise<boolean> => {
-    const cached = await Promise.all(
-      Object.keys(EXPECTED_FILES).map((file) =>
-        isFileInCache("transformers-cache", MODEL_ONNX_URL_BASE + file)
-      )
-    );
-    return cached.every((c) => c);
-  };
+  public isCached = async (): Promise<boolean> =>
+    isPipelineCached("automatic-speech-recognition", MODEL.id, {
+      device: "webgpu",
+      dtype: MODEL.dtype,
+    });
 
   private resampleAudio(
     audioData: Float32Array,

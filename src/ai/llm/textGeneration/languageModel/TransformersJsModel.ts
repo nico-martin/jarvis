@@ -99,12 +99,6 @@ class TransformersJsModel {
       throw new DOMException("Operation aborted", "AbortError");
     }
 
-    try {
-      await TransformersJsModel.resolveDownloadSize(this.model_id);
-    } catch {
-      // Fallback to progress event totals when metadata lookup fails.
-    }
-
     const updateProgress = (progress: {
       progress: number;
       loaded: number;
@@ -126,8 +120,6 @@ class TransformersJsModel {
 
     return new Promise<void>((resolve, reject) => {
       const requestId = (workerRequestId++).toString();
-      const loadedMap: Record<string, number> = {};
-      const totalMap: Record<string, number> = {};
       let refProgressPercentages = 0;
 
       const listener = (e: MessageEvent<WorkerResponse>) => {
@@ -150,37 +142,19 @@ class TransformersJsModel {
 
         if (
           e.data.type === ResponseType.LOAD_MODEL_PROGRESS &&
-          e.data.progress.status === "progress"
+          e.data.progress.status === "progress_total"
         ) {
           const progress = e.data.progress;
-          loadedMap[progress.file] = progress.loaded;
-          if (progress.total > 0) {
-            totalMap[progress.file] = progress.total;
-          }
-          const loaded = Object.values(loadedMap).reduce(
-            (acc, loaded) => acc + loaded,
-            0
-          );
-
-          const inferredTotal = Object.values(totalMap).reduce(
-            (acc, total) => acc + total,
-            0
-          );
-
-          const total =
-            modelSizeCache[this.model_id] ?? inferredTotal ?? loaded ?? 1;
-
+          const { loaded, total } = progress;
+          modelSizeCache[this.model_id] = total;
           const newProgressPercentages =
-            Math.round((loaded / total) * 10000) / 10000;
+            Math.round(progress.progress * 100) / 10000;
           const newProgress = {
             progress: newProgressPercentages,
             loaded,
             total,
           };
-          if (
-            JSON.stringify(refProgressPercentages) !==
-            JSON.stringify(newProgressPercentages)
-          ) {
+          if (refProgressPercentages !== newProgressPercentages) {
             updateProgress(newProgress);
             refProgressPercentages = newProgressPercentages;
           }

@@ -11,6 +11,11 @@ dotenv.config();
 const TITLE = "Jarvis - your private, personal assistant";
 
 export default defineConfig({
+  resolve: {
+    // Dependencies such as vad-recorder must share the linked Transformers.js
+    // build rather than loading their own published copy.
+    dedupe: ["@huggingface/transformers"],
+  },
   worker: {
     format: "es",
   },
