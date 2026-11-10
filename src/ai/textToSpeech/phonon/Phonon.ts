@@ -1,9 +1,12 @@
-import { ProgressInfo } from "@huggingface/transformers";
-import isFileInCache from "@utils/isFileInCache";
+import { ModelRegistry, ProgressInfo } from "@huggingface/transformers";
 
 import { TextToSpeech } from "../types";
 import SequentialAudioPlayer from "./SequentialAudioPlayer";
-import { DEFAULT_VOICE, EXPECTED_FILES, MODEL_URL_BASE } from "./constants";
+import {
+  DEFAULT_VOICE,
+  MODEL_ID,
+  getModelFiles,
+} from "./constants";
 import { PhononInput, PhononOutput, WorkerResponsePhonon } from "./types";
 
 const WORKER_LOG = false;
@@ -27,21 +30,16 @@ class Phonon implements TextToSpeech {
   public async preload(
     callback: (progress: number) => void = () => {}
   ): Promise<void> {
-    const files: Record<
-      string,
-      {
-        total: number;
-        loaded: number;
-      }
-    > = Object.entries(EXPECTED_FILES).reduce(
-      (acc, [file, total]) => ({
-        ...acc,
-        [file]: {
-          total,
-          loaded: 0,
-        },
-      }),
-      {}
+    const modelFiles = await getModelFiles();
+    const metadata = await Promise.all(
+      modelFiles.map((file) => ModelRegistry.get_file_metadata(MODEL_ID, file))
+    );
+    const files = Object.fromEntries(
+      modelFiles.flatMap((file, index) =>
+        metadata[index].exists
+          ? [[file, { total: metadata[index].size, loaded: 0 }]]
+          : []
+      )
     );
     await this.workerMessage(
       {
@@ -61,10 +59,11 @@ class Phonon implements TextToSpeech {
             }),
             { total: 0, loaded: 0 }
           );
-          callback(Math.round((loaded / total) * 100));
+          callback(total > 0 ? Math.round((loaded / total) * 100) : 0);
         }
       }
     );
+    callback(100);
   }
 
   private cleanTextForSpeech(text: string): string {
@@ -195,14 +194,25 @@ class Phonon implements TextToSpeech {
     });
   }
 
-  public isCached = async (): Promise<boolean> =>
-    (
-      await Promise.all(
-        Object.keys(EXPECTED_FILES).map((file) =>
-          isFileInCache("transformers-cache", MODEL_URL_BASE + file)
-        )
-      )
-    ).every((c) => c);
+  public isCached = async (): Promise<boolean> => {
+    // Phonon loads two graphs and a tokenizer, but no processor. Let the
+    // registry resolve cache keys, including versioned tokenizer assets.
+    const graphs = [
+      { model_file_name: "model", dtype: "q4" },
+      { model_file_name: "mimi_decoder", dtype: "fp16" },
+    ] as const;
+    const results = await Promise.all(
+      graphs.map((graph) => {
+        const options = {
+          ...graph,
+          device: "webgpu" as const,
+          include_processor: false,
+        };
+        return ModelRegistry.is_cached_files(MODEL_ID, options);
+      })
+    );
+    return results.every((result) => result.allCached);
+  };
 }
 
 export default Phonon;

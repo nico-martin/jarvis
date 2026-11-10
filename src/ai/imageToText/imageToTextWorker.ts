@@ -1,12 +1,12 @@
 import {
-  AutoModelForVision2Seq,
-  AutoProcessor,
   InterruptableStoppingCriteria,
   ProgressInfo,
   TextStreamer,
   load_image,
+  pipeline,
 } from "@huggingface/transformers";
 
+import { MODEL_ID } from "./constants";
 import { ImageToTextWorkerMessage, ImageToTextWorkerResponse } from "./types";
 
 const MAX_NEW_TOKENS = 512;
@@ -42,24 +42,19 @@ async function check() {
  * This class uses the Singleton pattern to enable lazy-loading of the pipeline
  */
 class SmolVLM {
-  static model_id = "HuggingFaceTB/SmolVLM-256M-Instruct";
-  static processor: Promise<any> | null = null;
-  static model: Promise<any> | null = null;
+  static instance: Promise<any> | null = null;
 
   static async getInstance(
     progress_callback: (progress: ProgressInfo) => void = null
   ) {
-    this.processor ??= AutoProcessor.from_pretrained(this.model_id, {
-      progress_callback,
-    });
-
-    this.model ??= AutoModelForVision2Seq.from_pretrained(this.model_id, {
+    this.instance ??= pipeline("image-to-text", MODEL_ID, {
       dtype: fp16_supported ? "fp16" : "fp32",
       device: "webgpu",
       progress_callback,
     });
 
-    return Promise.all([this.processor, this.model]);
+    const { processor, model } = await this.instance;
+    return [processor, model];
   }
 }
 

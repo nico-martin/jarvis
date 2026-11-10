@@ -1,37 +1,31 @@
 import { DownloadModelProgress } from "@ai/agentContext/AgentContext";
 import useAgent from "@ai/agentContext/useAgent";
-import { EXPECTED_FILES as EXPECTED_FILES_VLM } from "@ai/imageToText/constants";
+import {
+  MODEL_ID as VLM_MODEL_ID,
+  getModelDtype,
+} from "@ai/imageToText/constants";
 import { TextGeneration } from "@ai/llm/textGeneration";
 import { MODELS, MODEL_ID } from "@ai/llm/textGeneration/constants";
+import { MODEL as STT_MODEL } from "@ai/speechToText/constants";
 import {
-  EXPECTED_FILES as EXPECTED_FILES_STT,
-  MODEL as STT_MODEL,
-} from "@ai/speechToText/constants";
-import { EXPECTED_FILES as EXPECTED_FILES_TTS } from "@ai/textToSpeech/phonon/constants";
+  MODEL_ID as TTS_MODEL_ID,
+  getModelFiles as getTtsModelFiles,
+} from "@ai/textToSpeech/phonon/constants";
 import { ArrowDownTrayIcon } from "@heroicons/react/16/solid";
-import { Button, ContentBox, Progress } from "@theme";
+import { ModelRegistry } from "@huggingface/transformers";
+import { Button, ContentBox, Loader, Progress } from "@theme";
 import formatBytes from "@utils/formatBytes";
+import getModelDownloadSize from "@utils/getModelDownloadSize";
 import { useEffect, useState } from "preact/hooks";
 
 TextGeneration.model_id = MODEL_ID;
 
 const VAD_SIZE = 2243022;
-const TTS_SIZE = Object.values(EXPECTED_FILES_TTS).reduce(
-  (acc, size) => acc + size,
-  0
-);
-const STT_SIZE = Object.values(EXPECTED_FILES_STT).reduce(
-  (acc, size) => acc + size,
-  0
-);
-const VLM_SIZE = Object.values(EXPECTED_FILES_VLM).reduce(
-  (acc, size) => acc + size,
-  0
-);
+type ModelSizes = Record<"llm" | "tts" | "stt" | "vlm", number>;
 
 const getModel = (
   key: string,
-  llmSize: number
+  sizes: ModelSizes
 ): {
   taskName: string;
   name: string;
@@ -50,28 +44,28 @@ const getModel = (
       return {
         taskName: "LARGE_LANGUAGE_MODEL",
         name: MODEL_ID,
-        size: llmSize,
+        size: sizes.llm,
         url: `https://huggingface.co/${MODELS[MODEL_ID].id}`,
       };
     case "tts":
       return {
         taskName: "SPEECH_SYNTHESIS",
         name: "Phonon 31M",
-        size: TTS_SIZE,
+        size: sizes.tts,
         url: "https://huggingface.co/onnx-community/phonon-31m-en-ONNX",
       };
     case "stt":
       return {
         taskName: "SPEECH_RECOGNITION",
         name: STT_MODEL.name,
-        size: STT_SIZE,
+        size: sizes.stt,
         url: STT_MODEL.url,
       };
     case "vlm":
       return {
         taskName: "VISION_LANGUAGE_MODEL",
         name: "SmolVLM 256M",
-        size: VLM_SIZE,
+        size: sizes.vlm,
         url: "https://huggingface.co/HuggingFaceTB/SmolVLM-256M-Instruct",
       };
     default:
@@ -80,7 +74,9 @@ const getModel = (
 };
 
 export default function DownLoadDisclaimer({}: {}) {
-  const [llmSize, setLlmSize] = useState<number>(TextGeneration.downloadSize());
+  const [sizes, setSizes] = useState<ModelSizes | null>(null);
+  const [sizeError, setSizeError] = useState(false);
+  const [sizeRequest, setSizeRequest] = useState(0);
   const [isDownloading, setIsDownloading] = useState<boolean>(false);
   const { loadModels } = useAgent();
   const [progress, setProgress] = useState<DownloadModelProgress>({
@@ -92,8 +88,57 @@ export default function DownLoadDisclaimer({}: {}) {
   });
 
   useEffect(() => {
-    void TextGeneration.resolveDownloadSize().then((size) => setLlmSize(size));
-  }, []);
+    let active = true;
+    setSizeError(false);
+    const pendingSizes: Record<keyof ModelSizes, Promise<number>> = {
+      llm: TextGeneration.resolveDownloadSize(),
+      tts: (async () =>
+        getModelDownloadSize(TTS_MODEL_ID, await getTtsModelFiles()))(),
+      stt: (async () =>
+        getModelDownloadSize(
+          STT_MODEL.id,
+          await ModelRegistry.get_pipeline_files(
+            "automatic-speech-recognition",
+            STT_MODEL.id,
+            {
+              device: "webgpu",
+              dtype: STT_MODEL.dtype,
+            }
+          )
+        ))(),
+      vlm: (async () =>
+        getModelDownloadSize(
+          VLM_MODEL_ID,
+          await ModelRegistry.get_pipeline_files(
+            "image-to-text",
+            VLM_MODEL_ID,
+            {
+              device: "webgpu",
+              dtype: await getModelDtype(),
+            }
+          )
+        ))(),
+    };
+    void Promise.all(
+      Object.entries(pendingSizes).map(async ([model, pendingSize]) => {
+        try {
+          return [model, await pendingSize] as const;
+        } catch (error) {
+          console.error(`Failed to resolve ${model} download size:`, error);
+          throw error;
+        }
+      })
+    )
+      .then((entries) => {
+        if (active) setSizes(Object.fromEntries(entries) as ModelSizes);
+      })
+      .catch(() => {
+        if (active) setSizeError(true);
+      });
+    return () => {
+      active = false;
+    };
+  }, [sizeRequest]);
 
   const download = async () => {
     setIsDownloading(true);
@@ -102,6 +147,29 @@ export default function DownLoadDisclaimer({}: {}) {
     });
     setIsDownloading(false);
   };
+
+  if (sizeError) {
+    return (
+      <ContentBox className="space-y-4">
+        <p>Could not fetch model download sizes. Please try again.</p>
+        <Button onClick={() => setSizeRequest((request) => request + 1)}>
+          Retry
+        </Button>
+      </ContentBox>
+    );
+  }
+
+  if (!sizes) {
+    return (
+      <div
+        className="mt-24 flex items-center justify-center"
+        role="status"
+        aria-label="Fetching model download sizes"
+      >
+        <Loader size={10} />
+      </div>
+    );
+  }
 
   return (
     <div>
@@ -130,7 +198,7 @@ export default function DownLoadDisclaimer({}: {}) {
           {isDownloading ? (
             <ul className="w-full">
               {Object.entries(progress).map(([key, progress]) => {
-                const model = getModel(key, llmSize);
+                const model = getModel(key, sizes);
                 return !model ? null : (
                   <li className="mt-6 flex w-full flex-col gap-2">
                     <p>
@@ -158,7 +226,10 @@ export default function DownLoadDisclaimer({}: {}) {
               onClick={download}
             >
               Download required models (≈{" "}
-              {formatBytes(VAD_SIZE + llmSize + TTS_SIZE + STT_SIZE + VLM_SIZE)}
+              {formatBytes(
+                VAD_SIZE +
+                  Object.values(sizes).reduce((total, size) => total + size, 0)
+              )}
               )
             </Button>
           )}

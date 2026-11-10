@@ -1,3 +1,5 @@
+import { ModelRegistry } from "@huggingface/transformers";
+
 export const MODEL_ID = "onnx-community/phonon-31m-en-ONNX";
 export const MODEL_URL_BASE = `https://huggingface.co/${MODEL_ID}/resolve/main/`;
 export const SAMPLE_RATE = 24000;
@@ -6,12 +8,19 @@ export const SAMPLE_RATE = 24000;
 // attention, with tidy articulation" – the closest match to Jarvis.
 export const DEFAULT_VOICE = "zUCxzrOrugTSis03";
 
-export const EXPECTED_FILES = {
-  "config.json": 5430,
-  "tokenizer.json": 169734,
-  "tokenizer_config.json": 1711,
-  "onnx/model_q4.onnx": 283544,
-  "onnx/model_q4.onnx_data": 28428288,
-  "onnx/mimi_decoder_fp16.onnx": 33198,
-  "onnx/mimi_decoder_fp16.onnx_data": 21835472,
-};
+export async function getModelFiles(): Promise<string[]> {
+  const files = await Promise.all([
+    ModelRegistry.get_tokenizer_files(MODEL_ID),
+    ModelRegistry.get_model_files(MODEL_ID, {
+      device: "webgpu",
+      model_file_name: "model",
+      dtype: "q4",
+    }),
+    ModelRegistry.get_model_files(MODEL_ID, {
+      device: "webgpu",
+      model_file_name: "mimi_decoder",
+      dtype: "fp16",
+    }),
+  ]);
+  return [...new Set(files.flat())];
+}
