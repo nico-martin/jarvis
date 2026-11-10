@@ -6,7 +6,7 @@ import {
   pipeline,
 } from "@huggingface/transformers";
 
-import { MODEL_ID } from "./constants";
+import { IMAGE_MAX_EDGE, MODEL_ID } from "./constants";
 import { ImageToTextWorkerMessage, ImageToTextWorkerResponse } from "./types";
 
 const MAX_NEW_TOKENS = 512;
@@ -54,6 +54,8 @@ class SmolVLM {
     });
 
     const { processor, model } = await this.instance;
+    // Avoid upscaling to the default 2048px before single-image processing.
+    processor.image_processor.size = { longest_edge: IMAGE_MAX_EDGE };
     return [processor, model];
   }
 }
@@ -88,7 +90,9 @@ async function generate(data: { id: string; image: string; prompt?: string }) {
       add_generation_prompt: true,
     });
 
-    const inputs = await processor(text, [loadedImage]);
+    const inputs = await processor(text, [loadedImage], {
+      do_image_splitting: false,
+    });
 
     let startTime: number | undefined;
     let numTokens = 0;

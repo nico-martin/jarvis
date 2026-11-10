@@ -1,10 +1,11 @@
 import ImageToText from "@ai/imageToText/ImageToText";
+import { IMAGE_MAX_EDGE } from "@ai/imageToText/constants";
 import { Crosshair, Modal } from "@theme";
 import { eventEmitter } from "@utils/eventEmitter";
 import { FunctionComponent } from "preact";
 import { useEffect, useRef, useState } from "preact/hooks";
 
-const TIMEOUT = 5;
+const TIMEOUT = 3;
 
 const TakePictureModal: FunctionComponent = () => {
   const [isOpen, setIsOpen] = useState(false);
@@ -78,9 +79,11 @@ const TakePictureModal: FunctionComponent = () => {
   const takePicture = async () => {
     if (videoRef.current) {
       const canvas = document.createElement("canvas");
-      // Use the actual video dimensions, which should now be higher resolution
-      const width = videoRef.current.videoWidth || 1920;
-      const height = videoRef.current.videoHeight || 1080;
+      const videoWidth = videoRef.current.videoWidth || 1920;
+      const videoHeight = videoRef.current.videoHeight || 1080;
+      const scale = Math.min(1, IMAGE_MAX_EDGE / Math.max(videoWidth, videoHeight));
+      const width = Math.max(1, Math.round(videoWidth * scale));
+      const height = Math.max(1, Math.round(videoHeight * scale));
 
       canvas.width = width;
       canvas.height = height;
@@ -89,7 +92,7 @@ const TakePictureModal: FunctionComponent = () => {
       if (ctx) {
         ctx.drawImage(videoRef.current, 0, 0, width, height);
 
-        const dataUrl = canvas.toDataURL("image/png", 1.0);
+        const dataUrl = canvas.toDataURL("image/jpeg", 0.85);
         setCapturedImageUrl(dataUrl);
         setIsProcessing(true);
 
@@ -132,7 +135,7 @@ const TakePictureModal: FunctionComponent = () => {
           <div className="text-primary-300 flex items-center justify-between font-mono text-xs">
             <span>VISUAL_ACQUISITION_SYSTEM</span>
             <span className="animate-pulse">CAMERA_ACTIVE</span>
-            <span>RES: 1920x1080</span>
+            <span>MAX EDGE: {IMAGE_MAX_EDGE}px</span>
           </div>
         </div>
 

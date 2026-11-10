@@ -114,7 +114,7 @@ export class TakePictureServer {
                       {
                         type: "image",
                         data: result.imageData,
-                        mimeType: "image/png",
+                        mimeType: "image/jpeg",
                       },
                     ]
                   : []),
