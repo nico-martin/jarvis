@@ -53,23 +53,6 @@ npm run dev
 - `npm run lint` - Run ESLint
 - `npm run format` - Format code with Prettier
 - `npm run preview` - Preview production build
-- `npm run test:calendar-filter` - Test Google Calendar creator filtering (Node.js 22.6+)
-
-### Calendar creator filtering
-
-Google Calendar event read tools are filtered in JARVIS before their results reach
-the assistant or the manual tool result view. Only events whose `creator.email`
-matches `mail@nico.dev` (case-insensitive) are returned. Change
-`CALENDAR_CREATOR_EMAIL` in `src/ai/mcp/utils/calendarEventFilter.ts` to use a
-different account.
-
-The filter applies to servers named Google Calendar or hosted on a
-`google-calendar` hostname. The MCP must return JSON event arrays, `events`/`items`/
-`results` lists, or individual events with creator information. Events without
-`creator.email` are omitted and counted as unverified; unsupported response formats
-produce an explicit error instead of returning unfiltered data. Pagination tokens
-are retained because later pages may still contain matching events. This is
-client-side result filtering, not a change to Google permissions or the MCP server.
 
 ## Usage
 
