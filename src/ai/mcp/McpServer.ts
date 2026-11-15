@@ -2,6 +2,7 @@ import { McpTransport } from "@ai/mcp/types";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import type { Transport } from "@modelcontextprotocol/sdk/shared/transport.js";
 import {
+  type CallToolResult,
   CallToolResultSchema,
   GetPromptResultSchema,
   JSONRPCMessage,
@@ -15,6 +16,11 @@ import {
   Tool,
 } from "@modelcontextprotocol/sdk/types.js";
 
+import {
+  filterCalendarEventResult,
+  isCalendarEventReadTool,
+} from "./utils/calendarEventFilter";
+
 export enum McpState {
   IDLE = "idle",
   CONNECTING = "connecting",
@@ -24,6 +30,7 @@ export enum McpState {
 }
 
 export interface McpConfig {
+  calendarCreatorEmail?: string;
   clientConfig?: {
     name?: string;
     version?: string;
@@ -189,7 +196,7 @@ export class McpServer {
         CallToolResultSchema
       );
       this.log("info", `Tool "${name}" call successful`);
-      return result;
+      return this.filterToolResult(name, result);
     } catch (error) {
       const errorInstance =
         error instanceof Error ? error : new Error(String(error));
@@ -217,7 +224,7 @@ export class McpServer {
             CallToolResultSchema
           );
           this.log("info", `Tool "${name}" call successful after auth`);
-          return result;
+          return this.filterToolResult(name, result);
         } catch (retryError) {
           this.log(
             "error",
@@ -237,6 +244,12 @@ export class McpServer {
 
       throw error;
     }
+  }
+
+  private filterToolResult(name: string, result: CallToolResult) {
+    return this.config.calendarCreatorEmail && isCalendarEventReadTool(name)
+      ? filterCalendarEventResult(result, this.config.calendarCreatorEmail)
+      : result;
   }
 
   private isConnectionClosed(error: Error): boolean {

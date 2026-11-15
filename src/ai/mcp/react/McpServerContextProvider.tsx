@@ -10,6 +10,10 @@ import { useEffect, useMemo, useState } from "preact/hooks";
 
 import { getBuiltInServerTransport } from "../mcpServers/builtinMcp";
 import {
+  CALENDAR_CREATOR_EMAIL,
+  isGoogleCalendarServer,
+} from "../utils/calendarEventFilter";
+import {
   getBuiltInServers,
   getHttpServers,
   saveBuiltInServers,
@@ -40,6 +44,11 @@ export function McpServerContextProvider({
     const server = new McpServer(
       {
         clientConfig: { name: serverConfig.name },
+        calendarCreatorEmail:
+          "url" in serverConfig &&
+          isGoogleCalendarServer(serverConfig.name, serverConfig.url)
+            ? CALENDAR_CREATOR_EMAIL
+            : undefined,
       },
       {
         onStateChange: (newState: McpState) => {

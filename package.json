@@ -1,12 +1,13 @@
 {
   "name": "jarvis",
-  "version": "0.2.8",
+  "version": "0.2.9",
   "description": "",
   "type": "module",
   "scripts": {
     "dev": "vite",
     "build": "tsc && vite build",
     "lint": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
+    "test:calendar-filter": "node --experimental-strip-types --test scripts/calendarEventFilter.test.mjs",
     "preview": "vite preview",
     "format": "prettier --write .",
     "prepare": "husky",
